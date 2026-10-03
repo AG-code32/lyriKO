@@ -30,7 +30,7 @@ class _AudioCaptureTestScreenState
     setState(() {
       _capturing = true;
       _status =
-          'Capturing Windows system audio for 6 seconds...';
+          'Capturing Windows system audio for 15 seconds...';
     });
 
     try {

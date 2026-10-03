@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/audio_capture_test_screen.dart';
+import 'screens/song_detection_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,21 +10,27 @@ void main() {
   );
 }
 
-class LyricsApp extends StatelessWidget {
+class LyricsApp
+    extends StatelessWidget {
   const LyricsApp({
     super.key,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return MaterialApp(
       title: 'Lyrics',
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner:
+          false,
       theme: ThemeData(
-        brightness: Brightness.dark,
+        brightness:
+            Brightness.dark,
         useMaterial3: true,
       ),
-      home: const AudioCaptureTestScreen(),
+      home:
+          const SongDetectionScreen(),
     );
   }
 }

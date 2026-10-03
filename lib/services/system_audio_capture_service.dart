@@ -33,7 +33,7 @@ class SystemAudioCaptureService {
       MethodChannel('lyrics_app/system_audio');
 
   Future<SystemAudioCaptureResult> capture({
-    Duration duration = const Duration(seconds: 6),
+    Duration duration = const Duration(seconds: 15),
   }) async {
     final result =
         await _channel.invokeMethod<Map<dynamic, dynamic>>(
