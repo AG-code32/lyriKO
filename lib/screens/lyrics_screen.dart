@@ -2,8 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../data/demo_lyrics.dart';
+import '../models/song.dart';
 import '../services/lyrics_sync_service.dart';
+import '../services/song_loader_service.dart';
 import '../widgets/karaoke_lyric.dart';
 
 class LyricsScreen extends StatefulWidget {
@@ -14,43 +15,80 @@ class LyricsScreen extends StatefulWidget {
 }
 
 class _LyricsScreenState extends State<LyricsScreen> {
-  late final LyricsSyncService _syncService;
+  final SongLoaderService _songLoader =
+      SongLoaderService();
 
-  final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController =
+      ScrollController();
 
-  late final List<GlobalKey> _lineKeys;
+  LyricsSyncService? _syncService;
+
+  Song? _song;
+
+  List<GlobalKey> _lineKeys = [];
 
   int _currentLine = -1;
+
+  bool _loading = true;
+
+  String? _error;
 
   @override
   void initState() {
     super.initState();
 
-    _lineKeys = List.generate(
-      demoLyrics.length,
-      (_) => GlobalKey(),
-    );
+    _loadSong();
+  }
 
-    _syncService = LyricsSyncService(
-      lyrics: demoLyrics,
-    );
+  Future<void> _loadSong() async {
+    try {
+      final song = await _songLoader.loadFromAsset(
+        'assets/lyrics/demo_song.json',
+      );
 
-    _syncService.positionStream.listen((position) {
-      final newLine =
-          _syncService.getCurrentLineIndex(position);
+      final syncService = LyricsSyncService(
+        lyrics: song.lyrics,
+      );
 
-      if (newLine != _currentLine) {
-        setState(() {
-          _currentLine = newLine;
-        });
+      _lineKeys = List.generate(
+        song.lyrics.length,
+        (_) => GlobalKey(),
+      );
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToCurrentLine();
-        });
-      } else {
-        setState(() {});
-      }
-    });
+      syncService.positionStream.listen((position) {
+        if (!mounted) return;
+
+        final newLine =
+            syncService.getCurrentLineIndex(position);
+
+        if (newLine != _currentLine) {
+          setState(() {
+            _currentLine = newLine;
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToCurrentLine();
+          });
+        } else {
+          setState(() {});
+        }
+      });
+
+      if (!mounted) return;
+
+      setState(() {
+        _song = song;
+        _syncService = syncService;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   void _scrollToCurrentLine() {
@@ -63,8 +101,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
     final currentContext =
         _lineKeys[_currentLine].currentContext;
 
-    // Si Flutter tiene construida la línea,
-    // usamos su posición real.
     if (currentContext != null) {
       Scrollable.ensureVisible(
         currentContext,
@@ -76,9 +112,6 @@ class _LyricsScreenState extends State<LyricsScreen> {
       return;
     }
 
-    // Fallback:
-    // si la línea está demasiado lejos y ListView.builder
-    // todavía no la tiene construida, hacemos una aproximación.
     const estimatedItemHeight = 115.0;
 
     final estimatedOffset =
@@ -88,30 +121,12 @@ class _LyricsScreenState extends State<LyricsScreen> {
         _scrollController.position.maxScrollExtent;
 
     _scrollController.animateTo(
-      estimatedOffset.clamp(0.0, maxScroll),
+      estimatedOffset.clamp(
+        0.0,
+        maxScroll,
+      ),
       duration: const Duration(milliseconds: 550),
       curve: Curves.easeOutCubic,
-    );
-
-    // Después del movimiento Flutter ya debería haber
-    // construido esa zona. La centramos con precisión.
-    Future.delayed(
-      const Duration(milliseconds: 600),
-      () {
-        if (!mounted) return;
-
-        final newContext =
-            _lineKeys[_currentLine].currentContext;
-
-        if (newContext == null) return;
-
-        Scrollable.ensureVisible(
-          newContext,
-          alignment: 0.38,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-        );
-      },
     );
   }
 
@@ -130,46 +145,56 @@ class _LyricsScreenState extends State<LyricsScreen> {
   }
 
   void _seekBackward() {
-    final currentPosition =
-        _syncService.position;
+    final syncService = _syncService;
+
+    if (syncService == null) return;
 
     final newPosition =
-        currentPosition - const Duration(seconds: 5);
+        syncService.position - const Duration(seconds: 5);
 
-    if (newPosition.isNegative) {
-      _syncService.seek(Duration.zero);
-    } else {
-      _syncService.seek(newPosition);
-    }
+    syncService.seek(
+      newPosition.isNegative
+          ? Duration.zero
+          : newPosition,
+    );
   }
 
   void _seekForward() {
-    final currentPosition =
-        _syncService.position;
+    final syncService = _syncService;
 
-    _syncService.seek(
-      currentPosition + const Duration(seconds: 5),
+    if (syncService == null) return;
+
+    syncService.seek(
+      syncService.position +
+          const Duration(seconds: 5),
     );
   }
 
   void _togglePlayback() {
+    final syncService = _syncService;
+
+    if (syncService == null) return;
+
     setState(() {
-      _syncService.toggle();
+      syncService.toggle();
     });
   }
 
   void _reset() {
-    // 1. Reiniciamos el tiempo.
-    _syncService.reset();
+    final syncService = _syncService;
 
-    // 2. La primera línea vuelve a ser la activa.
+    if (syncService == null) return;
+
+    syncService.reset();
+
     setState(() {
       _currentLine = 0;
     });
 
-    // 3. Regresamos físicamente el ListView al inicio.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
+      if (!_scrollController.hasClients) {
+        return;
+      }
 
       _scrollController.animateTo(
         _scrollController.position.minScrollExtent,
@@ -181,7 +206,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
 
   @override
   void dispose() {
-    _syncService.dispose();
+    _syncService?.dispose();
     _scrollController.dispose();
 
     super.dispose();
@@ -189,30 +214,64 @@ class _LyricsScreenState extends State<LyricsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final position =
-        _syncService.position;
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF090909),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF090909),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Error loading lyrics\n\n$_error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final song = _song!;
+    final syncService = _syncService!;
+    final position = syncService.position;
 
     return Scaffold(
       backgroundColor: const Color(0xFF090909),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(song),
 
             Expanded(
-              child: _buildLyrics(position),
+              child: _buildLyrics(
+                song,
+                position,
+              ),
             ),
 
-            _buildControls(position),
+            _buildControls(
+              syncService,
+              position,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(
+  Widget _buildHeader(Song song) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
         28,
         22,
         28,
@@ -221,19 +280,19 @@ class _LyricsScreenState extends State<LyricsScreen> {
       child: Column(
         children: [
           Text(
-            'Demo Song',
+            song.title,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 5),
           Text(
-            'Lyrics Prototype',
+            song.artist,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white54,
               fontSize: 14,
             ),
@@ -243,17 +302,19 @@ class _LyricsScreenState extends State<LyricsScreen> {
     );
   }
 
-  Widget _buildLyrics(Duration position) {
+  Widget _buildLyrics(
+    Song song,
+    Duration position,
+  ) {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(
         horizontal: 32,
         vertical: 220,
       ),
-      itemCount: demoLyrics.length,
+      itemCount: song.lyrics.length,
       itemBuilder: (context, index) {
-        final line =
-            demoLyrics[index];
+        final line = song.lyrics[index];
 
         final isCurrent =
             index == _currentLine;
@@ -287,7 +348,10 @@ class _LyricsScreenState extends State<LyricsScreen> {
     );
   }
 
-  Widget _buildControls(Duration position) {
+  Widget _buildControls(
+    LyricsSyncService syncService,
+    Duration position,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         30,
@@ -299,8 +363,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
         color: Color(0xFF090909),
       ),
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             _formatDuration(position),
@@ -330,7 +393,7 @@ class _LyricsScreenState extends State<LyricsScreen> {
             iconSize: 32,
             padding: const EdgeInsets.all(18),
             icon: Icon(
-              _syncService.isPlaying
+              syncService.isPlaying
                   ? Icons.pause_rounded
                   : Icons.play_arrow_rounded,
             ),

@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
-import 'screens/lyrics_screen.dart';
+import 'screens/audio_capture_test_screen.dart';
 
 void main() {
-  runApp(const LyricsApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(
+    const LyricsApp(),
+  );
 }
 
 class LyricsApp extends StatelessWidget {
-  const LyricsApp({super.key});
+  const LyricsApp({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +24,7 @@ class LyricsApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: const LyricsScreen(),
+      home: const AudioCaptureTestScreen(),
     );
   }
 }

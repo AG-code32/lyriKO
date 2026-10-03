@@ -1,0 +1,52 @@
+{
+  "id": "demo_song",
+  "title": "Demo Song",
+  "artist": "Lyrics Prototype",
+  "lyrics": [
+    {
+      "start_ms": 0,
+      "end_ms": 4000,
+      "text": "Instrumental"
+    },
+    {
+      "start_ms": 4000,
+      "end_ms": 8000,
+      "text": "This is our first synchronized line"
+    },
+    {
+      "start_ms": 8000,
+      "end_ms": 12000,
+      "text": "The lyrics move together with the music"
+    },
+    {
+      "start_ms": 12000,
+      "end_ms": 16000,
+      "text": "Everything happens automatically"
+    },
+    {
+      "start_ms": 16000,
+      "end_ms": 20000,
+      "text": "No Spotify Premium is required"
+    },
+    {
+      "start_ms": 20000,
+      "end_ms": 24000,
+      "text": "The song can be detected externally"
+    },
+    {
+      "start_ms": 24000,
+      "end_ms": 28000,
+      "text": "And the lyrics come from our cloud"
+    },
+    {
+      "start_ms": 28000,
+      "end_ms": 32000,
+      "text": "Now the synchronization engine works"
+    },
+    {
+      "start_ms": 32000,
+      "end_ms": 36000,
+      "text": "This will become our lyrics application"
+    }
+  ]
+}
