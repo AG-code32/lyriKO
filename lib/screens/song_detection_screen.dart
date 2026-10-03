@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/lyrics_matcher_service.dart';
-import '../services/system_audio_capture_service.dart';
-import '../services/whisper_transcription_service.dart';
+import '../services/continuous_song_detection_service.dart';
 
 class SongDetectionScreen extends StatefulWidget {
   const SongDetectionScreen({
@@ -16,94 +14,59 @@ class SongDetectionScreen extends StatefulWidget {
 
 class _SongDetectionScreenState
     extends State<SongDetectionScreen> {
-  final SystemAudioCaptureService _captureService =
-      SystemAudioCaptureService();
+  final ContinuousSongDetectionService
+      _detectionService =
+      ContinuousSongDetectionService();
 
-  final WhisperTranscriptionService _whisperService =
-      WhisperTranscriptionService();
+  bool _detecting = false;
 
-  final LyricsMatcherService _matcher =
-      LyricsMatcherService();
+  String _status =
+      'Play a song, then press Detect Song.';
 
-  bool _running = false;
-
-  String _stage =
-      'Play one of the test songs on YouTube or Spotify.';
-
-  String? _transcript;
-
-  LyricsMatchResult? _matchResult;
+  ContinuousDetectionResult? _result;
 
   String? _error;
 
-  Future<void> _detectSong() async {
-    if (_running) {
+  Future<void> _startDetection() async {
+    if (_detecting) {
       return;
     }
 
     setState(() {
-      _running = true;
+      _detecting = true;
+      _result = null;
       _error = null;
-      _transcript = null;
-      _matchResult = null;
-      _stage = 'Listening to system audio...';
+      _status = 'Listening...';
     });
 
     try {
-      // We already verified experimentally
-      // that 15 seconds works much better
-      // than the original short sample.
-      final capture =
-          await _captureService.capture(
-        duration:
-            const Duration(seconds: 15),
+      final result =
+          await _detectionService.start(
+        onStatus: (status) {
+          if (!mounted) return;
+
+          setState(() {
+            _status = status;
+          });
+        },
       );
 
       if (!mounted) {
         return;
       }
 
-      setState(() {
-        _stage =
-            'Preparing audio for recognition...';
-      });
+      if (result == null) {
+        setState(() {
+          _status =
+              'Detection stopped.';
+        });
 
-      final transcription =
-          await _whisperService.transcribe(
-        capture.filePath,
-      );
-
-      if (!mounted) {
         return;
       }
 
       setState(() {
-        _transcript =
-            transcription.text;
-
-        _stage =
-            'Searching lyrics library...';
-      });
-
-      final match =
-          await _matcher.match(
-        transcription.text,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _matchResult = match;
-
-        if (match.bestMatch == null) {
-          _stage =
-              'No matching song found.';
-        } else {
-          _stage =
-              'Song detected';
-        }
+        _result = result;
+        _status = 'Song detected';
       });
     } catch (e) {
       if (!mounted) {
@@ -112,30 +75,42 @@ class _SongDetectionScreenState
 
       setState(() {
         _error = e.toString();
-        _stage =
-            'Detection failed';
+        _status = 'Detection failed';
       });
     } finally {
       if (mounted) {
         setState(() {
-          _running = false;
+          _detecting = false;
         });
       }
     }
   }
 
-  String _formatScore(
-    double score,
+  void _stopDetection() {
+    _detectionService.stop();
+
+    setState(() {
+      _status = 'Stopping...';
+    });
+  }
+
+  String _percentage(
+    double value,
   ) {
-    return '${(score * 100).toStringAsFixed(1)}%';
+    return '${(value * 100).toStringAsFixed(1)}%';
+  }
+
+  String _seconds(
+    Duration duration,
+  ) {
+    return '${(duration.inMilliseconds / 1000).toStringAsFixed(2)} s';
   }
 
   @override
   Widget build(
     BuildContext context,
   ) {
-    final best =
-        _matchResult?.bestMatch;
+    final result = _result;
 
     return Scaffold(
       backgroundColor:
@@ -146,7 +121,7 @@ class _SongDetectionScreenState
             child: ConstrainedBox(
               constraints:
                   const BoxConstraints(
-                maxWidth: 700,
+                maxWidth: 650,
               ),
               child: Padding(
                 padding:
@@ -156,11 +131,9 @@ class _SongDetectionScreenState
                 child: Column(
                   children: [
                     Icon(
-                      _running
-                          ? Icons
-                              .hearing_rounded
-                          : Icons
-                              .graphic_eq_rounded,
+                      _detecting
+                          ? Icons.graphic_eq_rounded
+                          : Icons.music_note_rounded,
                       color: Colors.white,
                       size: 76,
                     ),
@@ -172,8 +145,7 @@ class _SongDetectionScreenState
                     const Text(
                       'Lyrics',
                       style: TextStyle(
-                        color:
-                            Colors.white,
+                        color: Colors.white,
                         fontSize: 34,
                         fontWeight:
                             FontWeight.w700,
@@ -181,11 +153,11 @@ class _SongDetectionScreenState
                     ),
 
                     const SizedBox(
-                      height: 12,
+                      height: 14,
                     ),
 
                     Text(
-                      _stage,
+                      _status,
                       textAlign:
                           TextAlign.center,
                       style:
@@ -196,188 +168,87 @@ class _SongDetectionScreenState
                       ),
                     ),
 
-                    if (_running) ...[
+                    if (_detecting) ...[
                       const SizedBox(
-                        height: 28,
+                        height: 25,
                       ),
-
                       const LinearProgressIndicator(),
                     ],
 
-                    if (_transcript !=
-                        null) ...[
+                    if (result != null) ...[
                       const SizedBox(
                         height: 35,
                       ),
 
-                      _section(
-                        title:
-                            'Whisper heard',
-                        child: Text(
-                          _transcript!,
-                          textAlign:
-                              TextAlign.center,
-                          style:
-                              const TextStyle(
-                            color:
-                                Colors.white,
-                            fontSize: 18,
-                            height: 1.5,
-                          ),
-                        ),
+                      _buildResult(
+                        result,
                       ),
                     ],
 
-                    if (best !=
-                        null) ...[
-                      const SizedBox(
-                        height: 24,
-                      ),
-
-                      _section(
-                        title:
-                            'Best match',
-                        child: Column(
-                          children: [
-                            Text(
-                              best.title,
-                              textAlign:
-                                  TextAlign
-                                      .center,
-                              style:
-                                  const TextStyle(
-                                color:
-                                    Colors.white,
-                                fontSize: 30,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
-                              ),
-                            ),
-
-                            const SizedBox(
-                              height: 8,
-                            ),
-
-                            Text(
-                              'Confidence: '
-                              '${_formatScore(best.score)}',
-                              style:
-                                  const TextStyle(
-                                color:
-                                    Colors.white54,
-                                fontSize: 15,
-                              ),
-                            ),
-
-                            const SizedBox(
-                              height: 6,
-                            ),
-
-                            Text(
-                              'Lyric line: '
-                              '${best.lineIndex}',
-                              style:
-                                  const TextStyle(
-                                color:
-                                    Colors.white54,
-                              ),
-                            ),
-
-                            const SizedBox(
-                              height: 18,
-                            ),
-
-                            Text(
-                              best.matchedText,
-                              textAlign:
-                                  TextAlign
-                                      .center,
-                              style:
-                                  const TextStyle(
-                                color:
-                                    Colors.white70,
-                                fontSize: 16,
-                                height: 1.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 24,
-                      ),
-
-                      _buildCandidates(),
-                    ],
-
-                    if (_error !=
-                        null) ...[
+                    if (_error != null) ...[
                       const SizedBox(
                         height: 30,
                       ),
 
-                      Container(
-                        width:
-                            double.infinity,
-                        padding:
-                            const EdgeInsets
-                                .all(18),
-                        decoration:
-                            BoxDecoration(
+                      Text(
+                        _error!,
+                        textAlign:
+                            TextAlign.center,
+                        style:
+                            const TextStyle(
                           color:
-                              Colors.red
-                                  .withValues(
-                            alpha: 0.12,
-                          ),
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            14,
-                          ),
-                        ),
-                        child: Text(
-                          _error!,
-                          textAlign:
-                              TextAlign
-                                  .center,
-                          style:
-                              const TextStyle(
-                            color: Colors
-                                .redAccent,
-                          ),
+                              Colors.redAccent,
                         ),
                       ),
                     ],
 
                     const SizedBox(
-                      height: 38,
+                      height: 40,
                     ),
 
-                    FilledButton.icon(
-                      onPressed:
-                          _running
-                              ? null
-                              : _detectSong,
-                      icon: const Icon(
-                        Icons
-                            .music_note_rounded,
-                      ),
-                      label: Padding(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          vertical: 16,
-                          horizontal: 20,
+                    if (!_detecting)
+                      FilledButton.icon(
+                        onPressed:
+                            _startDetection,
+                        icon:
+                            const Icon(
+                          Icons
+                              .hearing_rounded,
                         ),
-                        child: Text(
-                          _running
-                              ? 'LISTENING...'
-                              : 'DETECT SONG',
+                        label:
+                            const Padding(
+                          padding:
+                              EdgeInsets
+                                  .symmetric(
+                            vertical: 16,
+                            horizontal: 18,
+                          ),
+                          child: Text(
+                            'DETECT SONG',
+                          ),
+                        ),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed:
+                            _stopDetection,
+                        icon:
+                            const Icon(
+                          Icons.stop_rounded,
+                        ),
+                        label:
+                            const Padding(
+                          padding:
+                              EdgeInsets
+                                  .symmetric(
+                            vertical: 16,
+                            horizontal: 18,
+                          ),
+                          child: Text(
+                            'CANCEL',
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -388,90 +259,41 @@ class _SongDetectionScreenState
     );
   }
 
-  Widget _buildCandidates() {
-    final result =
-        _matchResult;
+  Widget _buildResult(
+    ContinuousDetectionResult result,
+  ) {
+    final timings =
+        result.timings;
 
-    if (result == null) {
-      return const SizedBox.shrink();
-    }
-
-    return _section(
-      title: 'Candidates',
-      child: Column(
-        children:
-            result.candidates
-                .map(
-                  (candidate) =>
-                      Padding(
-                    padding:
-                        const EdgeInsets
-                            .symmetric(
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            candidate
-                                .title,
-                            style:
-                                const TextStyle(
-                              color:
-                                  Colors.white,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _formatScore(
-                            candidate
-                                .score,
-                          ),
-                          style:
-                              const TextStyle(
-                            color:
-                                Colors.white54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-                .toList(),
-      ),
-    );
-  }
-
-  Widget _section({
-    required String title,
-    required Widget child,
-  }) {
     return Container(
       width: double.infinity,
       padding:
           const EdgeInsets.all(
-        22,
+        26,
       ),
       decoration:
           BoxDecoration(
         color:
             Colors.white.withValues(
-          alpha: 0.05,
+          alpha: 0.06,
         ),
         borderRadius:
             BorderRadius.circular(
-          18,
+          20,
         ),
       ),
       child: Column(
         children: [
           Text(
-            title,
+            result.match.title,
+            textAlign:
+                TextAlign.center,
             style:
                 const TextStyle(
-              color:
-                  Colors.white38,
-              fontSize: 13,
+              color: Colors.white,
+              fontSize: 30,
+              fontWeight:
+                  FontWeight.w700,
             ),
           ),
 
@@ -479,7 +301,158 @@ class _SongDetectionScreenState
             height: 14,
           ),
 
-          child,
+          _row(
+            'Confidence',
+            _percentage(
+              result.match.score,
+            ),
+          ),
+
+          _row(
+            'Second candidate',
+            _percentage(
+              result.secondBestScore,
+            ),
+          ),
+
+          _row(
+            'Lead',
+            _percentage(
+              result.lead,
+            ),
+          ),
+
+          const Divider(
+            height: 30,
+            color: Colors.white12,
+          ),
+
+          _row(
+            'Windows analyzed',
+            '${result.analyzedWindows}',
+          ),
+
+          _row(
+            'Windows with voice',
+            '${result.voiceWindows}',
+          ),
+
+          const Divider(
+            height: 30,
+            color: Colors.white12,
+          ),
+
+          const Text(
+            'Development timings',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 13,
+              fontWeight:
+                  FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(
+            height: 12,
+          ),
+
+          _row(
+            'Total',
+            _seconds(
+              timings.total,
+            ),
+          ),
+
+          _row(
+            'Audio capture',
+            _seconds(
+              timings.capture,
+            ),
+          ),
+
+          _row(
+            'FFmpeg',
+            _seconds(
+              timings.preparation,
+            ),
+          ),
+
+          _row(
+            'VAD',
+            _seconds(
+              timings.vad,
+            ),
+          ),
+
+          _row(
+            'Whisper',
+            _seconds(
+              timings.whisper,
+            ),
+          ),
+
+          _row(
+            'Matcher',
+            _seconds(
+              timings.matcher,
+            ),
+          ),
+
+          const Divider(
+            height: 30,
+            color: Colors.white12,
+          ),
+
+          Align(
+            alignment:
+                Alignment.centerLeft,
+            child: Text(
+              'Recognized text:\n\n'
+              '${result.accumulatedTranscript}',
+              style:
+                  const TextStyle(
+                color:
+                    Colors.white54,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(
+    String label,
+    String value,
+  ) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(
+        vertical: 4,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style:
+                  const TextStyle(
+                color:
+                    Colors.white54,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style:
+                const TextStyle(
+              color: Colors.white,
+              fontWeight:
+                  FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

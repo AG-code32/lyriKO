@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 class WhisperTranscriptionResult {
@@ -32,11 +33,9 @@ class WhisperTranscriptionService {
   String get _modelPath =>
       '$_whisperRoot\\models\\ggml-base.en.bin';
 
-  Future<WhisperTranscriptionResult> transcribe(
+  Future<String> prepareAudio(
     String inputWavPath,
   ) async {
-    await _validateDependencies();
-
     final inputFile = File(inputWavPath);
 
     if (!await inputFile.exists()) {
@@ -45,63 +44,12 @@ class WhisperTranscriptionService {
       );
     }
 
-    final whisperWavPath =
-        '${inputFile.parent.path}\\lyrics_whisper.wav';
+    final timestamp =
+        DateTime.now().microsecondsSinceEpoch;
 
-    await _convertForWhisper(
-      inputWavPath: inputWavPath,
-      outputWavPath: whisperWavPath,
-    );
+    final outputPath =
+        '${inputFile.parent.path}\\lyrics_whisper_$timestamp.wav';
 
-    final stopwatch = Stopwatch()
-      ..start();
-
-    final result = await Process.run(
-      _whisperExecutable,
-      [
-        '-m',
-        _modelPath,
-        '-f',
-        whisperWavPath,
-        '-l',
-        'en',
-
-        // Only transcript text.
-        '-nt',
-        '-np',
-      ],
-      workingDirectory: _whisperRoot,
-      runInShell: false,
-    );
-
-    stopwatch.stop();
-
-    if (result.exitCode != 0) {
-      throw StateError(
-        'Whisper failed.\n\n${result.stderr}',
-      );
-    }
-
-    final transcript = _cleanTranscript(
-      result.stdout.toString(),
-    );
-
-    if (transcript.isEmpty) {
-      throw StateError(
-        'Whisper did not detect any usable words.',
-      );
-    }
-
-    return WhisperTranscriptionResult(
-      text: transcript,
-      processingTime: stopwatch.elapsed,
-    );
-  }
-
-  Future<void> _convertForWhisper({
-    required String inputWavPath,
-    required String outputWavPath,
-  }) async {
     final result = await Process.run(
       'ffmpeg',
       [
@@ -116,9 +64,11 @@ class WhisperTranscriptionService {
         '1',
         '-c:a',
         'pcm_s16le',
-        outputWavPath,
+        outputPath,
       ],
       runInShell: true,
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
     );
 
     if (result.exitCode != 0) {
@@ -127,29 +77,118 @@ class WhisperTranscriptionService {
       );
     }
 
-    final convertedFile =
-        File(outputWavPath);
+    final outputFile = File(outputPath);
 
-    if (!await convertedFile.exists()) {
+    if (!await outputFile.exists()) {
       throw StateError(
-        'FFmpeg finished but the converted WAV was not created.',
+        'FFmpeg finished but did not create the converted WAV.',
+      );
+    }
+
+    return outputPath;
+  }
+
+  Future<WhisperTranscriptionResult> transcribePrepared(
+    String preparedWavPath,
+  ) async {
+    await _validateDependencies();
+
+    final audioFile = File(preparedWavPath);
+
+    if (!await audioFile.exists()) {
+      throw StateError(
+        'Prepared Whisper audio does not exist:\n'
+        '$preparedWavPath',
+      );
+    }
+
+    final stopwatch = Stopwatch()..start();
+
+    final result = await Process.run(
+      _whisperExecutable,
+      [
+        '-m',
+        _modelPath,
+        '-f',
+        preparedWavPath,
+        '-l',
+        'en',
+        '-nt',
+        '-np',
+      ],
+      workingDirectory: _whisperRoot,
+      runInShell: false,
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    );
+
+    stopwatch.stop();
+
+    if (result.exitCode != 0) {
+      throw StateError(
+        'Whisper failed.\n\n${result.stderr}',
+      );
+    }
+
+    final transcript = _cleanTranscript(
+      result.stdout.toString(),
+    );
+
+    return WhisperTranscriptionResult(
+      text: transcript,
+      processingTime: stopwatch.elapsed,
+    );
+  }
+
+  Future<WhisperTranscriptionResult> transcribe(
+    String inputWavPath,
+  ) async {
+    final preparedPath = await prepareAudio(
+      inputWavPath,
+    );
+
+    try {
+      return await transcribePrepared(
+        preparedPath,
+      );
+    } finally {
+      await deletePreparedAudio(
+        preparedPath,
       );
     }
   }
 
+  Future<void> deletePreparedAudio(
+    String path,
+  ) async {
+    final file = File(path);
+
+    if (!await file.exists()) {
+      return;
+    }
+
+    try {
+      await file.delete();
+    } catch (_) {
+      // Temporary file cleanup is not critical.
+    }
+  }
+
   Future<void> _validateDependencies() async {
-    final whisperExe =
-        File(_whisperExecutable);
+    final executable = File(
+      _whisperExecutable,
+    );
 
-    final model =
-        File(_modelPath);
-
-    if (!await whisperExe.exists()) {
+    if (!await executable.exists()) {
       throw StateError(
         'whisper-cli.exe was not found at:\n'
         '$_whisperExecutable',
       );
     }
+
+    final model = File(
+      _modelPath,
+    );
 
     if (!await model.exists()) {
       throw StateError(

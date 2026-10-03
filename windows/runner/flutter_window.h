@@ -5,6 +5,7 @@
 #include <flutter/flutter_view_controller.h>
 #include <flutter/method_channel.h>
 
+#include <atomic>
 #include <memory>
 
 #include "win32_window.h"
@@ -38,6 +39,9 @@ class FlutterWindow : public Win32Window {
       flutter::MethodChannel<
           flutter::EncodableValue>>
       system_audio_channel_;
+
+  std::atomic<bool>
+      capture_in_progress_{false};
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_
