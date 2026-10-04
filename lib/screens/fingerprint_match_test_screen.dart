@@ -9,39 +9,32 @@ import '../services/system_audio_capture_service.dart';
 import 'lyrics_calibration_screen.dart';
 import 'synced_lyrics_screen.dart';
 
-class FingerprintMatchTestScreen
-    extends StatefulWidget {
+class FingerprintMatchTestScreen extends StatefulWidget {
   const FingerprintMatchTestScreen({
     super.key,
   });
 
   @override
-  State<FingerprintMatchTestScreen>
-      createState() =>
-          _FingerprintMatchTestScreenState();
+  State<FingerprintMatchTestScreen> createState() =>
+      _FingerprintMatchTestScreenState();
 }
 
 class _FingerprintMatchTestScreenState
     extends State<FingerprintMatchTestScreen>
     with SingleTickerProviderStateMixin {
-  final SystemAudioCaptureService
-      _captureService =
+  final SystemAudioCaptureService _captureService =
       SystemAudioCaptureService();
 
-  final FingerprintMatchService
-      _fingerprintService =
+  final FingerprintMatchService _fingerprintService =
       FingerprintMatchService();
 
-  final LyricsSyncBuilderService
-      _syncBuilder =
+  final LyricsSyncBuilderService _syncBuilder =
       LyricsSyncBuilderService();
 
-  final SyncedLyricsService
-      _syncedLyricsService =
+  final SyncedLyricsService _syncedLyricsService =
       SyncedLyricsService();
 
-  static const List<int>
-      _attemptSeconds = [
+  static const List<int> _attemptSeconds = [
     2,
     3,
     4,
@@ -53,26 +46,23 @@ class _FingerprintMatchTestScreenState
     25,
   ];
 
-  static const int
-      _minimumAlignedHashes = 5;
+  static const int _minimumAlignedHashes = 5;
 
-  static const double
-      _minimumHashRatio = 0.50;
+  static const double _minimumHashRatio = 0.50;
 
-  late AnimationController
-      _listenAnimation;
+  late AnimationController _listenAnimation;
 
-  FingerprintEngineInfo?
-      _engineInfo;
+  FingerprintEngineInfo? _engineInfo;
 
   bool _running = false;
+
+  bool _stopRequested = false;
 
   bool _rebuildingAlignment = false;
 
   bool _reloadingSync = false;
 
-  String _message =
-      'Tap to identify a song';
+  String _message = 'Tap to identify a song';
 
   String? _error;
 
@@ -80,11 +70,9 @@ class _FingerprintMatchTestScreenState
   void initState() {
     super.initState();
 
-    _listenAnimation =
-        AnimationController(
+    _listenAnimation = AnimationController(
       vsync: this,
-      duration:
-          const Duration(
+      duration: const Duration(
         milliseconds: 1300,
       ),
     );
@@ -95,8 +83,7 @@ class _FingerprintMatchTestScreenState
   Future<void> _warmUpEngine() async {
     try {
       final info =
-          await _fingerprintService
-              .ensureReady();
+          await _fingerprintService.ensureReady();
 
       if (!mounted) {
         return;
@@ -111,8 +98,7 @@ class _FingerprintMatchTestScreenState
       }
 
       setState(() {
-        _error =
-            e.toString();
+        _error = e.toString();
 
         _message =
             'Fingerprint engine unavailable';
@@ -130,8 +116,7 @@ class _FingerprintMatchTestScreenState
     return 5;
   }
 
-  Future<void>
-      _rebuildNobodyAlignment() async {
+  Future<void> _rebuildNobodyAlignment() async {
     if (_running ||
         _rebuildingAlignment ||
         _reloadingSync) {
@@ -139,8 +124,7 @@ class _FingerprintMatchTestScreenState
     }
 
     setState(() {
-      _rebuildingAlignment =
-          true;
+      _rebuildingAlignment = true;
 
       _error = null;
 
@@ -149,16 +133,14 @@ class _FingerprintMatchTestScreenState
     });
 
     final result =
-        await _syncBuilder
-            .rebuildNobody();
+        await _syncBuilder.rebuildNobody();
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _rebuildingAlignment =
-          false;
+      _rebuildingAlignment = false;
 
       if (result.success) {
         _message =
@@ -167,8 +149,7 @@ class _FingerprintMatchTestScreenState
         _message =
             'Alignment rebuild failed';
 
-        _error =
-            result.message;
+        _error = result.message;
       }
     });
 
@@ -186,8 +167,7 @@ class _FingerprintMatchTestScreenState
     }
   }
 
-  Future<void>
-      _reloadNobodySync() async {
+  Future<void> _reloadNobodySync() async {
     if (_running ||
         _rebuildingAlignment ||
         _reloadingSync) {
@@ -195,8 +175,7 @@ class _FingerprintMatchTestScreenState
     }
 
     setState(() {
-      _reloadingSync =
-          true;
+      _reloadingSync = true;
 
       _error = null;
 
@@ -206,16 +185,14 @@ class _FingerprintMatchTestScreenState
 
     try {
       final song =
-          await _syncedLyricsService
-              .loadNobody();
+          await _syncedLyricsService.loadNobody();
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _reloadingSync =
-            false;
+        _reloadingSync = false;
 
         _message =
             'Nobody sync reloaded';
@@ -238,20 +215,17 @@ class _FingerprintMatchTestScreenState
       }
 
       setState(() {
-        _reloadingSync =
-            false;
+        _reloadingSync = false;
 
         _message =
             'Could not reload sync';
 
-        _error =
-            e.toString();
+        _error = e.toString();
       });
     }
   }
 
-  Future<void>
-      _openCalibration() async {
+  Future<void> _openCalibration() async {
     if (_running ||
         _rebuildingAlignment ||
         _reloadingSync) {
@@ -261,9 +235,8 @@ class _FingerprintMatchTestScreenState
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (_) =>
-                const LyricsCalibrationScreen(),
+        builder: (_) =>
+            const LyricsCalibrationScreen(),
       ),
     );
 
@@ -277,6 +250,20 @@ class _FingerprintMatchTestScreenState
     });
   }
 
+  void _requestStopListening() {
+    if (!_running ||
+        _stopRequested) {
+      return;
+    }
+
+    setState(() {
+      _stopRequested = true;
+
+      _message =
+          'Stopping...';
+    });
+  }
+
   Future<void> _startListening() async {
     if (_running ||
         _rebuildingAlignment ||
@@ -287,6 +274,8 @@ class _FingerprintMatchTestScreenState
 
     setState(() {
       _running = true;
+
+      _stopRequested = false;
 
       _error = null;
 
@@ -304,65 +293,79 @@ class _FingerprintMatchTestScreenState
     bool captureStarted = false;
 
     try {
-      await _fingerprintService
-          .ensureReady();
+      //
+      // These two operations are considered
+      // structural/startup operations.
+      //
+      // If either one fails, that IS a real
+      // error and the outer catch will handle it.
+      //
+      await _fingerprintService.ensureReady();
 
       await _captureService
           .startContinuousCapture();
 
       captureStarted = true;
 
-      for (final targetSecond
-          in _attemptSeconds) {
-        final target =
-            Duration(
-          seconds:
-              targetSecond,
-        );
-
-        final remaining =
-            target -
-                totalWatch.elapsed;
-
-        if (!remaining.isNegative) {
-          await Future.delayed(
-            remaining,
-          );
+      //
+      // One identification attempt.
+      //
+      // IMPORTANT:
+      //
+      // snapshot/match errors inside this function
+      // are NOT fatal.
+      //
+      // Silence, insufficient audio, temporary
+      // audfprint failures, etc. simply return false
+      // and listening continues.
+      //
+      Future<bool> tryIdentify(
+        int windowSeconds,
+      ) async {
+        if (!mounted ||
+            _stopRequested) {
+          return false;
         }
 
-        if (!mounted) {
-          return;
-        }
+        String? snapshotPath;
 
-        final windowSeconds =
-            _windowForAttempt(
-          targetSecond,
-        );
+        String? detectedTrackName;
 
-        final snapshot =
-            await _captureService
-                .snapshotContinuousCapture(
-          last:
-              Duration(
-            seconds:
-                windowSeconds,
-          ),
-        );
+        int? detectedPositionMs;
 
         try {
+          //
+          // TRANSIENT OPERATION 1
+          //
+          final snapshot =
+              await _captureService
+                  .snapshotContinuousCapture(
+            last: Duration(
+              seconds: windowSeconds,
+            ),
+          );
+
+          snapshotPath =
+              snapshot.filePath;
+
+          //
+          // TRANSIENT OPERATION 2
+          //
           final result =
-              await _fingerprintService
-                  .match(
+              await _fingerprintService.match(
             snapshot.filePath,
           );
 
+          if (!mounted ||
+              _stopRequested) {
+            return false;
+          }
+
           final aligned =
-              result.alignedHashes ??
-                  0;
+              result.alignedHashes ?? 0;
 
           final common =
-              result.commonHashes ??
-                  0;
+              result.commonHashes ?? 0;
 
           final ratio =
               common > 0
@@ -375,109 +378,253 @@ class _FingerprintMatchTestScreenState
                   _minimumAlignedHashes &&
               ratio >=
                   _minimumHashRatio &&
-              result.offsetSeconds !=
-                  null;
+              result.offsetSeconds != null;
 
+          //
+          // No reliable song in this window.
+          //
+          // This is normal.
+          //
           if (!accepted) {
-            continue;
+            return false;
           }
 
-          totalWatch.stop();
+          detectedTrackName =
+              result.trackName ?? '';
 
-          final trackName =
-              result.trackName ??
-                  '';
-
-          final lowerTrackName =
-              trackName.toLowerCase();
-
-          final currentMs =
+          detectedPositionMs =
               ((result.offsetSeconds! +
                           result.queryDuration) *
                       1000)
                   .round() +
               result.roundTripTime
                   .inMilliseconds;
-
-          await _captureService
-              .stopContinuousCapture();
-
-          captureStarted = false;
-
-          if (!mounted) {
-            return;
-          }
-
-          if (lowerTrackName.contains(
-            'nobody',
-          )) {
-            _listenAnimation.stop();
-
-            setState(() {
-              _message =
-                  'Nobody';
-            });
-
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (_) =>
-                        SyncedLyricsScreen(
-                  initialPositionMs:
-                      currentMs,
-                  lockedTrackName:
-                      'nobody',
-                ),
-              ),
+        } catch (_) {
+          //
+          // THIS IS THE IMPORTANT FIX.
+          //
+          // A failed snapshot or failed match
+          // does NOT terminate Listening.
+          //
+          // We simply ignore this window
+          // and try again later.
+          //
+          return false;
+        } finally {
+          if (snapshotPath != null) {
+            await _deleteFile(
+              snapshotPath,
             );
-
-            if (!mounted) {
-              return;
-            }
-
-            setState(() {
-              _message =
-                  'Tap to identify a song';
-            });
-
-            return;
           }
+        }
 
+        //
+        // Nothing accepted.
+        //
+        if (detectedTrackName == null ||
+            detectedPositionMs == null) {
+          return false;
+        }
+
+        //
+        // From this point onward we genuinely
+        // detected a reliable song.
+        //
+        totalWatch.stop();
+
+        final lowerTrackName =
+            detectedTrackName.toLowerCase();
+
+        //
+        // Stop the OUTSIDE capture before
+        // opening the synced lyrics screen.
+        //
+        await _captureService
+            .stopContinuousCapture();
+
+        captureStarted = false;
+
+        if (!mounted) {
+          return true;
+        }
+
+        if (lowerTrackName.contains(
+          'nobody',
+        )) {
           _listenAnimation.stop();
 
           setState(() {
-            _message =
-                'Song found, but synchronized '
-                'lyrics are not available yet';
+            _message = 'Nobody';
           });
 
-          return;
-        } finally {
-          await _deleteFile(
-            snapshot.filePath,
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  SyncedLyricsScreen(
+                initialPositionMs:
+                    detectedPositionMs!,
+                lockedTrackName:
+                    'nobody',
+              ),
+            ),
           );
+
+          if (!mounted) {
+            return true;
+          }
+
+          setState(() {
+            _message =
+                'Tap to identify a song';
+          });
+
+          return true;
+        }
+
+        _listenAnimation.stop();
+
+        setState(() {
+          _message =
+              'Song found, but synchronized '
+              'lyrics are not available yet';
+        });
+
+        return true;
+      }
+
+      //
+      // ============================
+      // PHASE 1
+      // ============================
+      //
+      // Keep our existing progressive
+      // attempts:
+      //
+      // 2, 3, 4, 5, 7, 10, 15, 20, 25 s
+      //
+      for (final targetSecond
+          in _attemptSeconds) {
+        if (_stopRequested) {
+          break;
+        }
+
+        final target =
+            Duration(
+          seconds: targetSecond,
+        );
+
+        final remaining =
+            target -
+                totalWatch.elapsed;
+
+        if (!remaining.isNegative) {
+          await Future.delayed(
+            remaining,
+          );
+        }
+
+        if (!mounted ||
+            _stopRequested) {
+          break;
+        }
+
+        final windowSeconds =
+            _windowForAttempt(
+          targetSecond,
+        );
+
+        final found =
+            await tryIdentify(
+          windowSeconds,
+        );
+
+        if (found) {
+          return;
         }
       }
 
-      if (mounted) {
+      //
+      // ============================
+      // PHASE 2
+      // ============================
+      //
+      // OLD BEHAVIOUR:
+      //
+      // after 25 seconds:
+      //
+      // "No song found"
+      // stop capture
+      //
+      //
+      // NEW BEHAVIOUR:
+      //
+      // continue listening indefinitely.
+      //
+      // Analyze the latest five seconds
+      // every two seconds.
+      //
+      while (mounted &&
+          !_stopRequested) {
+        await Future.delayed(
+          const Duration(
+            seconds: 2,
+          ),
+        );
+
+        if (!mounted ||
+            _stopRequested) {
+          break;
+        }
+
+        final found =
+            await tryIdentify(
+          5,
+        );
+
+        if (found) {
+          return;
+        }
+      }
+
+      //
+      // If this loop ended normally,
+      // the user requested Stop.
+      //
+      if (mounted &&
+          _stopRequested) {
         setState(() {
           _message =
-              'No song found';
+              'Tap to identify a song';
         });
       }
     } catch (e) {
+      //
+      // This catch is now reserved for
+      // REAL structural errors.
+      //
+      // Examples:
+      //
+      // ensureReady() failed
+      // WASAPI capture could not start
+      //
       if (!mounted) {
         return;
       }
 
-      setState(() {
-        _error =
-            e.toString();
+      if (_stopRequested) {
+        setState(() {
+          _message =
+              'Tap to identify a song';
+        });
+      } else {
+        setState(() {
+          _error = e.toString();
 
-        _message =
-            'Could not identify the song';
-      });
+          _message =
+              'Could not identify the song';
+        });
+      }
     } finally {
       if (captureStarted) {
         try {
@@ -491,6 +638,14 @@ class _FingerprintMatchTestScreenState
       if (mounted) {
         setState(() {
           _running = false;
+
+          _stopRequested = false;
+
+          if (_message ==
+              'Stopping...') {
+            _message =
+                'Tap to identify a song';
+          }
         });
       }
     }
@@ -511,6 +666,8 @@ class _FingerprintMatchTestScreenState
 
   @override
   void dispose() {
+    _stopRequested = true;
+
     _listenAnimation.dispose();
 
     _fingerprintService.dispose();
@@ -539,10 +696,12 @@ class _FingerprintMatchTestScreenState
                 const EdgeInsets.all(
               32,
             ),
-            child: SingleChildScrollView(
+            child:
+                SingleChildScrollView(
               child: Column(
                 mainAxisAlignment:
-                    MainAxisAlignment.center,
+                    MainAxisAlignment
+                        .center,
                 children: [
                   const Text(
                     'Lyriko',
@@ -550,7 +709,8 @@ class _FingerprintMatchTestScreenState
                         TextStyle(
                       color:
                           Colors.white,
-                      fontSize: 44,
+                      fontSize:
+                          44,
                       fontWeight:
                           FontWeight.w800,
                       letterSpacing:
@@ -570,7 +730,8 @@ class _FingerprintMatchTestScreenState
                         const TextStyle(
                       color:
                           Colors.white54,
-                      fontSize: 16,
+                      fontSize:
+                          16,
                     ),
                   ),
 
@@ -593,31 +754,25 @@ class _FingerprintMatchTestScreenState
 
                       final glow =
                           25.0 +
-                          animation *
-                              45;
+                          animation * 45;
 
                       final spread =
                           2.0 +
-                          animation *
-                              12;
+                          animation * 12;
 
                       final scale =
                           1.0 +
-                          animation *
-                              0.05;
+                          animation * 0.05;
 
                       return Transform.scale(
-                        scale:
-                            scale,
-                        child:
-                            Container(
+                        scale: scale,
+                        child: Container(
                           width: 180,
                           height: 180,
                           decoration:
                               BoxDecoration(
                             shape:
-                                BoxShape
-                                    .circle,
+                                BoxShape.circle,
                             boxShadow:
                                 _running
                                     ? [
@@ -637,40 +792,44 @@ class _FingerprintMatchTestScreenState
                                       ]
                                     : null,
                           ),
-                          child:
-                              Material(
+                          child: Material(
                             shape:
                                 const CircleBorder(),
                             color:
                                 const Color(
                               0xFF181818,
                             ),
-                            child:
-                                InkWell(
+                            child: InkWell(
                               customBorder:
                                   const CircleBorder(),
+
+                              //
+                              // When idle:
+                              // tap = START
+                              //
+                              // When listening:
+                              // tap = STOP
+                              //
                               onTap:
-                                  busy ||
-                                          _engineInfo ==
-                                              null
+                                  _engineInfo ==
+                                              null ||
+                                          _rebuildingAlignment ||
+                                          _reloadingSync
                                       ? null
-                                      : _startListening,
-                              child:
-                                  Center(
+                                      : _running
+                                          ? _requestStopListening
+                                          : _startListening,
+
+                              child: Center(
                                 child:
                                     _running
-                                        ? const SizedBox(
-                                            width:
-                                                54,
-                                            height:
-                                                54,
-                                            child:
-                                                CircularProgressIndicator(
-                                              strokeWidth:
-                                                  3,
-                                              color:
-                                                  Colors.white,
-                                            ),
+                                        ? const Icon(
+                                            Icons
+                                                .stop_rounded,
+                                            size:
+                                                72,
+                                            color:
+                                                Colors.white,
                                           )
                                         : const Icon(
                                             Icons
@@ -699,8 +858,7 @@ class _FingerprintMatchTestScreenState
                             : _openCalibration,
                     icon:
                         const Icon(
-                      Icons
-                          .tune_rounded,
+                      Icons.tune_rounded,
                     ),
                     label:
                         const Padding(
@@ -742,7 +900,8 @@ class _FingerprintMatchTestScreenState
                     label:
                         Padding(
                       padding:
-                          const EdgeInsets.symmetric(
+                          const EdgeInsets
+                              .symmetric(
                         vertical: 12,
                         horizontal: 8,
                       ),
@@ -781,7 +940,8 @@ class _FingerprintMatchTestScreenState
                     label:
                         Padding(
                       padding:
-                          const EdgeInsets.symmetric(
+                          const EdgeInsets
+                              .symmetric(
                         vertical: 11,
                         horizontal: 8,
                       ),
@@ -799,24 +959,24 @@ class _FingerprintMatchTestScreenState
 
                   Text(
                     _running
-                        ? 'Listening to system audio'
+                        ? 'Listening continuously • tap the large button to stop'
                         : _rebuildingAlignment
                             ? 'Re-aligning the full song from the updated lyrics'
                             : _reloadingSync
                                 ? 'Reading the current sync JSON'
-                                : 'Tap the large button while music is playing',
+                                : 'Tap the large button to start listening',
                     textAlign:
                         TextAlign.center,
                     style:
                         const TextStyle(
                       color:
                           Colors.white30,
-                      fontSize: 13,
+                      fontSize:
+                          13,
                     ),
                   ),
 
-                  if (_error !=
-                      null) ...[
+                  if (_error != null) ...[
                     const SizedBox(
                       height: 25,
                     ),
@@ -826,8 +986,7 @@ class _FingerprintMatchTestScreenState
                           const BoxConstraints(
                         maxWidth: 620,
                       ),
-                      child:
-                          Text(
+                      child: Text(
                         _error!,
                         textAlign:
                             TextAlign.center,
@@ -835,7 +994,8 @@ class _FingerprintMatchTestScreenState
                             const TextStyle(
                           color:
                               Colors.redAccent,
-                          fontSize: 12,
+                          fontSize:
+                              12,
                         ),
                       ),
                     ),
