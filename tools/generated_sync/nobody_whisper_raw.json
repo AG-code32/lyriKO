@@ -1,0 +1,1627 @@
+{
+  "systeminfo": "WHISPER : VITISAI = 0 | COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | OPENMP = 1 | REPACK = 1 | ",
+  "model": {
+    "type": "base",
+    "multilingual": false,
+    "vocab": 51864,
+    "audio": {
+      "ctx": 1500,
+      "state": 512,
+      "head": 8,
+      "layer": 6
+    },
+    "text": {
+      "ctx": 448,
+      "state": 512,
+      "head": 8,
+      "layer": 6
+    },
+    "mels": 80,
+    "ftype": 1
+  },
+  "params": {
+    "model": "C:\\Users\\Gerson\\Downloads\\whisper.cpp\\models\\ggml-base.en.bin",
+    "language": "en",
+    "translate": false
+  },
+  "result": {
+    "language": "en"
+  },
+  "transcription": [
+    {
+      "timestamps": {
+        "from": "00:00:00,000",
+        "to": "00:00:02,420"
+      },
+      "offsets": {
+        "from": 0,
+        "to": 2420
+      },
+      "text": " (rock music)"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:27,540",
+        "to": "00:00:29,960"
+      },
+      "offsets": {
+        "from": 27540,
+        "to": 29960
+      },
+      "text": " ♪ We're out in the shadows ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:29,960",
+        "to": "00:00:33,660"
+      },
+      "offsets": {
+        "from": 29960,
+        "to": 33660
+      },
+      "text": " ♪ Wondering beyond the brain ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:33,660",
+        "to": "00:00:35,720"
+      },
+      "offsets": {
+        "from": 33660,
+        "to": 35720
+      },
+      "text": " ♪ Long like a feather ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:35,720",
+        "to": "00:00:37,460"
+      },
+      "offsets": {
+        "from": 35720,
+        "to": 37460
+      },
+      "text": " ♪ Through space and time ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:37,460",
+        "to": "00:00:39,720"
+      },
+      "offsets": {
+        "from": 37460,
+        "to": 39720
+      },
+      "text": " ♪ Outside a dream ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:39,720",
+        "to": "00:00:42,100"
+      },
+      "offsets": {
+        "from": 39720,
+        "to": 42100
+      },
+      "text": " ♪ Here we're with infinity ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:42,100",
+        "to": "00:00:46,020"
+      },
+      "offsets": {
+        "from": 42100,
+        "to": 46020
+      },
+      "text": " ♪ In the dance we've shared before ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:46,020",
+        "to": "00:00:48,360"
+      },
+      "offsets": {
+        "from": 46020,
+        "to": 48360
+      },
+      "text": " ♪ Someone's solution ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:48,360",
+        "to": "00:00:52,080"
+      },
+      "offsets": {
+        "from": 48360,
+        "to": 52080
+      },
+      "text": " ♪ This is I, you fall as I am done ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:52,080",
+        "to": "00:00:57,560"
+      },
+      "offsets": {
+        "from": 52080,
+        "to": 57560
+      },
+      "text": " ♪ Yeah, we've got so high ♪"
+    },
+    {
+      "timestamps": {
+        "from": "00:00:57,560",
+        "to": "00:01:05,060"
+      },
+      "offsets": {
+        "from": 57560,
+        "to": 65060
+      },
+      "text": " No, I, no coming down."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:05,060",
+        "to": "00:01:10,560"
+      },
+      "offsets": {
+        "from": 65060,
+        "to": 70560
+      },
+      "text": " Shedding weight as I'm coming undone, all that's left, good-working as one."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:10,560",
+        "to": "00:01:13,560"
+      },
+      "offsets": {
+        "from": 70560,
+        "to": 73560
+      },
+      "text": " I am the sun."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:13,560",
+        "to": "00:01:16,560"
+      },
+      "offsets": {
+        "from": 73560,
+        "to": 76560
+      },
+      "text": " I am the sun, yeah."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:16,560",
+        "to": "00:01:19,560"
+      },
+      "offsets": {
+        "from": 76560,
+        "to": 79560
+      },
+      "text": " I'm the gun."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:19,560",
+        "to": "00:01:23,560"
+      },
+      "offsets": {
+        "from": 79560,
+        "to": 83560
+      },
+      "text": " I'm the wake."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:23,560",
+        "to": "00:01:29,560"
+      },
+      "offsets": {
+        "from": 83560,
+        "to": 89560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:29,560",
+        "to": "00:01:35,560"
+      },
+      "offsets": {
+        "from": 89560,
+        "to": 95560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:35,560",
+        "to": "00:01:42,560"
+      },
+      "offsets": {
+        "from": 95560,
+        "to": 102560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:42,560",
+        "to": "00:01:46,560"
+      },
+      "offsets": {
+        "from": 102560,
+        "to": 106560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:46,560",
+        "to": "00:01:49,560"
+      },
+      "offsets": {
+        "from": 106560,
+        "to": 109560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:49,560",
+        "to": "00:01:52,560"
+      },
+      "offsets": {
+        "from": 109560,
+        "to": 112560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:52,560",
+        "to": "00:01:55,560"
+      },
+      "offsets": {
+        "from": 112560,
+        "to": 115560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:55,560",
+        "to": "00:01:58,560"
+      },
+      "offsets": {
+        "from": 115560,
+        "to": 118560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:01:58,560",
+        "to": "00:02:00,560"
+      },
+      "offsets": {
+        "from": 118560,
+        "to": 120560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:00,560",
+        "to": "00:02:02,560"
+      },
+      "offsets": {
+        "from": 120560,
+        "to": 122560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:02,560",
+        "to": "00:02:04,560"
+      },
+      "offsets": {
+        "from": 122560,
+        "to": 124560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:04,560",
+        "to": "00:02:07,560"
+      },
+      "offsets": {
+        "from": 124560,
+        "to": 127560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:07,560",
+        "to": "00:02:09,560"
+      },
+      "offsets": {
+        "from": 127560,
+        "to": 129560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:09,560",
+        "to": "00:02:13,560"
+      },
+      "offsets": {
+        "from": 129560,
+        "to": 133560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:13,560",
+        "to": "00:02:15,560"
+      },
+      "offsets": {
+        "from": 133560,
+        "to": 135560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:15,560",
+        "to": "00:02:18,560"
+      },
+      "offsets": {
+        "from": 135560,
+        "to": 138560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:18,560",
+        "to": "00:02:22,560"
+      },
+      "offsets": {
+        "from": 138560,
+        "to": 142560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:22,560",
+        "to": "00:02:24,560"
+      },
+      "offsets": {
+        "from": 142560,
+        "to": 144560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:24,560",
+        "to": "00:02:26,560"
+      },
+      "offsets": {
+        "from": 144560,
+        "to": 146560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:26,560",
+        "to": "00:02:28,560"
+      },
+      "offsets": {
+        "from": 146560,
+        "to": 148560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:28,560",
+        "to": "00:02:30,560"
+      },
+      "offsets": {
+        "from": 148560,
+        "to": 150560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:30,560",
+        "to": "00:02:32,560"
+      },
+      "offsets": {
+        "from": 150560,
+        "to": 152560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:32,560",
+        "to": "00:02:34,560"
+      },
+      "offsets": {
+        "from": 152560,
+        "to": 154560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:34,560",
+        "to": "00:02:36,560"
+      },
+      "offsets": {
+        "from": 154560,
+        "to": 156560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:36,560",
+        "to": "00:02:38,560"
+      },
+      "offsets": {
+        "from": 156560,
+        "to": 158560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:38,560",
+        "to": "00:02:39,560"
+      },
+      "offsets": {
+        "from": 158560,
+        "to": 159560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:39,560",
+        "to": "00:02:40,560"
+      },
+      "offsets": {
+        "from": 159560,
+        "to": 160560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:40,560",
+        "to": "00:02:41,560"
+      },
+      "offsets": {
+        "from": 160560,
+        "to": 161560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:41,560",
+        "to": "00:02:42,560"
+      },
+      "offsets": {
+        "from": 161560,
+        "to": 162560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:42,560",
+        "to": "00:02:43,560"
+      },
+      "offsets": {
+        "from": 162560,
+        "to": 163560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:43,560",
+        "to": "00:02:44,560"
+      },
+      "offsets": {
+        "from": 163560,
+        "to": 164560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:44,560",
+        "to": "00:02:45,560"
+      },
+      "offsets": {
+        "from": 164560,
+        "to": 165560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:45,560",
+        "to": "00:02:46,560"
+      },
+      "offsets": {
+        "from": 165560,
+        "to": 166560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:46,560",
+        "to": "00:02:47,560"
+      },
+      "offsets": {
+        "from": 166560,
+        "to": 167560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:47,560",
+        "to": "00:02:49,560"
+      },
+      "offsets": {
+        "from": 167560,
+        "to": 169560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:49,560",
+        "to": "00:02:51,560"
+      },
+      "offsets": {
+        "from": 169560,
+        "to": 171560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:51,560",
+        "to": "00:02:53,560"
+      },
+      "offsets": {
+        "from": 171560,
+        "to": 173560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:53,560",
+        "to": "00:02:55,560"
+      },
+      "offsets": {
+        "from": 173560,
+        "to": 175560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:55,560",
+        "to": "00:02:57,560"
+      },
+      "offsets": {
+        "from": 175560,
+        "to": 177560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:57,560",
+        "to": "00:02:59,560"
+      },
+      "offsets": {
+        "from": 177560,
+        "to": 179560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:02:59,560",
+        "to": "00:03:01,560"
+      },
+      "offsets": {
+        "from": 179560,
+        "to": 181560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:01,560",
+        "to": "00:03:03,560"
+      },
+      "offsets": {
+        "from": 181560,
+        "to": 183560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:03,560",
+        "to": "00:03:05,560"
+      },
+      "offsets": {
+        "from": 183560,
+        "to": 185560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:05,560",
+        "to": "00:03:07,560"
+      },
+      "offsets": {
+        "from": 185560,
+        "to": 187560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:07,560",
+        "to": "00:03:09,560"
+      },
+      "offsets": {
+        "from": 187560,
+        "to": 189560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:09,560",
+        "to": "00:03:11,560"
+      },
+      "offsets": {
+        "from": 189560,
+        "to": 191560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:11,560",
+        "to": "00:03:13,560"
+      },
+      "offsets": {
+        "from": 191560,
+        "to": 193560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:13,560",
+        "to": "00:03:15,560"
+      },
+      "offsets": {
+        "from": 193560,
+        "to": 195560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:15,560",
+        "to": "00:03:17,560"
+      },
+      "offsets": {
+        "from": 195560,
+        "to": 197560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:17,560",
+        "to": "00:03:19,560"
+      },
+      "offsets": {
+        "from": 197560,
+        "to": 199560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:19,560",
+        "to": "00:03:21,560"
+      },
+      "offsets": {
+        "from": 199560,
+        "to": 201560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:21,560",
+        "to": "00:03:23,560"
+      },
+      "offsets": {
+        "from": 201560,
+        "to": 203560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:23,560",
+        "to": "00:03:25,560"
+      },
+      "offsets": {
+        "from": 203560,
+        "to": 205560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:25,560",
+        "to": "00:03:27,560"
+      },
+      "offsets": {
+        "from": 205560,
+        "to": 207560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:27,560",
+        "to": "00:03:29,560"
+      },
+      "offsets": {
+        "from": 207560,
+        "to": 209560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:29,560",
+        "to": "00:03:31,560"
+      },
+      "offsets": {
+        "from": 209560,
+        "to": 211560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:31,560",
+        "to": "00:03:33,560"
+      },
+      "offsets": {
+        "from": 211560,
+        "to": 213560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:33,560",
+        "to": "00:03:35,560"
+      },
+      "offsets": {
+        "from": 213560,
+        "to": 215560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:35,560",
+        "to": "00:03:37,560"
+      },
+      "offsets": {
+        "from": 215560,
+        "to": 217560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:37,560",
+        "to": "00:03:39,560"
+      },
+      "offsets": {
+        "from": 217560,
+        "to": 219560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:39,560",
+        "to": "00:03:41,560"
+      },
+      "offsets": {
+        "from": 219560,
+        "to": 221560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:41,560",
+        "to": "00:03:43,560"
+      },
+      "offsets": {
+        "from": 221560,
+        "to": 223560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:43,560",
+        "to": "00:03:45,560"
+      },
+      "offsets": {
+        "from": 223560,
+        "to": 225560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:45,560",
+        "to": "00:03:47,560"
+      },
+      "offsets": {
+        "from": 225560,
+        "to": 227560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:47,560",
+        "to": "00:03:49,560"
+      },
+      "offsets": {
+        "from": 227560,
+        "to": 229560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:49,560",
+        "to": "00:03:51,560"
+      },
+      "offsets": {
+        "from": 229560,
+        "to": 231560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:51,560",
+        "to": "00:03:53,560"
+      },
+      "offsets": {
+        "from": 231560,
+        "to": 233560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:53,560",
+        "to": "00:03:55,560"
+      },
+      "offsets": {
+        "from": 233560,
+        "to": 235560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:55,560",
+        "to": "00:03:57,560"
+      },
+      "offsets": {
+        "from": 235560,
+        "to": 237560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:57,560",
+        "to": "00:03:59,560"
+      },
+      "offsets": {
+        "from": 237560,
+        "to": 239560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:03:59,560",
+        "to": "00:04:01,560"
+      },
+      "offsets": {
+        "from": 239560,
+        "to": 241560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:01,560",
+        "to": "00:04:03,560"
+      },
+      "offsets": {
+        "from": 241560,
+        "to": 243560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:03,560",
+        "to": "00:04:05,560"
+      },
+      "offsets": {
+        "from": 243560,
+        "to": 245560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:05,560",
+        "to": "00:04:07,560"
+      },
+      "offsets": {
+        "from": 245560,
+        "to": 247560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:07,560",
+        "to": "00:04:09,560"
+      },
+      "offsets": {
+        "from": 247560,
+        "to": 249560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:09,560",
+        "to": "00:04:11,560"
+      },
+      "offsets": {
+        "from": 249560,
+        "to": 251560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:11,560",
+        "to": "00:04:13,560"
+      },
+      "offsets": {
+        "from": 251560,
+        "to": 253560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:13,560",
+        "to": "00:04:15,560"
+      },
+      "offsets": {
+        "from": 253560,
+        "to": 255560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:15,560",
+        "to": "00:04:17,560"
+      },
+      "offsets": {
+        "from": 255560,
+        "to": 257560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:17,560",
+        "to": "00:04:19,560"
+      },
+      "offsets": {
+        "from": 257560,
+        "to": 259560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:19,560",
+        "to": "00:04:21,560"
+      },
+      "offsets": {
+        "from": 259560,
+        "to": 261560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:21,560",
+        "to": "00:04:23,560"
+      },
+      "offsets": {
+        "from": 261560,
+        "to": 263560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:23,560",
+        "to": "00:04:25,560"
+      },
+      "offsets": {
+        "from": 263560,
+        "to": 265560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:25,560",
+        "to": "00:04:27,560"
+      },
+      "offsets": {
+        "from": 265560,
+        "to": 267560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:27,560",
+        "to": "00:04:29,560"
+      },
+      "offsets": {
+        "from": 267560,
+        "to": 269560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:29,560",
+        "to": "00:04:31,560"
+      },
+      "offsets": {
+        "from": 269560,
+        "to": 271560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:31,560",
+        "to": "00:04:33,560"
+      },
+      "offsets": {
+        "from": 271560,
+        "to": 273560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:33,560",
+        "to": "00:04:35,560"
+      },
+      "offsets": {
+        "from": 273560,
+        "to": 275560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:35,560",
+        "to": "00:04:37,560"
+      },
+      "offsets": {
+        "from": 275560,
+        "to": 277560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:37,560",
+        "to": "00:04:39,560"
+      },
+      "offsets": {
+        "from": 277560,
+        "to": 279560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:39,560",
+        "to": "00:04:41,560"
+      },
+      "offsets": {
+        "from": 279560,
+        "to": 281560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:41,560",
+        "to": "00:04:43,560"
+      },
+      "offsets": {
+        "from": 281560,
+        "to": 283560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:43,560",
+        "to": "00:04:45,560"
+      },
+      "offsets": {
+        "from": 283560,
+        "to": 285560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:45,560",
+        "to": "00:04:47,560"
+      },
+      "offsets": {
+        "from": 285560,
+        "to": 287560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:47,560",
+        "to": "00:04:49,560"
+      },
+      "offsets": {
+        "from": 287560,
+        "to": 289560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:49,560",
+        "to": "00:04:51,560"
+      },
+      "offsets": {
+        "from": 289560,
+        "to": 291560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:51,560",
+        "to": "00:04:53,560"
+      },
+      "offsets": {
+        "from": 291560,
+        "to": 293560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:53,560",
+        "to": "00:04:55,560"
+      },
+      "offsets": {
+        "from": 293560,
+        "to": 295560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:55,560",
+        "to": "00:04:57,560"
+      },
+      "offsets": {
+        "from": 295560,
+        "to": 297560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:57,560",
+        "to": "00:04:59,560"
+      },
+      "offsets": {
+        "from": 297560,
+        "to": 299560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:04:59,560",
+        "to": "00:05:01,560"
+      },
+      "offsets": {
+        "from": 299560,
+        "to": 301560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:01,560",
+        "to": "00:05:03,560"
+      },
+      "offsets": {
+        "from": 301560,
+        "to": 303560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:03,560",
+        "to": "00:05:05,560"
+      },
+      "offsets": {
+        "from": 303560,
+        "to": 305560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:05,560",
+        "to": "00:05:07,560"
+      },
+      "offsets": {
+        "from": 305560,
+        "to": 307560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:07,560",
+        "to": "00:05:09,560"
+      },
+      "offsets": {
+        "from": 307560,
+        "to": 309560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:09,560",
+        "to": "00:05:11,560"
+      },
+      "offsets": {
+        "from": 309560,
+        "to": 311560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:11,560",
+        "to": "00:05:13,560"
+      },
+      "offsets": {
+        "from": 311560,
+        "to": 313560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:13,560",
+        "to": "00:05:15,560"
+      },
+      "offsets": {
+        "from": 313560,
+        "to": 315560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:15,560",
+        "to": "00:05:17,560"
+      },
+      "offsets": {
+        "from": 315560,
+        "to": 317560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:17,560",
+        "to": "00:05:19,560"
+      },
+      "offsets": {
+        "from": 317560,
+        "to": 319560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:19,560",
+        "to": "00:05:21,560"
+      },
+      "offsets": {
+        "from": 319560,
+        "to": 321560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:21,560",
+        "to": "00:05:23,560"
+      },
+      "offsets": {
+        "from": 321560,
+        "to": 323560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:23,560",
+        "to": "00:05:25,560"
+      },
+      "offsets": {
+        "from": 323560,
+        "to": 325560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:25,560",
+        "to": "00:05:27,560"
+      },
+      "offsets": {
+        "from": 325560,
+        "to": 327560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:27,560",
+        "to": "00:05:29,560"
+      },
+      "offsets": {
+        "from": 327560,
+        "to": 329560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:29,560",
+        "to": "00:05:31,560"
+      },
+      "offsets": {
+        "from": 329560,
+        "to": 331560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:31,560",
+        "to": "00:05:33,560"
+      },
+      "offsets": {
+        "from": 331560,
+        "to": 333560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:33,560",
+        "to": "00:05:35,560"
+      },
+      "offsets": {
+        "from": 333560,
+        "to": 335560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:35,560",
+        "to": "00:05:37,560"
+      },
+      "offsets": {
+        "from": 335560,
+        "to": 337560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:37,560",
+        "to": "00:05:39,560"
+      },
+      "offsets": {
+        "from": 337560,
+        "to": 339560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:39,560",
+        "to": "00:05:41,560"
+      },
+      "offsets": {
+        "from": 339560,
+        "to": 341560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:41,560",
+        "to": "00:05:43,560"
+      },
+      "offsets": {
+        "from": 341560,
+        "to": 343560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:43,560",
+        "to": "00:05:45,560"
+      },
+      "offsets": {
+        "from": 343560,
+        "to": 345560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:45,560",
+        "to": "00:05:47,560"
+      },
+      "offsets": {
+        "from": 345560,
+        "to": 347560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:47,560",
+        "to": "00:05:49,560"
+      },
+      "offsets": {
+        "from": 347560,
+        "to": 349560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:49,560",
+        "to": "00:05:51,560"
+      },
+      "offsets": {
+        "from": 349560,
+        "to": 351560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:51,560",
+        "to": "00:05:53,560"
+      },
+      "offsets": {
+        "from": 351560,
+        "to": 353560
+      },
+      "text": " I'm the one in every thing."
+    },
+    {
+      "timestamps": {
+        "from": "00:05:53,560",
+        "to": "00:05:55,560"
+      },
+      "offsets": {
+        "from": 353560,
+        "to": 355560
+      },
+      "text": " I'm the one in every thing."
+    }
+  ]
+}

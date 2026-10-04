@@ -1,0 +1,885 @@
+{
+  "songId": "avenged-sevenfold-nobody",
+  "title": "Nobody",
+  "artist": "Avenged Sevenfold",
+  "durationMs": 356062,
+  "lines": [
+    {
+      "text": "Ride in the shadows, wandering beyond the frame",
+      "startMs": 26463,
+      "endMs": 33626,
+      "words": [],
+      "originalStartMs": 26613,
+      "originalEndMs": 30751
+    },
+    {
+      "text": "Float like a feather through space and time, outside a dream",
+      "startMs": 33627,
+      "endMs": 39699,
+      "words": [],
+      "originalStartMs": 30752,
+      "originalEndMs": 39749
+    },
+    {
+      "text": "Pirouette with divinity in a dance we've shared before",
+      "startMs": 39700,
+      "endMs": 46140,
+      "words": [],
+      "originalStartMs": 39750,
+      "originalEndMs": 46140
+    },
+    {
+      "text": "\"Someone\" dissolution",
+      "startMs": 46140,
+      "endMs": 48340,
+      "words": [
+        {
+          "text": "Someone\"",
+          "startMs": 46140,
+          "endMs": 47020
+        },
+        {
+          "text": "dissolution",
+          "startMs": 47020,
+          "endMs": 48340
+        }
+      ],
+      "originalStartMs": 46140,
+      "originalEndMs": 48340
+    },
+    {
+      "text": "This is \"I am all\" as \"I am none\"",
+      "startMs": 48340,
+      "endMs": 52580,
+      "words": [
+        {
+          "text": "This",
+          "startMs": 48340,
+          "endMs": 48700
+        },
+        {
+          "text": "is \"",
+          "startMs": 48700,
+          "endMs": 49220
+        },
+        {
+          "text": "I",
+          "startMs": 49220,
+          "endMs": 49520
+        },
+        {
+          "text": "am",
+          "startMs": 49520,
+          "endMs": 49760
+        },
+        {
+          "text": "all\"",
+          "startMs": 49760,
+          "endMs": 50400
+        },
+        {
+          "text": "as \"",
+          "startMs": 50400,
+          "endMs": 50860
+        },
+        {
+          "text": "I",
+          "startMs": 50860,
+          "endMs": 51140
+        },
+        {
+          "text": "am",
+          "startMs": 51140,
+          "endMs": 51300
+        },
+        {
+          "text": "none\"",
+          "startMs": 51300,
+          "endMs": 52580
+        }
+      ],
+      "originalStartMs": 48340,
+      "originalEndMs": 52580
+    },
+    {
+      "text": "Here we fly so high, no, I, no coming down",
+      "startMs": 52580,
+      "endMs": 64699,
+      "words": [],
+      "originalStartMs": 52580,
+      "originalEndMs": 63500
+    },
+    {
+      "text": "Shedding weight as I'm coming undone",
+      "startMs": 64700,
+      "endMs": 67840,
+      "words": [],
+      "originalStartMs": 63500,
+      "originalEndMs": 67840
+    },
+    {
+      "text": "All that's left, converging as one",
+      "startMs": 67840,
+      "endMs": 70780,
+      "words": [
+        {
+          "text": "All",
+          "startMs": 67840,
+          "endMs": 68060
+        },
+        {
+          "text": "that's",
+          "startMs": 68060,
+          "endMs": 68300
+        },
+        {
+          "text": "left,",
+          "startMs": 68300,
+          "endMs": 68640
+        },
+        {
+          "text": "converging",
+          "startMs": 68640,
+          "endMs": 69640
+        },
+        {
+          "text": "as",
+          "startMs": 69640,
+          "endMs": 69800
+        },
+        {
+          "text": "one",
+          "startMs": 69800,
+          "endMs": 70780
+        }
+      ],
+      "originalStartMs": 67840,
+      "originalEndMs": 70780
+    },
+    {
+      "text": "I am the sun",
+      "startMs": 70780,
+      "endMs": 72800,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 70780,
+          "endMs": 70920
+        },
+        {
+          "text": "am",
+          "startMs": 70920,
+          "endMs": 71040
+        },
+        {
+          "text": "the",
+          "startMs": 71040,
+          "endMs": 71180
+        },
+        {
+          "text": "sun",
+          "startMs": 71180,
+          "endMs": 72800
+        }
+      ],
+      "originalStartMs": 70780,
+      "originalEndMs": 72800
+    },
+    {
+      "text": "I am the sun, yeah",
+      "startMs": 72800,
+      "endMs": 77040,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 72800,
+          "endMs": 74120
+        },
+        {
+          "text": "am",
+          "startMs": 74120,
+          "endMs": 74320
+        },
+        {
+          "text": "the",
+          "startMs": 74320,
+          "endMs": 74660
+        },
+        {
+          "text": "sun,",
+          "startMs": 74660,
+          "endMs": 75840
+        },
+        {
+          "text": "yeah",
+          "startMs": 75840,
+          "endMs": 77040
+        }
+      ],
+      "originalStartMs": 72800,
+      "originalEndMs": 77040
+    },
+    {
+      "text": "I'm a god, I'm awake",
+      "startMs": 77040,
+      "endMs": 83409,
+      "words": [],
+      "originalStartMs": 77040,
+      "originalEndMs": 80100
+    },
+    {
+      "text": "I'm the one in everything",
+      "startMs": 83410,
+      "endMs": 89360,
+      "words": [],
+      "originalStartMs": 80100,
+      "originalEndMs": 89360
+    },
+    {
+      "text": "I'm alive, I'm the dead",
+      "startMs": 89360,
+      "endMs": 95880,
+      "words": [
+        {
+          "text": "I'm",
+          "startMs": 89360,
+          "endMs": 90460
+        },
+        {
+          "text": "alive,",
+          "startMs": 90460,
+          "endMs": 91820
+        },
+        {
+          "text": "I'm",
+          "startMs": 91820,
+          "endMs": 93260
+        },
+        {
+          "text": "the",
+          "startMs": 93260,
+          "endMs": 93800
+        },
+        {
+          "text": "dead",
+          "startMs": 93800,
+          "endMs": 95880
+        }
+      ],
+      "originalStartMs": 89360,
+      "originalEndMs": 95880
+    },
+    {
+      "text": "I'm a man without a head",
+      "startMs": 95880,
+      "endMs": 103500,
+      "words": [
+        {
+          "text": "I'm",
+          "startMs": 95880,
+          "endMs": 96300
+        },
+        {
+          "text": "a",
+          "startMs": 96300,
+          "endMs": 96420
+        },
+        {
+          "text": "man",
+          "startMs": 96420,
+          "endMs": 98780
+        },
+        {
+          "text": "without",
+          "startMs": 98780,
+          "endMs": 99460
+        },
+        {
+          "text": "a",
+          "startMs": 99460,
+          "endMs": 101020
+        },
+        {
+          "text": "head",
+          "startMs": 101020,
+          "endMs": 103500
+        }
+      ],
+      "originalStartMs": 95880,
+      "originalEndMs": 103500
+    },
+    {
+      "text": "(I'm a god, I'm awake) I walk with death in final exhalation",
+      "startMs": 103500,
+      "endMs": 106300,
+      "words": [
+        {
+          "text": "I'm",
+          "startMs": 103500,
+          "endMs": 103640
+        },
+        {
+          "text": "a",
+          "startMs": 103640,
+          "endMs": 103720
+        },
+        {
+          "text": "god,",
+          "startMs": 103720,
+          "endMs": 103880
+        },
+        {
+          "text": "I'm",
+          "startMs": 103880,
+          "endMs": 104000
+        },
+        {
+          "text": "awake)",
+          "startMs": 104000,
+          "endMs": 104380
+        },
+        {
+          "text": "I",
+          "startMs": 104380,
+          "endMs": 104440
+        },
+        {
+          "text": "walk",
+          "startMs": 104440,
+          "endMs": 104560
+        },
+        {
+          "text": "with",
+          "startMs": 104560,
+          "endMs": 104640
+        },
+        {
+          "text": "death",
+          "startMs": 104640,
+          "endMs": 104900
+        },
+        {
+          "text": "in",
+          "startMs": 104900,
+          "endMs": 105140
+        },
+        {
+          "text": "final",
+          "startMs": 105140,
+          "endMs": 105480
+        },
+        {
+          "text": "exhalation",
+          "startMs": 105480,
+          "endMs": 106300
+        }
+      ],
+      "originalStartMs": 103500,
+      "originalEndMs": 106300
+    },
+    {
+      "text": "And come apart through violent separation (I'm the one in everything)",
+      "startMs": 106300,
+      "endMs": 109700,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 106300,
+          "endMs": 106560
+        },
+        {
+          "text": "come",
+          "startMs": 106560,
+          "endMs": 106860
+        },
+        {
+          "text": "apart",
+          "startMs": 106860,
+          "endMs": 107020
+        },
+        {
+          "text": "through",
+          "startMs": 107020,
+          "endMs": 107260
+        },
+        {
+          "text": "violent",
+          "startMs": 107260,
+          "endMs": 107860
+        },
+        {
+          "text": "separation (",
+          "startMs": 107860,
+          "endMs": 108500
+        },
+        {
+          "text": "I'm",
+          "startMs": 108500,
+          "endMs": 108620
+        },
+        {
+          "text": "the",
+          "startMs": 108620,
+          "endMs": 108840
+        },
+        {
+          "text": "one",
+          "startMs": 108840,
+          "endMs": 109000
+        },
+        {
+          "text": "in",
+          "startMs": 109000,
+          "endMs": 109040
+        },
+        {
+          "text": "everything)",
+          "startMs": 109040,
+          "endMs": 109700
+        }
+      ],
+      "originalStartMs": 106300,
+      "originalEndMs": 109700
+    },
+    {
+      "text": "A thousand floors ascend into the ether",
+      "startMs": 109700,
+      "endMs": 112300,
+      "words": [
+        {
+          "text": "A",
+          "startMs": 109700,
+          "endMs": 109780
+        },
+        {
+          "text": "thousand",
+          "startMs": 109780,
+          "endMs": 110480
+        },
+        {
+          "text": "floors",
+          "startMs": 110480,
+          "endMs": 111120
+        },
+        {
+          "text": "ascend",
+          "startMs": 111120,
+          "endMs": 111760
+        },
+        {
+          "text": "into",
+          "startMs": 111760,
+          "endMs": 111900
+        },
+        {
+          "text": "the",
+          "startMs": 111900,
+          "endMs": 112040
+        },
+        {
+          "text": "ether",
+          "startMs": 112040,
+          "endMs": 112300
+        }
+      ],
+      "originalStartMs": 109700,
+      "originalEndMs": 112300
+    },
+    {
+      "text": "A lunatic enchanted by the reaper (I'm alive)",
+      "startMs": 112300,
+      "endMs": 116089,
+      "words": [],
+      "originalStartMs": 112300,
+      "originalEndMs": 114660
+    },
+    {
+      "text": "And down below, I leave a stranger laying lifeless (I'm the dead)",
+      "startMs": 116090,
+      "endMs": 118920,
+      "words": [],
+      "originalStartMs": 114660,
+      "originalEndMs": 118920
+    },
+    {
+      "text": "As the light begins to shatter the skies (I'm a man without a head)",
+      "startMs": 118920,
+      "endMs": 123260,
+      "words": [
+        {
+          "text": "As",
+          "startMs": 118920,
+          "endMs": 119160
+        },
+        {
+          "text": "the",
+          "startMs": 119160,
+          "endMs": 119400
+        },
+        {
+          "text": "light",
+          "startMs": 119400,
+          "endMs": 119660
+        },
+        {
+          "text": "begins",
+          "startMs": 119660,
+          "endMs": 120100
+        },
+        {
+          "text": "to",
+          "startMs": 120100,
+          "endMs": 120180
+        },
+        {
+          "text": "shatter",
+          "startMs": 120180,
+          "endMs": 120640
+        },
+        {
+          "text": "the",
+          "startMs": 120640,
+          "endMs": 120800
+        },
+        {
+          "text": "skies (",
+          "startMs": 120800,
+          "endMs": 121240
+        },
+        {
+          "text": "I'm",
+          "startMs": 121240,
+          "endMs": 121660
+        },
+        {
+          "text": "a",
+          "startMs": 121660,
+          "endMs": 121980
+        },
+        {
+          "text": "man",
+          "startMs": 121980,
+          "endMs": 122460
+        },
+        {
+          "text": "without",
+          "startMs": 122460,
+          "endMs": 123040
+        },
+        {
+          "text": "a",
+          "startMs": 123040,
+          "endMs": 123060
+        },
+        {
+          "text": "head)",
+          "startMs": 123060,
+          "endMs": 123260
+        }
+      ],
+      "originalStartMs": 118920,
+      "originalEndMs": 123260
+    },
+    {
+      "text": "And I ascend and leave behind the \"used to be\"",
+      "startMs": 123260,
+      "endMs": 125560,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 123260,
+          "endMs": 123340
+        },
+        {
+          "text": "I",
+          "startMs": 123340,
+          "endMs": 123360
+        },
+        {
+          "text": "ascend",
+          "startMs": 123360,
+          "endMs": 123720
+        },
+        {
+          "text": "and",
+          "startMs": 123720,
+          "endMs": 123980
+        },
+        {
+          "text": "leave",
+          "startMs": 123980,
+          "endMs": 124460
+        },
+        {
+          "text": "behind",
+          "startMs": 124460,
+          "endMs": 124840
+        },
+        {
+          "text": "the \"",
+          "startMs": 124840,
+          "endMs": 124940
+        },
+        {
+          "text": "used",
+          "startMs": 124940,
+          "endMs": 125220
+        },
+        {
+          "text": "to",
+          "startMs": 125220,
+          "endMs": 125380
+        },
+        {
+          "text": "be\"",
+          "startMs": 125380,
+          "endMs": 125560
+        }
+      ],
+      "originalStartMs": 123260,
+      "originalEndMs": 125560
+    },
+    {
+      "text": "And tear the fabric worn to cover my eyes",
+      "startMs": 125560,
+      "endMs": 128561,
+      "words": [],
+      "originalStartMs": 125560,
+      "originalEndMs": 127680
+    },
+    {
+      "text": "And see",
+      "startMs": 128562,
+      "endMs": 133156,
+      "words": [],
+      "originalStartMs": 127680,
+      "originalEndMs": 128400
+    },
+    {
+      "text": "I see (I see)",
+      "startMs": 133157,
+      "endMs": 143664,
+      "words": [],
+      "originalStartMs": 128400,
+      "originalEndMs": 134880
+    },
+    {
+      "text": "Nobody",
+      "startMs": 143665,
+      "endMs": 146244,
+      "words": [],
+      "originalStartMs": 134880,
+      "originalEndMs": 143840
+    },
+    {
+      "text": "Breathe in the silence, ebb and flow among the waves",
+      "startMs": 146245,
+      "endMs": 152274,
+      "words": [],
+      "originalStartMs": 143840,
+      "originalEndMs": 150720
+    },
+    {
+      "text": "Blur on the spectrum, in light, come dark, in equal phase",
+      "startMs": 152275,
+      "endMs": 157427,
+      "words": [],
+      "originalStartMs": 150720,
+      "originalEndMs": 157380
+    },
+    {
+      "text": "All I ever was, has been, and always will be",
+      "startMs": 157428,
+      "endMs": 171079,
+      "words": [],
+      "originalStartMs": 157380,
+      "originalEndMs": 169840
+    },
+    {
+      "text": "Here I end as I started again",
+      "startMs": 171080,
+      "endMs": 173200,
+      "words": [],
+      "originalStartMs": 169840,
+      "originalEndMs": 173200
+    },
+    {
+      "text": "Beyond death and borne on the wind",
+      "startMs": 173200,
+      "endMs": 175760,
+      "words": [
+        {
+          "text": "Beyond",
+          "startMs": 173200,
+          "endMs": 173900
+        },
+        {
+          "text": "death",
+          "startMs": 173900,
+          "endMs": 174420
+        },
+        {
+          "text": "and",
+          "startMs": 174420,
+          "endMs": 174860
+        },
+        {
+          "text": "borne",
+          "startMs": 174860,
+          "endMs": 175120
+        },
+        {
+          "text": "on",
+          "startMs": 175120,
+          "endMs": 175440
+        },
+        {
+          "text": "the",
+          "startMs": 175440,
+          "endMs": 175560
+        },
+        {
+          "text": "wind",
+          "startMs": 175560,
+          "endMs": 175760
+        }
+      ],
+      "originalStartMs": 173200,
+      "originalEndMs": 175760
+    },
+    {
+      "text": "I am the sun",
+      "startMs": 175760,
+      "endMs": 180040,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 175760,
+          "endMs": 176700
+        },
+        {
+          "text": "am",
+          "startMs": 176700,
+          "endMs": 177020
+        },
+        {
+          "text": "the",
+          "startMs": 177020,
+          "endMs": 177260
+        },
+        {
+          "text": "sun",
+          "startMs": 177260,
+          "endMs": 180040
+        }
+      ],
+      "originalStartMs": 175760,
+      "originalEndMs": 180040
+    },
+    {
+      "text": "I am the sun, yeah",
+      "startMs": 180040,
+      "endMs": 183109,
+      "words": [],
+      "originalStartMs": 180040,
+      "originalEndMs": 181300
+    },
+    {
+      "text": "I'm a god, I'm awake",
+      "startMs": 183110,
+      "endMs": 189139,
+      "words": [],
+      "originalStartMs": 181300,
+      "originalEndMs": 184080
+    },
+    {
+      "text": "I'm the one in everything",
+      "startMs": 189140,
+      "endMs": 195519,
+      "words": [],
+      "originalStartMs": 184080,
+      "originalEndMs": 192780
+    },
+    {
+      "text": "I'm alive, I'm the dead",
+      "startMs": 195520,
+      "endMs": 202119,
+      "words": [],
+      "originalStartMs": 192780,
+      "originalEndMs": 198860
+    },
+    {
+      "text": "I'm a man without a head",
+      "startMs": 202120,
+      "endMs": 206538,
+      "words": [],
+      "originalStartMs": 198860,
+      "originalEndMs": 205500
+    },
+    {
+      "text": "A crack in the darkness, a tear in the sky (I'm the one in everything)",
+      "startMs": 206539,
+      "endMs": 214900,
+      "words": [],
+      "originalStartMs": 205500,
+      "originalEndMs": 214900
+    },
+    {
+      "text": "A narrow moment when we find ourselves and all we occupy",
+      "startMs": 214900,
+      "endMs": 220689,
+      "words": [],
+      "originalStartMs": 214900,
+      "originalEndMs": 220040
+    },
+    {
+      "text": "Return to the boundless, immerse in the free (I'm a man without a head)",
+      "startMs": 220690,
+      "endMs": 229000,
+      "words": [],
+      "originalStartMs": 220040,
+      "originalEndMs": 229000
+    },
+    {
+      "text": "Letting go as you lose your name and all you've known to be",
+      "startMs": 229000,
+      "endMs": 236099,
+      "words": [],
+      "originalStartMs": 229000,
+      "originalEndMs": 233300
+    },
+    {
+      "text": "Nobody",
+      "startMs": 236100,
+      "endMs": 239109,
+      "words": [],
+      "originalStartMs": 233300,
+      "originalEndMs": 235100
+    },
+    {
+      "text": "Nobody",
+      "startMs": 239110,
+      "endMs": 241459,
+      "words": [],
+      "originalStartMs": 235100,
+      "originalEndMs": 240080
+    },
+    {
+      "text": "Nobody",
+      "startMs": 241460,
+      "endMs": 245419,
+      "words": [],
+      "originalStartMs": 240080,
+      "originalEndMs": 241880
+    },
+    {
+      "text": "Nobody",
+      "startMs": 245420,
+      "endMs": 245040,
+      "words": [],
+      "originalStartMs": 241880,
+      "originalEndMs": 245040
+    }
+  ],
+  "calibrationTargetIndex": 3
+}

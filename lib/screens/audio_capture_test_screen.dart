@@ -23,23 +23,17 @@ class _AudioCaptureTestScreenState
       'Play something on YouTube or Spotify, then press the button.';
 
   Future<void> _capture() async {
-    if (_capturing) {
-      return;
-    }
+    if (_capturing) return;
 
     setState(() {
       _capturing = true;
-      _status =
-          'Capturing Windows system audio for 15 seconds...';
+      _status = 'Capturing Windows system audio...';
     });
 
     try {
-      final result =
-          await _captureService.capture();
+      final result = await _captureService.capture();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _status =
@@ -51,13 +45,10 @@ class _AudioCaptureTestScreenState
             'Bits: ${result.bitsPerSample}';
       });
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
-        _status =
-            'Capture failed\n\n$e';
+        _status = 'Capture failed\n\n$e';
       });
     } finally {
       if (mounted) {
@@ -81,8 +72,7 @@ class _AudioCaptureTestScreenState
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
                     Icons.graphic_eq_rounded,
@@ -111,14 +101,14 @@ class _AudioCaptureTestScreenState
                   ),
                   const SizedBox(height: 40),
                   FilledButton.icon(
-                    onPressed:
-                        _capturing ? null : _capture,
+                    onPressed: _capturing
+                        ? null
+                        : _capture,
                     icon: const Icon(
                       Icons.radio_button_checked_rounded,
                     ),
                     label: Padding(
-                      padding:
-                          const EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         vertical: 14,
                         horizontal: 12,
                       ),

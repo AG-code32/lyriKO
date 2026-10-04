@@ -1,0 +1,1871 @@
+{
+    "text": "\"Nobody\"  Ride in the shadows wandering beyond the frame Float like a feather through space and time outside a dream Pirouette with divinity in a dance we've shared before \"Someone dissolution\" This is \"I am all\" as \"I am none\" Here we fly so high, no, I, no coming down  Shedding weight as I'm coming undone All that's left converging as one I am the sun I am the sun  I'm a God, I'm awake, I'm the one in everything I'm alive, I'm the dead, I'm a man without a head  (I'm a God, I'm awake, I'm the one in everything) I walk with death in final exhalation And come apart through violent separation A thousand floors ascend into the ether A lunatic enchanted by the reaper (I'm alive, I'm the dead, I'm a man without a head) And down below I leave a stranger laying lifeless as the light begins to shatter the skies I ascend and leave behind the \"used to be\" And tear the fabric worn to cover my eyes and see I see I see  Nobody  Breathe in the silence, ebb and flow among the waves Blur on the spectrum in light come dark in equal phase All I ever was, has been and always will be  Here I end as I started again beyond death and borne on the wind I am the sun I am the sun  I'm a God, I'm awake, I'm the one in everything I'm alive, I'm the dead, I'm a man without a head  A crack in the darkness A tear in the sky (I'm the one in everything) A narrow moment when we find ourselves And all we occupy Return to the boundless Immerse in the free (I'm a man without a head) Letting go as you lose your name And all you've known to be  Nobody Nobody Nobody Nobody",
+    "segments": [
+        {
+            "start": 24.58,
+            "end": 27.7,
+            "text": "\"Nobody\"",
+            "score": -0.15684035420417786
+        },
+        {
+            "start": 27.7,
+            "end": 28.0,
+            "text": "Ride",
+            "score": -0.7497423887252808
+        },
+        {
+            "start": 28.0,
+            "end": 28.04,
+            "text": "in",
+            "score": -2.893979787826538
+        },
+        {
+            "start": 28.04,
+            "end": 28.2,
+            "text": "the",
+            "score": -1.2055926322937012
+        },
+        {
+            "start": 28.2,
+            "end": 30.02,
+            "text": "shadows",
+            "score": -0.24039556086063385
+        },
+        {
+            "start": 30.02,
+            "end": 31.04,
+            "text": "wandering",
+            "score": -0.39188891649246216
+        },
+        {
+            "start": 31.04,
+            "end": 31.62,
+            "text": "beyond",
+            "score": -0.39398273825645447
+        },
+        {
+            "start": 31.62,
+            "end": 31.8,
+            "text": "the",
+            "score": -0.4074274003505707
+        },
+        {
+            "start": 31.8,
+            "end": 32.92,
+            "text": "frame",
+            "score": -0.3745492696762085
+        },
+        {
+            "start": 32.92,
+            "end": 34.22,
+            "text": "Float",
+            "score": -0.21953493356704712
+        },
+        {
+            "start": 34.22,
+            "end": 34.58,
+            "text": "like",
+            "score": -0.5768137574195862
+        },
+        {
+            "start": 34.58,
+            "end": 34.64,
+            "text": "a",
+            "score": -1.4576421976089478
+        },
+        {
+            "start": 34.64,
+            "end": 35.74,
+            "text": "feather",
+            "score": -0.3501746356487274
+        },
+        {
+            "start": 35.74,
+            "end": 36.06,
+            "text": "through",
+            "score": -1.6952065229415894
+        },
+        {
+            "start": 36.06,
+            "end": 36.72,
+            "text": "space",
+            "score": -0.5528459548950195
+        },
+        {
+            "start": 36.72,
+            "end": 36.88,
+            "text": "and",
+            "score": -1.1828635931015015
+        },
+        {
+            "start": 36.88,
+            "end": 37.54,
+            "text": "time",
+            "score": -0.5265641212463379
+        },
+        {
+            "start": 37.54,
+            "end": 38.44,
+            "text": "outside",
+            "score": -0.5131970047950745
+        },
+        {
+            "start": 38.44,
+            "end": 38.48,
+            "text": "a",
+            "score": -1.9651166200637817
+        },
+        {
+            "start": 38.48,
+            "end": 39.64,
+            "text": "dream",
+            "score": -0.17832794785499573
+        },
+        {
+            "start": 39.64,
+            "end": 40.64,
+            "text": "Pirouette",
+            "score": -0.6232065558433533
+        },
+        {
+            "start": 40.64,
+            "end": 40.88,
+            "text": "with",
+            "score": -0.4286196529865265
+        },
+        {
+            "start": 40.88,
+            "end": 41.84,
+            "text": "divinity",
+            "score": -0.4166274964809418
+        },
+        {
+            "start": 41.84,
+            "end": 42.38,
+            "text": "in",
+            "score": -0.18711663782596588
+        },
+        {
+            "start": 42.38,
+            "end": 42.48,
+            "text": "a",
+            "score": -0.278354674577713
+        },
+        {
+            "start": 42.48,
+            "end": 43.06,
+            "text": "dance",
+            "score": -0.36329540610313416
+        },
+        {
+            "start": 43.06,
+            "end": 43.38,
+            "text": "we've",
+            "score": -0.885887622833252
+        },
+        {
+            "start": 43.38,
+            "end": 43.84,
+            "text": "shared",
+            "score": -0.5785508751869202
+        },
+        {
+            "start": 43.84,
+            "end": 46.14,
+            "text": "before",
+            "score": -0.17145434021949768
+        },
+        {
+            "start": 46.14,
+            "end": 47.02,
+            "text": "\"Someone",
+            "score": -0.48337382078170776
+        },
+        {
+            "start": 47.02,
+            "end": 48.34,
+            "text": "dissolution\"",
+            "score": -0.3698127865791321
+        },
+        {
+            "start": 48.34,
+            "end": 48.7,
+            "text": "This",
+            "score": -0.5142215490341187
+        },
+        {
+            "start": 48.7,
+            "end": 49.22,
+            "text": "is",
+            "score": -0.30336323380470276
+        },
+        {
+            "start": 49.22,
+            "end": 49.52,
+            "text": "\"I",
+            "score": -0.16092976927757263
+        },
+        {
+            "start": 49.52,
+            "end": 49.76,
+            "text": "am",
+            "score": -0.16227266192436218
+        },
+        {
+            "start": 49.76,
+            "end": 50.4,
+            "text": "all\"",
+            "score": -0.30539149045944214
+        },
+        {
+            "start": 50.4,
+            "end": 50.86,
+            "text": "as",
+            "score": -0.2137610912322998
+        },
+        {
+            "start": 50.86,
+            "end": 51.14,
+            "text": "\"I",
+            "score": -0.1932312548160553
+        },
+        {
+            "start": 51.14,
+            "end": 51.3,
+            "text": "am",
+            "score": -0.31623896956443787
+        },
+        {
+            "start": 51.3,
+            "end": 52.58,
+            "text": "none\"",
+            "score": -0.13942627608776093
+        },
+        {
+            "start": 52.58,
+            "end": 53.44,
+            "text": "Here",
+            "score": -0.4434038996696472
+        },
+        {
+            "start": 53.44,
+            "end": 53.78,
+            "text": "we",
+            "score": -0.2526454031467438
+        },
+        {
+            "start": 53.78,
+            "end": 54.34,
+            "text": "fly",
+            "score": -0.4589131772518158
+        },
+        {
+            "start": 54.34,
+            "end": 55.96,
+            "text": "so",
+            "score": -0.0627894252538681
+        },
+        {
+            "start": 55.96,
+            "end": 57.74,
+            "text": "high,",
+            "score": -0.2119390219449997
+        },
+        {
+            "start": 57.74,
+            "end": 59.22,
+            "text": "no,",
+            "score": -0.07990001887083054
+        },
+        {
+            "start": 59.22,
+            "end": 60.54,
+            "text": "I,",
+            "score": -0.037779245525598526
+        },
+        {
+            "start": 60.54,
+            "end": 60.74,
+            "text": "no",
+            "score": -0.5622711181640625
+        },
+        {
+            "start": 60.74,
+            "end": 61.04,
+            "text": "coming",
+            "score": -1.5917936563491821
+        },
+        {
+            "start": 61.04,
+            "end": 63.5,
+            "text": "down",
+            "score": -0.11390922963619232
+        },
+        {
+            "start": 63.5,
+            "end": 65.92,
+            "text": "Shedding",
+            "score": -0.1700095683336258
+        },
+        {
+            "start": 65.92,
+            "end": 66.32,
+            "text": "weight",
+            "score": -0.7926580309867859
+        },
+        {
+            "start": 66.32,
+            "end": 66.48,
+            "text": "as",
+            "score": -0.40309205651283264
+        },
+        {
+            "start": 66.48,
+            "end": 66.64,
+            "text": "I'm",
+            "score": -1.3051984310150146
+        },
+        {
+            "start": 66.64,
+            "end": 67.36,
+            "text": "coming",
+            "score": -0.39000749588012695
+        },
+        {
+            "start": 67.36,
+            "end": 67.84,
+            "text": "undone",
+            "score": -0.7687314748764038
+        },
+        {
+            "start": 67.84,
+            "end": 68.06,
+            "text": "All",
+            "score": -0.9544669985771179
+        },
+        {
+            "start": 68.06,
+            "end": 68.3,
+            "text": "that's",
+            "score": -2.1512205600738525
+        },
+        {
+            "start": 68.3,
+            "end": 68.64,
+            "text": "left",
+            "score": -0.7561101317405701
+        },
+        {
+            "start": 68.64,
+            "end": 69.34,
+            "text": "converging",
+            "score": -0.8767139911651611
+        },
+        {
+            "start": 69.34,
+            "end": 69.44,
+            "text": "as",
+            "score": -1.3105281591415405
+        },
+        {
+            "start": 69.44,
+            "end": 69.52,
+            "text": "one",
+            "score": -2.656416893005371
+        },
+        {
+            "start": 69.52,
+            "end": 69.54,
+            "text": "I",
+            "score": -6.860175609588623
+        },
+        {
+            "start": 69.54,
+            "end": 69.6,
+            "text": "am",
+            "score": -3.100480794906616
+        },
+        {
+            "start": 69.6,
+            "end": 69.7,
+            "text": "the",
+            "score": -2.12603497505188
+        },
+        {
+            "start": 69.7,
+            "end": 70.58,
+            "text": "sun",
+            "score": -0.18802136182785034
+        },
+        {
+            "start": 70.58,
+            "end": 70.92,
+            "text": "I",
+            "score": -0.178165003657341
+        },
+        {
+            "start": 70.92,
+            "end": 71.04,
+            "text": "am",
+            "score": -0.3494813144207001
+        },
+        {
+            "start": 71.04,
+            "end": 71.18,
+            "text": "the",
+            "score": -2.4502155780792236
+        },
+        {
+            "start": 71.18,
+            "end": 71.34,
+            "text": "sun",
+            "score": -1.616463303565979
+        },
+        {
+            "start": 71.34,
+            "end": 71.52,
+            "text": "I'm",
+            "score": -1.424215316772461
+        },
+        {
+            "start": 71.52,
+            "end": 71.54,
+            "text": "a",
+            "score": -5.975315093994141
+        },
+        {
+            "start": 71.54,
+            "end": 73.94,
+            "text": "God,",
+            "score": -0.13478964567184448
+        },
+        {
+            "start": 73.94,
+            "end": 74.24,
+            "text": "I'm",
+            "score": -0.633766233921051
+        },
+        {
+            "start": 74.24,
+            "end": 74.68,
+            "text": "awake,",
+            "score": -1.1463795900344849
+        },
+        {
+            "start": 74.68,
+            "end": 74.74,
+            "text": "I'm",
+            "score": -5.478002071380615
+        },
+        {
+            "start": 74.74,
+            "end": 75.56,
+            "text": "the",
+            "score": -0.34346139430999756
+        },
+        {
+            "start": 75.56,
+            "end": 76.18,
+            "text": "one",
+            "score": -0.22495321929454803
+        },
+        {
+            "start": 76.18,
+            "end": 76.5,
+            "text": "in",
+            "score": -0.4836444854736328
+        },
+        {
+            "start": 76.5,
+            "end": 77.92,
+            "text": "everything",
+            "score": -0.5124866962432861
+        },
+        {
+            "start": 77.92,
+            "end": 78.02,
+            "text": "I'm",
+            "score": -2.8768110275268555
+        },
+        {
+            "start": 78.02,
+            "end": 79.54,
+            "text": "alive,",
+            "score": -0.29889240860939026
+        },
+        {
+            "start": 79.54,
+            "end": 79.84,
+            "text": "I'm",
+            "score": -0.9059066772460938
+        },
+        {
+            "start": 79.84,
+            "end": 80.08,
+            "text": "the",
+            "score": -0.6273196339607239
+        },
+        {
+            "start": 80.08,
+            "end": 80.88,
+            "text": "dead,",
+            "score": -0.4448595643043518
+        },
+        {
+            "start": 80.88,
+            "end": 81.12,
+            "text": "I'm",
+            "score": -1.3980116844177246
+        },
+        {
+            "start": 81.12,
+            "end": 81.2,
+            "text": "a",
+            "score": -1.0929455757141113
+        },
+        {
+            "start": 81.2,
+            "end": 81.44,
+            "text": "man",
+            "score": -0.7768878936767578
+        },
+        {
+            "start": 81.44,
+            "end": 83.5,
+            "text": "without",
+            "score": -0.3847085237503052
+        },
+        {
+            "start": 83.5,
+            "end": 83.62,
+            "text": "a",
+            "score": -0.1941874772310257
+        },
+        {
+            "start": 83.62,
+            "end": 84.08,
+            "text": "head",
+            "score": -0.7890998721122742
+        },
+        {
+            "start": 84.08,
+            "end": 84.42,
+            "text": "(I'm",
+            "score": -0.9470887780189514
+        },
+        {
+            "start": 84.42,
+            "end": 85.16,
+            "text": "a",
+            "score": -0.163533017039299
+        },
+        {
+            "start": 85.16,
+            "end": 86.36,
+            "text": "God,",
+            "score": -0.2330465316772461
+        },
+        {
+            "start": 86.36,
+            "end": 86.76,
+            "text": "I'm",
+            "score": -0.4651714563369751
+        },
+        {
+            "start": 86.76,
+            "end": 88.26,
+            "text": "awake,",
+            "score": -0.23303306102752686
+        },
+        {
+            "start": 88.26,
+            "end": 89.44,
+            "text": "I'm",
+            "score": -0.2721470892429352
+        },
+        {
+            "start": 89.44,
+            "end": 89.86,
+            "text": "the",
+            "score": -0.3547173738479614
+        },
+        {
+            "start": 89.86,
+            "end": 91.82,
+            "text": "one",
+            "score": -0.13624776899814606
+        },
+        {
+            "start": 91.82,
+            "end": 92.94,
+            "text": "in",
+            "score": -0.1341848522424698
+        },
+        {
+            "start": 92.94,
+            "end": 99.08,
+            "text": "everything)",
+            "score": -0.13490553200244904
+        },
+        {
+            "start": 99.08,
+            "end": 101.4,
+            "text": "I",
+            "score": -0.04034889489412308
+        },
+        {
+            "start": 101.4,
+            "end": 104.1,
+            "text": "walk",
+            "score": -0.10277565568685532
+        },
+        {
+            "start": 104.1,
+            "end": 104.3,
+            "text": "with",
+            "score": -1.3769309520721436
+        },
+        {
+            "start": 104.3,
+            "end": 104.66,
+            "text": "death",
+            "score": -0.9874507188796997
+        },
+        {
+            "start": 104.66,
+            "end": 104.82,
+            "text": "in",
+            "score": -0.6043000221252441
+        },
+        {
+            "start": 104.82,
+            "end": 105.48,
+            "text": "final",
+            "score": -0.44042158126831055
+        },
+        {
+            "start": 105.48,
+            "end": 106.2,
+            "text": "exhalation",
+            "score": -0.7107412815093994
+        },
+        {
+            "start": 106.2,
+            "end": 106.3,
+            "text": "And",
+            "score": -1.8669582605361938
+        },
+        {
+            "start": 106.3,
+            "end": 106.42,
+            "text": "come",
+            "score": -3.5858170986175537
+        },
+        {
+            "start": 106.42,
+            "end": 106.62,
+            "text": "apart",
+            "score": -2.009864091873169
+        },
+        {
+            "start": 106.62,
+            "end": 107.06,
+            "text": "through",
+            "score": -1.0662126541137695
+        },
+        {
+            "start": 107.06,
+            "end": 107.28,
+            "text": "violent",
+            "score": -2.9894912242889404
+        },
+        {
+            "start": 107.28,
+            "end": 108.28,
+            "text": "separation",
+            "score": -0.6541531085968018
+        },
+        {
+            "start": 108.28,
+            "end": 108.38,
+            "text": "A",
+            "score": -0.22058020532131195
+        },
+        {
+            "start": 108.38,
+            "end": 108.86,
+            "text": "thousand",
+            "score": -1.1142812967300415
+        },
+        {
+            "start": 108.86,
+            "end": 109.12,
+            "text": "floors",
+            "score": -2.186812400817871
+        },
+        {
+            "start": 109.12,
+            "end": 109.7,
+            "text": "ascend",
+            "score": -0.5720734596252441
+        },
+        {
+            "start": 109.7,
+            "end": 109.98,
+            "text": "into",
+            "score": -0.9156283736228943
+        },
+        {
+            "start": 109.98,
+            "end": 110.16,
+            "text": "the",
+            "score": -1.1518555879592896
+        },
+        {
+            "start": 110.16,
+            "end": 110.32,
+            "text": "ether",
+            "score": -2.677278995513916
+        },
+        {
+            "start": 110.32,
+            "end": 110.38,
+            "text": "A",
+            "score": -0.1975700408220291
+        },
+        {
+            "start": 110.38,
+            "end": 111.36,
+            "text": "lunatic",
+            "score": -0.45861271023750305
+        },
+        {
+            "start": 111.36,
+            "end": 112.2,
+            "text": "enchanted",
+            "score": -0.6465007066726685
+        },
+        {
+            "start": 112.2,
+            "end": 112.52,
+            "text": "by",
+            "score": -0.5882476568222046
+        },
+        {
+            "start": 112.52,
+            "end": 112.86,
+            "text": "the",
+            "score": -0.5931968092918396
+        },
+        {
+            "start": 112.86,
+            "end": 113.48,
+            "text": "reaper",
+            "score": -0.8238573670387268
+        },
+        {
+            "start": 113.48,
+            "end": 113.72,
+            "text": "(I'm",
+            "score": -0.8597965836524963
+        },
+        {
+            "start": 113.72,
+            "end": 114.2,
+            "text": "alive,",
+            "score": -0.6492757201194763
+        },
+        {
+            "start": 114.2,
+            "end": 114.42,
+            "text": "I'm",
+            "score": -1.2767653465270996
+        },
+        {
+            "start": 114.42,
+            "end": 114.64,
+            "text": "the",
+            "score": -0.6779490113258362
+        },
+        {
+            "start": 114.64,
+            "end": 114.92,
+            "text": "dead,",
+            "score": -1.009321928024292
+        },
+        {
+            "start": 114.92,
+            "end": 115.1,
+            "text": "I'm",
+            "score": -1.0875113010406494
+        },
+        {
+            "start": 115.1,
+            "end": 115.18,
+            "text": "a",
+            "score": -0.07653316110372543
+        },
+        {
+            "start": 115.18,
+            "end": 115.42,
+            "text": "man",
+            "score": -0.9802611470222473
+        },
+        {
+            "start": 115.42,
+            "end": 115.86,
+            "text": "without",
+            "score": -1.1198745965957642
+        },
+        {
+            "start": 115.86,
+            "end": 115.88,
+            "text": "a",
+            "score": -6.9209208488464355
+        },
+        {
+            "start": 115.88,
+            "end": 116.48,
+            "text": "head)",
+            "score": -0.678600013256073
+        },
+        {
+            "start": 116.48,
+            "end": 116.66,
+            "text": "And",
+            "score": -0.8433219194412231
+        },
+        {
+            "start": 116.66,
+            "end": 116.84,
+            "text": "down",
+            "score": -2.020634651184082
+        },
+        {
+            "start": 116.84,
+            "end": 117.5,
+            "text": "below",
+            "score": -0.540482223033905
+        },
+        {
+            "start": 117.5,
+            "end": 117.56,
+            "text": "I",
+            "score": -0.6632055044174194
+        },
+        {
+            "start": 117.56,
+            "end": 118.02,
+            "text": "leave",
+            "score": -0.8060285449028015
+        },
+        {
+            "start": 118.02,
+            "end": 118.1,
+            "text": "a",
+            "score": -1.0323054790496826
+        },
+        {
+            "start": 118.1,
+            "end": 118.6,
+            "text": "stranger",
+            "score": -1.1910243034362793
+        },
+        {
+            "start": 118.6,
+            "end": 118.86,
+            "text": "laying",
+            "score": -1.8314898014068604
+        },
+        {
+            "start": 118.86,
+            "end": 119.1,
+            "text": "lifeless",
+            "score": -3.0658955574035645
+        },
+        {
+            "start": 119.1,
+            "end": 119.24,
+            "text": "as",
+            "score": -0.9067808389663696
+        },
+        {
+            "start": 119.24,
+            "end": 119.4,
+            "text": "the",
+            "score": -0.8727333545684814
+        },
+        {
+            "start": 119.4,
+            "end": 119.66,
+            "text": "light",
+            "score": -1.5905591249465942
+        },
+        {
+            "start": 119.66,
+            "end": 120.1,
+            "text": "begins",
+            "score": -0.7651990652084351
+        },
+        {
+            "start": 120.1,
+            "end": 120.18,
+            "text": "to",
+            "score": -1.8394492864608765
+        },
+        {
+            "start": 120.18,
+            "end": 120.64,
+            "text": "shatter",
+            "score": -1.0499316453933716
+        },
+        {
+            "start": 120.64,
+            "end": 120.8,
+            "text": "the",
+            "score": -1.3106322288513184
+        },
+        {
+            "start": 120.8,
+            "end": 122.86,
+            "text": "skies",
+            "score": -0.14499887824058533
+        },
+        {
+            "start": 122.86,
+            "end": 123.02,
+            "text": "I",
+            "score": -0.16956192255020142
+        },
+        {
+            "start": 123.02,
+            "end": 123.72,
+            "text": "ascend",
+            "score": -0.5087792277336121
+        },
+        {
+            "start": 123.72,
+            "end": 123.98,
+            "text": "and",
+            "score": -0.673705518245697
+        },
+        {
+            "start": 123.98,
+            "end": 124.46,
+            "text": "leave",
+            "score": -0.6540963053703308
+        },
+        {
+            "start": 124.46,
+            "end": 124.84,
+            "text": "behind",
+            "score": -1.1289012432098389
+        },
+        {
+            "start": 124.84,
+            "end": 124.94,
+            "text": "the",
+            "score": -1.8615937232971191
+        },
+        {
+            "start": 124.94,
+            "end": 125.22,
+            "text": "\"used",
+            "score": -0.9558730125427246
+        },
+        {
+            "start": 125.22,
+            "end": 125.38,
+            "text": "to",
+            "score": -1.1489312648773193
+        },
+        {
+            "start": 125.38,
+            "end": 125.56,
+            "text": "be\"",
+            "score": -0.5141667723655701
+        },
+        {
+            "start": 125.56,
+            "end": 125.74,
+            "text": "And",
+            "score": -1.160684585571289
+        },
+        {
+            "start": 125.74,
+            "end": 126.0,
+            "text": "tear",
+            "score": -1.150773286819458
+        },
+        {
+            "start": 126.0,
+            "end": 126.16,
+            "text": "the",
+            "score": -1.344031810760498
+        },
+        {
+            "start": 126.16,
+            "end": 126.72,
+            "text": "fabric",
+            "score": -0.9403210282325745
+        },
+        {
+            "start": 126.72,
+            "end": 127.24,
+            "text": "worn",
+            "score": -0.5028755068778992
+        },
+        {
+            "start": 127.24,
+            "end": 127.58,
+            "text": "to",
+            "score": -0.36611610651016235
+        },
+        {
+            "start": 127.58,
+            "end": 128.0,
+            "text": "cover",
+            "score": -0.9421437978744507
+        },
+        {
+            "start": 128.0,
+            "end": 128.18,
+            "text": "my",
+            "score": -0.958587110042572
+        },
+        {
+            "start": 128.18,
+            "end": 131.28,
+            "text": "eyes",
+            "score": -0.08614812046289444
+        },
+        {
+            "start": 131.28,
+            "end": 133.96,
+            "text": "and",
+            "score": -0.058553021401166916
+        },
+        {
+            "start": 133.96,
+            "end": 134.04,
+            "text": "see",
+            "score": -3.3459057807922363
+        },
+        {
+            "start": 134.04,
+            "end": 134.16,
+            "text": "I",
+            "score": -1.0657111406326294
+        },
+        {
+            "start": 134.16,
+            "end": 134.88,
+            "text": "see",
+            "score": -0.18600063025951385
+        },
+        {
+            "start": 134.88,
+            "end": 135.3,
+            "text": "I",
+            "score": -0.236521378159523
+        },
+        {
+            "start": 135.3,
+            "end": 143.84,
+            "text": "see",
+            "score": -0.01348060742020607
+        },
+        {
+            "start": 143.84,
+            "end": 145.34,
+            "text": "Nobody",
+            "score": -0.25455817580223083
+        },
+        {
+            "start": 145.34,
+            "end": 146.88,
+            "text": "Breathe",
+            "score": -0.3656966984272003
+        },
+        {
+            "start": 146.88,
+            "end": 146.94,
+            "text": "in",
+            "score": -2.67915678024292
+        },
+        {
+            "start": 146.94,
+            "end": 147.1,
+            "text": "the",
+            "score": -1.520026445388794
+        },
+        {
+            "start": 147.1,
+            "end": 149.2,
+            "text": "silence,",
+            "score": -0.20999348163604736
+        },
+        {
+            "start": 149.2,
+            "end": 149.6,
+            "text": "ebb",
+            "score": -0.6864455938339233
+        },
+        {
+            "start": 149.6,
+            "end": 149.74,
+            "text": "and",
+            "score": -1.613295555114746
+        },
+        {
+            "start": 149.74,
+            "end": 149.98,
+            "text": "flow",
+            "score": -1.2290914058685303
+        },
+        {
+            "start": 149.98,
+            "end": 150.52,
+            "text": "among",
+            "score": -0.645398736000061
+        },
+        {
+            "start": 150.52,
+            "end": 150.72,
+            "text": "the",
+            "score": -0.9082323312759399
+        },
+        {
+            "start": 150.72,
+            "end": 152.3,
+            "text": "waves",
+            "score": -0.231686070561409
+        },
+        {
+            "start": 152.3,
+            "end": 153.16,
+            "text": "Blur",
+            "score": -0.27916860580444336
+        },
+        {
+            "start": 153.16,
+            "end": 153.28,
+            "text": "on",
+            "score": -1.9010473489761353
+        },
+        {
+            "start": 153.28,
+            "end": 153.48,
+            "text": "the",
+            "score": -0.746368944644928
+        },
+        {
+            "start": 153.48,
+            "end": 154.74,
+            "text": "spectrum",
+            "score": -0.450219064950943
+        },
+        {
+            "start": 154.74,
+            "end": 154.96,
+            "text": "in",
+            "score": -0.22855456173419952
+        },
+        {
+            "start": 154.96,
+            "end": 155.52,
+            "text": "light",
+            "score": -0.6341944932937622
+        },
+        {
+            "start": 155.52,
+            "end": 155.78,
+            "text": "come",
+            "score": -0.9598585963249207
+        },
+        {
+            "start": 155.78,
+            "end": 156.44,
+            "text": "dark",
+            "score": -0.2656893730163574
+        },
+        {
+            "start": 156.44,
+            "end": 156.76,
+            "text": "in",
+            "score": -0.15937133133411407
+        },
+        {
+            "start": 156.76,
+            "end": 157.38,
+            "text": "equal",
+            "score": -0.42896875739097595
+        },
+        {
+            "start": 157.38,
+            "end": 159.7,
+            "text": "phase",
+            "score": -0.13956843316555023
+        },
+        {
+            "start": 159.7,
+            "end": 159.92,
+            "text": "All",
+            "score": -1.3162846565246582
+        },
+        {
+            "start": 159.92,
+            "end": 160.08,
+            "text": "I",
+            "score": -0.23294775187969208
+        },
+        {
+            "start": 160.08,
+            "end": 161.1,
+            "text": "ever",
+            "score": -0.17343029379844666
+        },
+        {
+            "start": 161.1,
+            "end": 163.6,
+            "text": "was,",
+            "score": -0.040462691336870193
+        },
+        {
+            "start": 163.6,
+            "end": 164.28,
+            "text": "has",
+            "score": -0.19759315252304077
+        },
+        {
+            "start": 164.28,
+            "end": 167.2,
+            "text": "been",
+            "score": -0.08728769421577454
+        },
+        {
+            "start": 167.2,
+            "end": 167.88,
+            "text": "and",
+            "score": -0.16300241649150848
+        },
+        {
+            "start": 167.88,
+            "end": 169.18,
+            "text": "always",
+            "score": -0.3579476475715637
+        },
+        {
+            "start": 169.18,
+            "end": 169.84,
+            "text": "will",
+            "score": -0.42388680577278137
+        },
+        {
+            "start": 169.84,
+            "end": 170.74,
+            "text": "be",
+            "score": -0.12445889413356781
+        },
+        {
+            "start": 170.74,
+            "end": 171.8,
+            "text": "Here",
+            "score": -0.06853855401277542
+        },
+        {
+            "start": 171.8,
+            "end": 171.94,
+            "text": "I",
+            "score": -0.5658600926399231
+        },
+        {
+            "start": 171.94,
+            "end": 172.38,
+            "text": "end",
+            "score": -0.1567397564649582
+        },
+        {
+            "start": 172.38,
+            "end": 172.58,
+            "text": "as",
+            "score": -0.35913392901420593
+        },
+        {
+            "start": 172.58,
+            "end": 172.68,
+            "text": "I",
+            "score": -0.7189745306968689
+        },
+        {
+            "start": 172.68,
+            "end": 173.2,
+            "text": "started",
+            "score": -0.30671045184135437
+        },
+        {
+            "start": 173.2,
+            "end": 173.9,
+            "text": "again",
+            "score": -0.24633373320102692
+        },
+        {
+            "start": 173.9,
+            "end": 174.42,
+            "text": "beyond",
+            "score": -0.4317922294139862
+        },
+        {
+            "start": 174.42,
+            "end": 174.86,
+            "text": "death",
+            "score": -0.6027907729148865
+        },
+        {
+            "start": 174.86,
+            "end": 175.12,
+            "text": "and",
+            "score": -0.7017350792884827
+        },
+        {
+            "start": 175.12,
+            "end": 175.44,
+            "text": "borne",
+            "score": -0.9469550848007202
+        },
+        {
+            "start": 175.44,
+            "end": 175.56,
+            "text": "on",
+            "score": -0.9003149271011353
+        },
+        {
+            "start": 175.56,
+            "end": 175.76,
+            "text": "the",
+            "score": -0.914573073387146
+        },
+        {
+            "start": 175.76,
+            "end": 176.7,
+            "text": "wind",
+            "score": -0.18219371140003204
+        },
+        {
+            "start": 176.7,
+            "end": 177.02,
+            "text": "I",
+            "score": -0.1694526970386505
+        },
+        {
+            "start": 177.02,
+            "end": 177.26,
+            "text": "am",
+            "score": -0.40012311935424805
+        },
+        {
+            "start": 177.26,
+            "end": 180.04,
+            "text": "the",
+            "score": -0.08708330243825912
+        },
+        {
+            "start": 180.04,
+            "end": 180.2,
+            "text": "sun",
+            "score": -1.6088676452636719
+        },
+        {
+            "start": 180.2,
+            "end": 180.26,
+            "text": "I",
+            "score": -0.8532707095146179
+        },
+        {
+            "start": 180.26,
+            "end": 180.32,
+            "text": "am",
+            "score": -1.6447985172271729
+        },
+        {
+            "start": 180.32,
+            "end": 180.46,
+            "text": "the",
+            "score": -2.1325249671936035
+        },
+        {
+            "start": 180.46,
+            "end": 181.82,
+            "text": "sun",
+            "score": -0.13932527601718903
+        },
+        {
+            "start": 181.82,
+            "end": 182.34,
+            "text": "I'm",
+            "score": -0.40517523884773254
+        },
+        {
+            "start": 182.34,
+            "end": 182.82,
+            "text": "a",
+            "score": -0.18388986587524414
+        },
+        {
+            "start": 182.82,
+            "end": 183.78,
+            "text": "God,",
+            "score": -0.17693226039409637
+        },
+        {
+            "start": 183.78,
+            "end": 184.08,
+            "text": "I'm",
+            "score": -0.7637392282485962
+        },
+        {
+            "start": 184.08,
+            "end": 188.28,
+            "text": "awake,",
+            "score": -0.09197843819856644
+        },
+        {
+            "start": 188.28,
+            "end": 189.46,
+            "text": "I'm",
+            "score": -0.21799486875534058
+        },
+        {
+            "start": 189.46,
+            "end": 189.92,
+            "text": "the",
+            "score": -0.48554494976997375
+        },
+        {
+            "start": 189.92,
+            "end": 192.42,
+            "text": "one",
+            "score": -0.0773387998342514
+        },
+        {
+            "start": 192.42,
+            "end": 192.78,
+            "text": "in",
+            "score": -0.23401910066604614
+        },
+        {
+            "start": 192.78,
+            "end": 195.02,
+            "text": "everything",
+            "score": -0.30945074558258057
+        },
+        {
+            "start": 195.02,
+            "end": 195.38,
+            "text": "I'm",
+            "score": -0.6143702268600464
+        },
+        {
+            "start": 195.38,
+            "end": 196.26,
+            "text": "alive,",
+            "score": -0.34952235221862793
+        },
+        {
+            "start": 196.26,
+            "end": 197.72,
+            "text": "I'm",
+            "score": -0.1825064718723297
+        },
+        {
+            "start": 197.72,
+            "end": 198.86,
+            "text": "the",
+            "score": -0.22537681460380554
+        },
+        {
+            "start": 198.86,
+            "end": 200.0,
+            "text": "dead,",
+            "score": -0.12182311713695526
+        },
+        {
+            "start": 200.0,
+            "end": 201.96,
+            "text": "I'm",
+            "score": -0.13212840259075165
+        },
+        {
+            "start": 201.96,
+            "end": 202.12,
+            "text": "a",
+            "score": -0.24857346713542938
+        },
+        {
+            "start": 202.12,
+            "end": 202.62,
+            "text": "man",
+            "score": -0.3927871584892273
+        },
+        {
+            "start": 202.62,
+            "end": 205.48,
+            "text": "without",
+            "score": -0.2148536592721939
+        },
+        {
+            "start": 205.48,
+            "end": 205.5,
+            "text": "a",
+            "score": -2.922870635986328
+        },
+        {
+            "start": 205.5,
+            "end": 206.18,
+            "text": "head",
+            "score": -0.30993425846099854
+        },
+        {
+            "start": 206.18,
+            "end": 207.16,
+            "text": "A",
+            "score": -0.05045085772871971
+        },
+        {
+            "start": 207.16,
+            "end": 209.28,
+            "text": "crack",
+            "score": -0.24595558643341064
+        },
+        {
+            "start": 209.28,
+            "end": 209.54,
+            "text": "in",
+            "score": -0.43598708510398865
+        },
+        {
+            "start": 209.54,
+            "end": 209.74,
+            "text": "the",
+            "score": -0.9322356581687927
+        },
+        {
+            "start": 209.74,
+            "end": 211.62,
+            "text": "darkness",
+            "score": -0.25061166286468506
+        },
+        {
+            "start": 211.62,
+            "end": 211.78,
+            "text": "A",
+            "score": -0.04987781494855881
+        },
+        {
+            "start": 211.78,
+            "end": 212.58,
+            "text": "tear",
+            "score": -0.11721306294202805
+        },
+        {
+            "start": 212.58,
+            "end": 212.72,
+            "text": "in",
+            "score": -0.8194485306739807
+        },
+        {
+            "start": 212.72,
+            "end": 213.0,
+            "text": "the",
+            "score": -0.640483558177948
+        },
+        {
+            "start": 213.0,
+            "end": 213.26,
+            "text": "sky",
+            "score": -0.39338716864585876
+        },
+        {
+            "start": 213.26,
+            "end": 213.38,
+            "text": "(I'm",
+            "score": -1.988544225692749
+        },
+        {
+            "start": 213.38,
+            "end": 214.0,
+            "text": "the",
+            "score": -0.6386188268661499
+        },
+        {
+            "start": 214.0,
+            "end": 214.8,
+            "text": "one",
+            "score": -0.39469754695892334
+        },
+        {
+            "start": 214.8,
+            "end": 214.9,
+            "text": "in",
+            "score": -1.8693146705627441
+        },
+        {
+            "start": 214.9,
+            "end": 216.36,
+            "text": "everything)",
+            "score": -0.5621117353439331
+        },
+        {
+            "start": 216.36,
+            "end": 216.42,
+            "text": "A",
+            "score": -0.9114053249359131
+        },
+        {
+            "start": 216.42,
+            "end": 216.66,
+            "text": "narrow",
+            "score": -2.681593656539917
+        },
+        {
+            "start": 216.66,
+            "end": 217.14,
+            "text": "moment",
+            "score": -0.5731765627861023
+        },
+        {
+            "start": 217.14,
+            "end": 217.32,
+            "text": "when",
+            "score": -1.3821073770523071
+        },
+        {
+            "start": 217.32,
+            "end": 217.46,
+            "text": "we",
+            "score": -0.2845040261745453
+        },
+        {
+            "start": 217.46,
+            "end": 217.96,
+            "text": "find",
+            "score": -0.7108250260353088
+        },
+        {
+            "start": 217.96,
+            "end": 219.36,
+            "text": "ourselves",
+            "score": -0.45099103450775146
+        },
+        {
+            "start": 219.36,
+            "end": 219.6,
+            "text": "And",
+            "score": -0.5556718707084656
+        },
+        {
+            "start": 219.6,
+            "end": 219.82,
+            "text": "all",
+            "score": -1.334581732749939
+        },
+        {
+            "start": 219.82,
+            "end": 220.04,
+            "text": "we",
+            "score": -0.3421671986579895
+        },
+        {
+            "start": 220.04,
+            "end": 221.0,
+            "text": "occupy",
+            "score": -0.7662480473518372
+        },
+        {
+            "start": 221.0,
+            "end": 222.18,
+            "text": "Return",
+            "score": -0.4505700170993805
+        },
+        {
+            "start": 222.18,
+            "end": 222.34,
+            "text": "to",
+            "score": -0.701499879360199
+        },
+        {
+            "start": 222.34,
+            "end": 222.6,
+            "text": "the",
+            "score": -0.4464032053947449
+        },
+        {
+            "start": 222.6,
+            "end": 224.38,
+            "text": "boundless",
+            "score": -0.34838739037513733
+        },
+        {
+            "start": 224.38,
+            "end": 225.38,
+            "text": "Immerse",
+            "score": -0.38603806495666504
+        },
+        {
+            "start": 225.38,
+            "end": 225.54,
+            "text": "in",
+            "score": -0.7697597742080688
+        },
+        {
+            "start": 225.54,
+            "end": 225.7,
+            "text": "the",
+            "score": -0.7423545122146606
+        },
+        {
+            "start": 225.7,
+            "end": 226.06,
+            "text": "free",
+            "score": -0.4405755400657654
+        },
+        {
+            "start": 226.06,
+            "end": 226.92,
+            "text": "(I'm",
+            "score": -0.37388521432876587
+        },
+        {
+            "start": 226.92,
+            "end": 227.68,
+            "text": "a",
+            "score": -0.10884017497301102
+        },
+        {
+            "start": 227.68,
+            "end": 228.06,
+            "text": "man",
+            "score": -0.618459939956665
+        },
+        {
+            "start": 228.06,
+            "end": 228.98,
+            "text": "without",
+            "score": -0.5716494917869568
+        },
+        {
+            "start": 228.98,
+            "end": 229.0,
+            "text": "a",
+            "score": -6.3429131507873535
+        },
+        {
+            "start": 229.0,
+            "end": 229.14,
+            "text": "head)",
+            "score": -3.0237643718719482
+        },
+        {
+            "start": 229.14,
+            "end": 229.76,
+            "text": "Letting",
+            "score": -0.6838815808296204
+        },
+        {
+            "start": 229.76,
+            "end": 230.02,
+            "text": "go",
+            "score": -0.5250082015991211
+        },
+        {
+            "start": 230.02,
+            "end": 230.22,
+            "text": "as",
+            "score": -0.30126896500587463
+        },
+        {
+            "start": 230.22,
+            "end": 230.36,
+            "text": "you",
+            "score": -1.8214328289031982
+        },
+        {
+            "start": 230.36,
+            "end": 230.94,
+            "text": "lose",
+            "score": -0.35504114627838135
+        },
+        {
+            "start": 230.94,
+            "end": 231.36,
+            "text": "your",
+            "score": -1.1086647510528564
+        },
+        {
+            "start": 231.36,
+            "end": 232.26,
+            "text": "name",
+            "score": -0.15329468250274658
+        },
+        {
+            "start": 232.26,
+            "end": 232.38,
+            "text": "And",
+            "score": -1.8648208379745483
+        },
+        {
+            "start": 232.38,
+            "end": 232.56,
+            "text": "all",
+            "score": -1.6798988580703735
+        },
+        {
+            "start": 232.56,
+            "end": 232.88,
+            "text": "you've",
+            "score": -1.2777994871139526
+        },
+        {
+            "start": 232.88,
+            "end": 233.14,
+            "text": "known",
+            "score": -1.5892940759658813
+        },
+        {
+            "start": 233.14,
+            "end": 233.3,
+            "text": "to",
+            "score": -0.4636186361312866
+        },
+        {
+            "start": 233.3,
+            "end": 235.1,
+            "text": "be",
+            "score": -0.046322986483573914
+        },
+        {
+            "start": 235.1,
+            "end": 240.08,
+            "text": "Nobody",
+            "score": -0.09493609517812729
+        },
+        {
+            "start": 240.08,
+            "end": 241.88,
+            "text": "Nobody",
+            "score": -0.18832522630691528
+        },
+        {
+            "start": 241.88,
+            "end": 245.04,
+            "text": "Nobody",
+            "score": -0.11178282648324966
+        },
+        {
+            "start": 245.04,
+            "end": 251.34,
+            "text": "Nobody",
+            "score": -0.07753578573465347
+        }
+    ]
+}
