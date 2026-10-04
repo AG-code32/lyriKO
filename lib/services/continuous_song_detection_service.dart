@@ -2,53 +2,70 @@ import 'dart:io';
 
 import 'lyrics_matcher_service.dart';
 import 'system_audio_capture_service.dart';
-import 'voice_activity_service.dart';
 import 'whisper_transcription_service.dart';
 
-class DetectionTimings {
-  final Duration total;
-  final Duration capture;
-  final Duration preparation;
-  final Duration vad;
-  final Duration whisper;
-  final Duration matcher;
+class DiagnosticWindowResult {
+  final int windowNumber;
 
-  const DetectionTimings({
-    required this.total,
-    required this.capture,
-    required this.preparation,
-    required this.vad,
-    required this.whisper,
-    required this.matcher,
+  final String transcript;
+
+  // Result for this individual window.
+  final LyricsMatchCandidate? windowBestMatch;
+  final double windowSecondScore;
+  final double windowLead;
+
+  // Accumulated result using recent useful windows.
+  final LyricsMatchCandidate? accumulatedBestMatch;
+  final double accumulatedScore;
+  final double accumulatedSecondScore;
+  final double accumulatedLead;
+
+  final int evidenceWindows;
+  final int winnerCount;
+
+  final bool accepted;
+  final String acceptanceReason;
+
+  final Duration captureTime;
+  final Duration preparationTime;
+  final Duration whisperTime;
+  final Duration matcherTime;
+
+  const DiagnosticWindowResult({
+    required this.windowNumber,
+    required this.transcript,
+    required this.windowBestMatch,
+    required this.windowSecondScore,
+    required this.windowLead,
+    required this.accumulatedBestMatch,
+    required this.accumulatedScore,
+    required this.accumulatedSecondScore,
+    required this.accumulatedLead,
+    required this.evidenceWindows,
+    required this.winnerCount,
+    required this.accepted,
+    required this.acceptanceReason,
+    required this.captureTime,
+    required this.preparationTime,
+    required this.whisperTime,
+    required this.matcherTime,
   });
 }
 
-class ContinuousDetectionResult {
-  final LyricsMatchCandidate match;
-  final double secondBestScore;
-  final double lead;
-  final String accumulatedTranscript;
-  final int analyzedWindows;
-  final int voiceWindows;
-  final DetectionTimings timings;
+class _EvidenceWindow {
+  final String winnerSongId;
 
-  const ContinuousDetectionResult({
-    required this.match,
-    required this.secondBestScore,
-    required this.lead,
-    required this.accumulatedTranscript,
-    required this.analyzedWindows,
-    required this.voiceWindows,
-    required this.timings,
+  final Map<String, double> scores;
+
+  const _EvidenceWindow({
+    required this.winnerSongId,
+    required this.scores,
   });
 }
 
 class ContinuousSongDetectionService {
   final SystemAudioCaptureService _captureService =
       SystemAudioCaptureService();
-
-  final VoiceActivityService _voiceActivityService =
-      VoiceActivityService();
 
   final WhisperTranscriptionService _whisperService =
       WhisperTranscriptionService();
@@ -59,9 +76,24 @@ class ContinuousSongDetectionService {
   static const Duration _windowDuration =
       Duration(seconds: 8);
 
-  // Provisional thresholds for the prototype.
-  static const double _minimumScore = 0.50;
-  static const double _minimumLead = 0.12;
+  //
+  // We keep only the most recent useful evidence.
+  //
+  static const int _maxEvidenceWindows = 3;
+
+  //
+  // A single exceptionally good window can still
+  // identify the song immediately.
+  //
+  static const double _strongSingleScore = 0.50;
+  static const double _strongSingleLead = 0.12;
+
+  //
+  // Accumulated matching is intentionally less strict.
+  // It compensates for imperfect singing transcription.
+  //
+  static const double _accumulatedMinimumScore = 0.30;
+  static const double _accumulatedMinimumLead = 0.08;
 
   bool _stopRequested = false;
 
@@ -69,71 +101,77 @@ class ContinuousSongDetectionService {
     _stopRequested = true;
   }
 
-  Future<ContinuousDetectionResult?> start({
+  Future<void> startDiagnostic({
     required void Function(String status) onStatus,
+    required void Function(DiagnosticWindowResult result)
+        onWindowResult,
   }) async {
     _stopRequested = false;
 
-    final totalWatch = Stopwatch()..start();
-
-    var totalCaptureTime = Duration.zero;
-    var totalPreparationTime = Duration.zero;
-    var totalVadTime = Duration.zero;
-    var totalWhisperTime = Duration.zero;
-    var totalMatcherTime = Duration.zero;
-
-    final recentTranscripts = <String>[];
-
-    var analyzedWindows = 0;
-    var voiceWindows = 0;
-
-    onStatus('Listening...');
+    final evidence = <_EvidenceWindow>[];
 
     //
-    // First audio window.
+    // We keep the latest candidate object for each song
+    // so we still have title, matched text, line, etc.
     //
-    final firstCaptureWatch = Stopwatch()..start();
+    final latestCandidates =
+        <String, LyricsMatchCandidate>{};
 
-    var currentCapture = await _captureService.capture(
+    var windowNumber = 0;
+
+    onStatus('Capturing first window...');
+
+    //
+    // First window.
+    //
+    final firstCaptureWatch =
+        Stopwatch()..start();
+
+    var currentCapture =
+        await _captureService.capture(
       duration: _windowDuration,
     );
 
     firstCaptureWatch.stop();
 
-    totalCaptureTime += firstCaptureWatch.elapsed;
+    var currentCaptureTime =
+        firstCaptureWatch.elapsed;
 
     while (!_stopRequested) {
-      analyzedWindows++;
+      windowNumber++;
 
       //
-      // WASAPI always writes to the same temporary file,
-      // so copy it before starting the next recording.
+      // WASAPI always writes to the same temporary WAV.
+      // Copy it before we start recording the next one.
       //
-      final chunkPath = await _copyCapture(
+      final chunkPath =
+          await _copyCapture(
         currentCapture.filePath,
       );
 
       //
-      // Immediately start capturing the next window.
+      // Start NEXT capture now.
       //
-      final nextCaptureFuture = _captureNextWindow(
+      // While Windows is recording it, we process
+      // the current window.
+      //
+      final nextCaptureFuture =
+          _captureNextWindow(
         duration: _windowDuration,
-        onFinished: (elapsed) {
-          totalCaptureTime += elapsed;
-        },
       );
 
       String? preparedPath;
 
       try {
         onStatus(
-          'Analyzing audio window $analyzedWindows...',
+          'Analyzing window $windowNumber...',
         );
 
         //
-        // Convert captured WAV to the format Whisper uses.
+        // FFmpeg
         //
-        final preparationWatch = Stopwatch()..start();
+        final preparationWatch =
+            Stopwatch()..start();
 
         preparedPath =
             await _whisperService.prepareAudio(
@@ -142,149 +180,270 @@ class ContinuousSongDetectionService {
 
         preparationWatch.stop();
 
-        totalPreparationTime +=
-            preparationWatch.elapsed;
+        if (_stopRequested) {
+          _ignoreFuture(
+            nextCaptureFuture,
+          );
+
+          return;
+        }
 
         //
-        // Voice detection.
+        // NO VAD.
         //
-        final vadWatch = Stopwatch()..start();
+        // Every window goes directly to Whisper.
+        //
+        onStatus(
+          'Whisper analyzing window $windowNumber...',
+        );
 
-        final voice =
-            await _voiceActivityService.detectVoice(
+        final whisperWatch =
+            Stopwatch()..start();
+
+        final transcription =
+            await _whisperService
+                .transcribePrepared(
           preparedPath,
         );
 
-        vadWatch.stop();
+        whisperWatch.stop();
 
-        totalVadTime += vadWatch.elapsed;
+        final transcript =
+            transcription.text.trim();
 
-        if (_stopRequested) {
-          _ignoreFuture(nextCaptureFuture);
-          return null;
-        }
+        final matcherWatch =
+            Stopwatch()..start();
 
-        if (voice.hasVoice) {
-          voiceWindows++;
+        LyricsMatchCandidate?
+            windowBest;
 
+        double windowSecondScore = 0.0;
+        double windowLead = 0.0;
+
+        if (_isUsefulTranscript(
+          transcript,
+        )) {
           onStatus(
-            'Voice detected — transcribing...',
+            'Comparing lyrics...',
           );
 
-          //
-          // Whisper receives the complete prepared window.
-          // VAD does not trim the singing audio.
-          //
-          final whisperWatch = Stopwatch()..start();
-
-          final transcription =
-              await _whisperService
-                  .transcribePrepared(
-            preparedPath,
+          final result =
+              await _matcher.match(
+            transcript,
           );
 
-          whisperWatch.stop();
+          windowBest =
+              result.bestMatch;
 
-          totalWhisperTime +=
-              whisperWatch.elapsed;
+          //
+          // Save candidate metadata.
+          //
+          for (final candidate
+              in result.candidates) {
+            latestCandidates[
+                    candidate.songId] =
+                candidate;
+          }
 
-          final text =
-              transcription.text.trim();
+          if (result.candidates.length >
+              1) {
+            windowSecondScore =
+                result
+                    .candidates[1]
+                    .score;
+          }
 
-          if (text.isNotEmpty) {
-            recentTranscripts.add(text);
+          if (windowBest != null) {
+            windowLead =
+                windowBest.score -
+                    windowSecondScore;
 
-            //
-            // Keep only recent evidence.
-            //
-            if (recentTranscripts.length > 3) {
-              recentTranscripts.removeAt(0);
+            final scores =
+                <String, double>{};
+
+            for (final candidate
+                in result.candidates) {
+              scores[candidate.songId] =
+                  candidate.score;
             }
 
-            final combinedText =
-                recentTranscripts.join(' ');
-
-            onStatus(
-              'Comparing lyrics...',
+            evidence.add(
+              _EvidenceWindow(
+                winnerSongId:
+                    windowBest.songId,
+                scores: scores,
+              ),
             );
 
             //
-            // Compare recognized text against lyrics.
+            // Never accumulate indefinitely.
             //
-            final matcherWatch = Stopwatch()..start();
-
-            final result =
-                await _matcher.match(
-              combinedText,
-            );
-
-            matcherWatch.stop();
-
-            totalMatcherTime +=
-                matcherWatch.elapsed;
-
-            final best =
-                result.bestMatch;
-
-            if (best != null) {
-              final secondScore =
-                  result.candidates.length > 1
-                      ? result.candidates[1].score
-                      : 0.0;
-
-              final lead =
-                  best.score - secondScore;
-
-              final confident =
-                  best.score >= _minimumScore &&
-                      lead >= _minimumLead;
-
-              if (confident) {
-                totalWatch.stop();
-
-                _stopRequested = true;
-
-                //
-                // A next capture may already be running.
-                // We simply ignore its result.
-                //
-                _ignoreFuture(
-                  nextCaptureFuture,
-                );
-
-                return ContinuousDetectionResult(
-                  match: best,
-                  secondBestScore: secondScore,
-                  lead: lead,
-                  accumulatedTranscript:
-                      combinedText,
-                  analyzedWindows:
-                      analyzedWindows,
-                  voiceWindows:
-                      voiceWindows,
-                  timings: DetectionTimings(
-                    total:
-                        totalWatch.elapsed,
-                    capture:
-                        totalCaptureTime,
-                    preparation:
-                        totalPreparationTime,
-                    vad:
-                        totalVadTime,
-                    whisper:
-                        totalWhisperTime,
-                    matcher:
-                        totalMatcherTime,
-                  ),
-                );
-              }
+            if (evidence.length >
+                _maxEvidenceWindows) {
+              evidence.removeAt(0);
             }
           }
-        } else {
-          onStatus(
-            'No vocals detected — continuing...',
-          );
         }
+
+        matcherWatch.stop();
+
+        //
+        // Calculate weighted accumulated evidence.
+        //
+        final accumulated =
+            _calculateAccumulatedScores(
+          evidence,
+        );
+
+        String? accumulatedBestId;
+        double accumulatedBestScore = 0.0;
+        double accumulatedSecondScore =
+            0.0;
+
+        if (accumulated.isNotEmpty) {
+          final ordered =
+              accumulated.entries.toList()
+                ..sort(
+                  (a, b) => b.value
+                      .compareTo(a.value),
+                );
+
+          accumulatedBestId =
+              ordered.first.key;
+
+          accumulatedBestScore =
+              ordered.first.value;
+
+          if (ordered.length > 1) {
+            accumulatedSecondScore =
+                ordered[1].value;
+          }
+        }
+
+        final accumulatedLead =
+            accumulatedBestScore -
+                accumulatedSecondScore;
+
+        final accumulatedBest =
+            accumulatedBestId == null
+                ? null
+                : latestCandidates[
+                    accumulatedBestId];
+
+        final winnerCount =
+            accumulatedBestId == null
+                ? 0
+                : evidence
+                    .where(
+                      (item) =>
+                          item.winnerSongId ==
+                          accumulatedBestId,
+                    )
+                    .length;
+
+        //
+        // RULE 1:
+        // One very strong window.
+        //
+        final strongSingle =
+            windowBest != null &&
+                windowBest.score >=
+                    _strongSingleScore &&
+                windowLead >=
+                    _strongSingleLead;
+
+        //
+        // RULE 2:
+        // Consistent evidence across recent windows.
+        //
+        final consistentAccumulated =
+            accumulatedBest != null &&
+                evidence.length >= 2 &&
+                winnerCount >= 2 &&
+                accumulatedBestScore >=
+                    _accumulatedMinimumScore &&
+                accumulatedLead >=
+                    _accumulatedMinimumLead;
+
+        final accepted =
+            strongSingle ||
+                consistentAccumulated;
+
+        String acceptanceReason =
+            'Not enough evidence yet';
+
+        if (strongSingle) {
+          acceptanceReason =
+              'Strong single window';
+        } else if (
+            consistentAccumulated) {
+          acceptanceReason =
+              'Consistent accumulated evidence';
+        }
+
+        final diagnostic =
+            DiagnosticWindowResult(
+          windowNumber:
+              windowNumber,
+          transcript:
+              transcript,
+          windowBestMatch:
+              windowBest,
+          windowSecondScore:
+              windowSecondScore,
+          windowLead:
+              windowLead,
+          accumulatedBestMatch:
+              accumulatedBest,
+          accumulatedScore:
+              accumulatedBestScore,
+          accumulatedSecondScore:
+              accumulatedSecondScore,
+          accumulatedLead:
+              accumulatedLead,
+          evidenceWindows:
+              evidence.length,
+          winnerCount:
+              winnerCount,
+          accepted:
+              accepted,
+          acceptanceReason:
+              acceptanceReason,
+          captureTime:
+              currentCaptureTime,
+          preparationTime:
+              preparationWatch.elapsed,
+          whisperTime:
+              whisperWatch.elapsed,
+          matcherTime:
+              matcherWatch.elapsed,
+        );
+
+        onWindowResult(
+          diagnostic,
+        );
+
+        if (accepted) {
+          _stopRequested = true;
+
+          //
+          // Next capture may already be running.
+          // We no longer need its result.
+          //
+          _ignoreFuture(
+            nextCaptureFuture,
+          );
+
+          onStatus(
+            'Song detected',
+          );
+
+          return;
+        }
+
+        onStatus(
+          'Listening for more evidence...',
+        );
       } finally {
         await _safeDelete(
           chunkPath,
@@ -303,26 +462,123 @@ class ContinuousSongDetectionService {
           nextCaptureFuture,
         );
 
-        return null;
+        return;
       }
 
       //
-      // The next capture started while VAD/Whisper
-      // were processing the previous window.
+      // Next recording has already been happening
+      // while Whisper processed the previous window.
       //
-      currentCapture =
+      final nextCaptureResult =
           await nextCaptureFuture;
-    }
 
-    return null;
+      currentCapture =
+          nextCaptureResult.result;
+
+      currentCaptureTime =
+          nextCaptureResult.elapsed;
+    }
   }
 
-  Future<SystemAudioCaptureResult> _captureNextWindow({
+  bool _isUsefulTranscript(
+    String text,
+  ) {
+    final cleaned =
+        text.trim();
+
+    if (cleaned.isEmpty) {
+      return false;
+    }
+
+    //
+    // Whisper sometimes returns generic music labels.
+    //
+    final normalized =
+        cleaned
+            .toLowerCase()
+            .replaceAll('♪', '')
+            .trim();
+
+    if (normalized == '(music)' ||
+        normalized == '[music]' ||
+        normalized == 'music') {
+      return false;
+    }
+
+    //
+    // Require at least 3 words.
+    //
+    final words =
+        normalized
+            .split(
+              RegExp(r'\s+'),
+            )
+            .where(
+              (word) =>
+                  word.isNotEmpty,
+            )
+            .toList();
+
+    return words.length >= 3;
+  }
+
+  Map<String, double>
+      _calculateAccumulatedScores(
+    List<_EvidenceWindow> evidence,
+  ) {
+    if (evidence.isEmpty) {
+      return {};
+    }
+
+    final totals =
+        <String, double>{};
+
+    var totalWeight = 0.0;
+
+    //
+    // Most recent windows get slightly more weight.
+    //
+    // For 3 windows:
+    //
+    // oldest = 1
+    // middle = 2
+    // newest = 3
+    //
+    for (var i = 0;
+        i < evidence.length;
+        i++) {
+      final weight =
+          (i + 1).toDouble();
+
+      totalWeight += weight;
+
+      for (final entry
+          in evidence[i].scores.entries) {
+        totals[entry.key] =
+            (totals[entry.key] ?? 0.0) +
+                entry.value * weight;
+      }
+    }
+
+    if (totalWeight == 0) {
+      return {};
+    }
+
+    return totals.map(
+      (songId, total) =>
+          MapEntry(
+        songId,
+        total / totalWeight,
+      ),
+    );
+  }
+
+  Future<_CapturedWindow>
+      _captureNextWindow({
     required Duration duration,
-    required void Function(Duration elapsed)
-        onFinished,
   }) async {
-    final watch = Stopwatch()..start();
+    final watch =
+        Stopwatch()..start();
 
     final result =
         await _captureService.capture(
@@ -331,11 +587,10 @@ class ContinuousSongDetectionService {
 
     watch.stop();
 
-    onFinished(
-      watch.elapsed,
+    return _CapturedWindow(
+      result: result,
+      elapsed: watch.elapsed,
     );
-
-    return result;
   }
 
   Future<String> _copyCapture(
@@ -357,7 +612,7 @@ class ContinuousSongDetectionService {
 
     final destination =
         '${Directory.systemTemp.path}\\'
-        'lyrics_chunk_$timestamp.wav';
+        'lyrics_diagnostic_$timestamp.wav';
 
     final copied =
         await source.copy(
@@ -371,14 +626,15 @@ class ContinuousSongDetectionService {
     String path,
   ) async {
     try {
-      final file = File(path);
+      final file =
+          File(path);
 
       if (await file.exists()) {
         await file.delete();
       }
     } catch (_) {
-      // Failure deleting a temporary file
-      // should not stop recognition.
+      // Temporary cleanup must never
+      // interrupt recognition.
     }
   }
 
@@ -389,4 +645,14 @@ class ContinuousSongDetectionService {
         .then<void>((_) {})
         .catchError((_) {});
   }
+}
+
+class _CapturedWindow {
+  final SystemAudioCaptureResult result;
+  final Duration elapsed;
+
+  const _CapturedWindow({
+    required this.result,
+    required this.elapsed,
+  });
 }

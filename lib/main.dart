@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/song_detection_screen.dart';
+import 'screens/fingerprint_match_test_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,8 +10,7 @@ void main() {
   );
 }
 
-class LyricsApp
-    extends StatelessWidget {
+class LyricsApp extends StatelessWidget {
   const LyricsApp({
     super.key,
   });
@@ -30,7 +29,7 @@ class LyricsApp
         useMaterial3: true,
       ),
       home:
-          const SongDetectionScreen(),
+          const FingerprintMatchTestScreen(),
     );
   }
 }

@@ -21,9 +21,10 @@ class _SongDetectionScreenState
   bool _detecting = false;
 
   String _status =
-      'Play a song, then press Detect Song.';
+      'Play a song, then press Start Diagnostic.';
 
-  ContinuousDetectionResult? _result;
+  final List<DiagnosticWindowResult>
+      _windows = [];
 
   String? _error;
 
@@ -34,19 +35,32 @@ class _SongDetectionScreenState
 
     setState(() {
       _detecting = true;
-      _result = null;
       _error = null;
-      _status = 'Listening...';
+      _windows.clear();
+      _status = 'Starting...';
     });
 
     try {
-      final result =
-          await _detectionService.start(
+      await _detectionService.startDiagnostic(
         onStatus: (status) {
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
           setState(() {
             _status = status;
+          });
+        },
+        onWindowResult: (result) {
+          if (!mounted) {
+            return;
+          }
+
+          setState(() {
+            _windows.insert(
+              0,
+              result,
+            );
           });
         },
       );
@@ -55,18 +69,14 @@ class _SongDetectionScreenState
         return;
       }
 
-      if (result == null) {
-        setState(() {
-          _status =
-              'Detection stopped.';
-        });
-
-        return;
-      }
-
       setState(() {
-        _result = result;
-        _status = 'Song detected';
+        if (_windows.isNotEmpty &&
+            _windows.first.accepted) {
+          _status = 'Song detected';
+        } else {
+          _status =
+              'Diagnostic stopped.';
+        }
       });
     } catch (e) {
       if (!mounted) {
@@ -75,7 +85,8 @@ class _SongDetectionScreenState
 
       setState(() {
         _error = e.toString();
-        _status = 'Detection failed';
+        _status =
+            'Diagnostic failed';
       });
     } finally {
       if (mounted) {
@@ -110,312 +121,409 @@ class _SongDetectionScreenState
   Widget build(
     BuildContext context,
   ) {
-    final result = _result;
-
     return Scaffold(
       backgroundColor:
           const Color(0xFF090909),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(
-                maxWidth: 650,
+        child: Column(
+          children: [
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(
+                28,
+                28,
+                28,
+                18,
               ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.all(
-                  32,
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      _detecting
-                          ? Icons.graphic_eq_rounded
-                          : Icons.music_note_rounded,
+              child: Column(
+                children: [
+                  const Text(
+                    'Accumulated Matcher',
+                    style: TextStyle(
                       color: Colors.white,
-                      size: 76,
+                      fontSize: 30,
+                      fontWeight:
+                          FontWeight.w700,
                     ),
+                  ),
 
+                  const SizedBox(
+                    height: 10,
+                  ),
+
+                  Text(
+                    _status,
+                    textAlign:
+                        TextAlign.center,
+                    style:
+                        const TextStyle(
+                      color:
+                          Colors.white60,
+                      fontSize: 15,
+                    ),
+                  ),
+
+                  if (_detecting) ...[
                     const SizedBox(
-                      height: 28,
+                      height: 18,
                     ),
+                    const LinearProgressIndicator(),
+                  ],
 
-                    const Text(
-                      'Lyrics',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight:
-                            FontWeight.w700,
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  if (!_detecting)
+                    FilledButton.icon(
+                      onPressed:
+                          _startDetection,
+                      icon:
+                          const Icon(
+                        Icons
+                            .hearing_rounded,
+                      ),
+                      label:
+                          const Text(
+                        'START TEST',
+                      ),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed:
+                          _stopDetection,
+                      icon:
+                          const Icon(
+                        Icons.stop_rounded,
+                      ),
+                      label:
+                          const Text(
+                        'STOP',
                       ),
                     ),
 
+                  if (_error != null) ...[
                     const SizedBox(
-                      height: 14,
+                      height: 18,
                     ),
-
                     Text(
-                      _status,
+                      _error!,
                       textAlign:
                           TextAlign.center,
                       style:
                           const TextStyle(
                         color:
-                            Colors.white60,
-                        fontSize: 16,
+                            Colors.redAccent,
                       ),
                     ),
-
-                    if (_detecting) ...[
-                      const SizedBox(
-                        height: 25,
-                      ),
-                      const LinearProgressIndicator(),
-                    ],
-
-                    if (result != null) ...[
-                      const SizedBox(
-                        height: 35,
-                      ),
-
-                      _buildResult(
-                        result,
-                      ),
-                    ],
-
-                    if (_error != null) ...[
-                      const SizedBox(
-                        height: 30,
-                      ),
-
-                      Text(
-                        _error!,
-                        textAlign:
-                            TextAlign.center,
-                        style:
-                            const TextStyle(
-                          color:
-                              Colors.redAccent,
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(
-                      height: 40,
-                    ),
-
-                    if (!_detecting)
-                      FilledButton.icon(
-                        onPressed:
-                            _startDetection,
-                        icon:
-                            const Icon(
-                          Icons
-                              .hearing_rounded,
-                        ),
-                        label:
-                            const Padding(
-                          padding:
-                              EdgeInsets
-                                  .symmetric(
-                            vertical: 16,
-                            horizontal: 18,
-                          ),
-                          child: Text(
-                            'DETECT SONG',
-                          ),
-                        ),
-                      )
-                    else
-                      OutlinedButton.icon(
-                        onPressed:
-                            _stopDetection,
-                        icon:
-                            const Icon(
-                          Icons.stop_rounded,
-                        ),
-                        label:
-                            const Padding(
-                          padding:
-                              EdgeInsets
-                                  .symmetric(
-                            vertical: 16,
-                            horizontal: 18,
-                          ),
-                          child: Text(
-                            'CANCEL',
-                          ),
-                        ),
-                      ),
                   ],
-                ),
+                ],
               ),
             ),
-          ),
+
+            const Divider(
+              color: Colors.white12,
+            ),
+
+            Expanded(
+              child: _windows.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No windows analyzed yet.',
+                        style: TextStyle(
+                          color:
+                              Colors.white38,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding:
+                          const EdgeInsets.all(
+                        20,
+                      ),
+                      itemCount:
+                          _windows.length,
+                      itemBuilder:
+                          (
+                        context,
+                        index,
+                      ) {
+                        return _buildWindowCard(
+                          _windows[index],
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildResult(
-    ContinuousDetectionResult result,
+  Widget _buildWindowCard(
+    DiagnosticWindowResult result,
   ) {
-    final timings =
-        result.timings;
+    final windowBest =
+        result.windowBestMatch;
+
+    final accumulatedBest =
+        result.accumulatedBestMatch;
 
     return Container(
-      width: double.infinity,
+      margin:
+          const EdgeInsets.only(
+        bottom: 16,
+      ),
       padding:
           const EdgeInsets.all(
-        26,
+        20,
       ),
       decoration:
           BoxDecoration(
         color:
             Colors.white.withValues(
-          alpha: 0.06,
+          alpha: result.accepted
+              ? 0.10
+              : 0.05,
         ),
         borderRadius:
             BorderRadius.circular(
-          20,
+          16,
         ),
+        border: result.accepted
+            ? Border.all(
+                color:
+                    Colors.white24,
+              )
+            : null,
       ),
       child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
-          Text(
-            result.match.title,
-            textAlign:
-                TextAlign.center,
-            style:
-                const TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              fontWeight:
-                  FontWeight.w700,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Window ${result.windowNumber}',
+                  style:
+                      const TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize: 20,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+              ),
+
+              if (result.accepted)
+                const Text(
+                  'ACCEPTED',
+                  style: TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize: 12,
+                    fontWeight:
+                        FontWeight.w700,
+                  ),
+                ),
+            ],
           ),
 
           const SizedBox(
             height: 14,
           ),
 
-          _row(
-            'Confidence',
-            _percentage(
-              result.match.score,
-            ),
-          ),
-
-          _row(
-            'Second candidate',
-            _percentage(
-              result.secondBestScore,
-            ),
-          ),
-
-          _row(
-            'Lead',
-            _percentage(
-              result.lead,
-            ),
-          ),
-
-          const Divider(
-            height: 30,
-            color: Colors.white12,
-          ),
-
-          _row(
-            'Windows analyzed',
-            '${result.analyzedWindows}',
-          ),
-
-          _row(
-            'Windows with voice',
-            '${result.voiceWindows}',
-          ),
-
-          const Divider(
-            height: 30,
-            color: Colors.white12,
-          ),
-
           const Text(
-            'Development timings',
+            'Whisper',
             style: TextStyle(
-              color: Colors.white54,
-              fontSize: 13,
-              fontWeight:
-                  FontWeight.w600,
+              color:
+                  Colors.white38,
+              fontSize: 12,
             ),
           ),
 
           const SizedBox(
-            height: 12,
+            height: 5,
           ),
 
-          _row(
-            'Total',
-            _seconds(
-              timings.total,
+          Text(
+            result.transcript.isEmpty
+                ? '(no useful text)'
+                : result.transcript,
+            style:
+                const TextStyle(
+              color:
+                  Colors.white70,
+              fontSize: 15,
+              height: 1.4,
             ),
           ),
 
+          const Divider(
+            height: 28,
+            color: Colors.white12,
+          ),
+
+          const Text(
+            'THIS WINDOW',
+            style: TextStyle(
+              color:
+                  Colors.white38,
+              fontSize: 11,
+              fontWeight:
+                  FontWeight.w700,
+            ),
+          ),
+
+          const SizedBox(
+            height: 8,
+          ),
+
+          if (windowBest != null) ...[
+            _row(
+              'Best',
+              windowBest.title,
+            ),
+            _row(
+              'Score',
+              _percentage(
+                windowBest.score,
+              ),
+            ),
+            _row(
+              'Second',
+              _percentage(
+                result.windowSecondScore,
+              ),
+            ),
+            _row(
+              'Lead',
+              _percentage(
+                result.windowLead,
+              ),
+            ),
+          ] else
+            const Text(
+              'No usable window match',
+              style: TextStyle(
+                color:
+                    Colors.white38,
+              ),
+            ),
+
+          const Divider(
+            height: 28,
+            color: Colors.white12,
+          ),
+
+          const Text(
+            'ACCUMULATED EVIDENCE',
+            style: TextStyle(
+              color:
+                  Colors.white38,
+              fontSize: 11,
+              fontWeight:
+                  FontWeight.w700,
+            ),
+          ),
+
+          const SizedBox(
+            height: 8,
+          ),
+
+          if (accumulatedBest !=
+              null) ...[
+            _row(
+              'Best',
+              accumulatedBest.title,
+            ),
+            _row(
+              'Score',
+              _percentage(
+                result.accumulatedScore,
+              ),
+            ),
+            _row(
+              'Second',
+              _percentage(
+                result
+                    .accumulatedSecondScore,
+              ),
+            ),
+            _row(
+              'Lead',
+              _percentage(
+                result.accumulatedLead,
+              ),
+            ),
+            _row(
+              'Evidence windows',
+              '${result.evidenceWindows}',
+            ),
+            _row(
+              'Same winner',
+              '${result.winnerCount}',
+            ),
+          ] else
+            const Text(
+              'No accumulated evidence yet',
+              style: TextStyle(
+                color:
+                    Colors.white38,
+              ),
+            ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          Text(
+            result.acceptanceReason,
+            style:
+                TextStyle(
+              color: result.accepted
+                  ? Colors.white
+                  : Colors.white38,
+              fontSize: 12,
+              fontWeight:
+                  result.accepted
+                      ? FontWeight.w700
+                      : FontWeight.normal,
+            ),
+          ),
+
+          const Divider(
+            height: 28,
+            color: Colors.white12,
+          ),
+
           _row(
-            'Audio capture',
+            'Capture',
             _seconds(
-              timings.capture,
+              result.captureTime,
             ),
           ),
 
           _row(
             'FFmpeg',
             _seconds(
-              timings.preparation,
-            ),
-          ),
-
-          _row(
-            'VAD',
-            _seconds(
-              timings.vad,
+              result.preparationTime,
             ),
           ),
 
           _row(
             'Whisper',
             _seconds(
-              timings.whisper,
+              result.whisperTime,
             ),
           ),
 
           _row(
             'Matcher',
             _seconds(
-              timings.matcher,
-            ),
-          ),
-
-          const Divider(
-            height: 30,
-            color: Colors.white12,
-          ),
-
-          Align(
-            alignment:
-                Alignment.centerLeft,
-            child: Text(
-              'Recognized text:\n\n'
-              '${result.accumulatedTranscript}',
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white54,
-                fontSize: 13,
-                height: 1.4,
-              ),
+              result.matcherTime,
             ),
           ),
         ],
@@ -430,7 +538,7 @@ class _SongDetectionScreenState
     return Padding(
       padding:
           const EdgeInsets.symmetric(
-        vertical: 4,
+        vertical: 3,
       ),
       child: Row(
         children: [
@@ -440,7 +548,7 @@ class _SongDetectionScreenState
               style:
                   const TextStyle(
                 color:
-                    Colors.white54,
+                    Colors.white38,
               ),
             ),
           ),
@@ -448,7 +556,8 @@ class _SongDetectionScreenState
             value,
             style:
                 const TextStyle(
-              color: Colors.white,
+              color:
+                  Colors.white70,
               fontWeight:
                   FontWeight.w600,
             ),
