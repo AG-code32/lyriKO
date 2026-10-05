@@ -19,8 +19,8 @@
       "text": "There you are, you've come so far",
       "originalStartMs": 7580,
       "originalEndMs": 12640,
-      "startMs": 7580,
-      "endMs": 12640,
+      "startMs": 4340,
+      "endMs": 12920,
       "words": [
         {
           "text": "There",
@@ -63,8 +63,8 @@
       "text": "Sunny days, the air tastes so sweet, flowers greet",
       "originalStartMs": 12640,
       "originalEndMs": 21500,
-      "startMs": 12640,
-      "endMs": 21500,
+      "startMs": 12920,
+      "endMs": 21680,
       "words": [
         {
           "text": "Sunny",
@@ -117,8 +117,8 @@
       "text": "Birds will sing you mean everything",
       "originalStartMs": 21500,
       "originalEndMs": 26620,
-      "startMs": 21500,
-      "endMs": 26620,
+      "startMs": 21680,
+      "endMs": 26380,
       "words": [
         {
           "text": "Birds",
@@ -156,8 +156,8 @@
       "text": "You can be anything",
       "originalStartMs": 26620,
       "originalEndMs": 33600,
-      "startMs": 26620,
-      "endMs": 33600,
+      "startMs": 26380,
+      "endMs": 31940,
       "words": [
         {
           "text": "You",
@@ -182,10 +182,20 @@
       ]
     },
     {
+      "text": "♪",
+      "startMs": 31940,
+      "endMs": 38200,
+      "originalStartMs": 32360,
+      "originalEndMs": 38200,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
+    },
+    {
       "text": "More power, more pace, more money",
       "originalStartMs": 33600,
       "originalEndMs": 43560,
-      "startMs": 33600,
+      "startMs": 38200,
       "endMs": 43560,
       "words": [
         {
@@ -536,7 +546,7 @@
       "originalStartMs": 77500,
       "originalEndMs": 86700,
       "startMs": 77500,
-      "endMs": 86700,
+      "endMs": 80868,
       "words": [
         {
           "text": "Unto",
@@ -556,10 +566,20 @@
       ]
     },
     {
+      "text": "♪",
+      "startMs": 80868,
+      "endMs": 93201,
+      "originalStartMs": 80868,
+      "originalEndMs": 93201,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
+    },
+    {
       "text": "More wants, more needs, more hits",
       "originalStartMs": 86700,
       "originalEndMs": 98480,
-      "startMs": 86700,
+      "startMs": 93201,
       "endMs": 98480,
       "words": [
         {
@@ -740,7 +760,7 @@
       "originalStartMs": 117360,
       "originalEndMs": 121620,
       "startMs": 117360,
-      "endMs": 121620,
+      "endMs": 122249,
       "words": [
         {
           "text": "Build",
@@ -768,38 +788,38 @@
       "text": "Look at the way you go",
       "originalStartMs": 121620,
       "originalEndMs": 128540,
-      "startMs": 121620,
-      "endMs": 128540,
+      "startMs": 122249,
+      "endMs": 129338,
       "words": [
         {
           "text": "Look",
-          "startMs": 121620,
-          "endMs": 123200
+          "startMs": 121535,
+          "endMs": 123115
         },
         {
           "text": "at",
-          "startMs": 123200,
-          "endMs": 123540
+          "startMs": 123115,
+          "endMs": 123455
         },
         {
           "text": "the",
-          "startMs": 123540,
-          "endMs": 125020
+          "startMs": 123455,
+          "endMs": 124935
         },
         {
           "text": "way",
-          "startMs": 125020,
-          "endMs": 126720
+          "startMs": 124935,
+          "endMs": 126635
         },
         {
           "text": "you",
-          "startMs": 126720,
-          "endMs": 127400
+          "startMs": 126635,
+          "endMs": 127315
         },
         {
           "text": "go",
-          "startMs": 127400,
-          "endMs": 128540
+          "startMs": 127315,
+          "endMs": 128455
         }
       ]
     },
@@ -807,7 +827,7 @@
       "text": "You're one in a million",
       "originalStartMs": 128540,
       "originalEndMs": 133900,
-      "startMs": 128540,
+      "startMs": 129338,
       "endMs": 133900,
       "words": [
         {
@@ -876,7 +896,7 @@
       "originalStartMs": 140420,
       "originalEndMs": 147200,
       "startMs": 140420,
-      "endMs": 147200,
+      "endMs": 146574,
       "words": [
         {
           "text": "And",
@@ -904,8 +924,8 @@
       "text": "Do unto the mud",
       "originalStartMs": 147560,
       "originalEndMs": 155220,
-      "startMs": 147560,
-      "endMs": 155220,
+      "startMs": 146574,
+      "endMs": 152759,
       "words": [
         {
           "text": "Do",
@@ -933,7 +953,7 @@
       "text": "Mud",
       "originalStartMs": 155220,
       "originalEndMs": 157220,
-      "startMs": 155220,
+      "startMs": 152759,
       "endMs": 157220,
       "words": [
         {
@@ -1075,7 +1095,7 @@
       "originalStartMs": 163440,
       "originalEndMs": 166040,
       "startMs": 163440,
-      "endMs": 166040,
+      "endMs": 167009,
       "words": [
         {
           "text": "So",
@@ -1108,8 +1128,8 @@
       "text": "Do unto the end",
       "originalStartMs": 166040,
       "originalEndMs": 193140,
-      "startMs": 166040,
-      "endMs": 193140,
+      "startMs": 167009,
+      "endMs": 169170,
       "words": [
         {
           "text": "Do",
@@ -1137,41 +1157,51 @@
       "text": "Do unto the mud, do!",
       "originalStartMs": 193140,
       "originalEndMs": 199260,
-      "startMs": 193140,
-      "endMs": 199260,
+      "startMs": 169170,
+      "endMs": 172663,
       "words": [
         {
           "text": "Do",
-          "startMs": 193140,
-          "endMs": 193860
+          "startMs": 169306,
+          "endMs": 170026
         },
         {
           "text": "unto",
-          "startMs": 193860,
-          "endMs": 197000
+          "startMs": 170026,
+          "endMs": 173166
         },
         {
           "text": "the",
-          "startMs": 197000,
-          "endMs": 197700
+          "startMs": 173166,
+          "endMs": 173866
         },
         {
           "text": "mud",
-          "startMs": 197700,
-          "endMs": 198260
+          "startMs": 173866,
+          "endMs": 174426
         },
         {
           "text": "do",
-          "startMs": 198260,
-          "endMs": 199260
+          "startMs": 174426,
+          "endMs": 175426
         }
       ]
+    },
+    {
+      "text": "♪",
+      "startMs": 172663,
+      "endMs": 199420,
+      "originalStartMs": 172663,
+      "originalEndMs": 199260,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
     },
     {
       "text": "More power, more pace, more money",
       "originalStartMs": 199260,
       "originalEndMs": 204440,
-      "startMs": 199260,
+      "startMs": 199420,
       "endMs": 204440,
       "words": [
         {
@@ -1211,7 +1241,7 @@
       "originalStartMs": 204440,
       "originalEndMs": 209060,
       "startMs": 204440,
-      "endMs": 209060,
+      "endMs": 208920,
       "words": [
         {
           "text": "More",
@@ -1249,7 +1279,7 @@
       "text": "More skin, more shills",
       "originalStartMs": 209060,
       "originalEndMs": 211780,
-      "startMs": 209060,
+      "startMs": 208920,
       "endMs": 211780,
       "words": [
         {
@@ -1459,7 +1489,7 @@
       "originalStartMs": 226680,
       "originalEndMs": 242940,
       "startMs": 226680,
-      "endMs": 242940,
+      "endMs": 228499,
       "words": [
         {
           "text": "Build",
@@ -1487,38 +1517,38 @@
       "text": "Build out, build fast, build strong",
       "originalStartMs": 242940,
       "originalEndMs": 255140,
-      "startMs": 242940,
-      "endMs": 255140,
+      "startMs": 228499,
+      "endMs": 230996,
       "words": [
         {
           "text": "Build",
-          "startMs": 242940,
-          "endMs": 243760
+          "startMs": 228499,
+          "endMs": 229319
         },
         {
           "text": "out",
-          "startMs": 243760,
-          "endMs": 245080
+          "startMs": 229319,
+          "endMs": 230639
         },
         {
           "text": "build",
-          "startMs": 245080,
-          "endMs": 245700
+          "startMs": 230639,
+          "endMs": 231259
         },
         {
           "text": "fast",
-          "startMs": 245700,
-          "endMs": 250340
+          "startMs": 231259,
+          "endMs": 235899
         },
         {
           "text": "build",
-          "startMs": 250340,
-          "endMs": 252740
+          "startMs": 235899,
+          "endMs": 238299
         },
         {
           "text": "strong",
-          "startMs": 252740,
-          "endMs": 255140
+          "startMs": 238299,
+          "endMs": 240699
         }
       ]
     },
@@ -1526,63 +1556,63 @@
       "text": "Build vast, build, build, build, build, build, build, build, build, build",
       "originalStartMs": 255140,
       "originalEndMs": 308260,
-      "startMs": 255140,
-      "endMs": 308260,
+      "startMs": 230996,
+      "endMs": 236039,
       "words": [
         {
           "text": "Build",
-          "startMs": 255140,
-          "endMs": 258380
+          "startMs": 230996,
+          "endMs": 234236
         },
         {
           "text": "vast",
-          "startMs": 258380,
-          "endMs": 259460
+          "startMs": 234236,
+          "endMs": 235316
         },
         {
           "text": "build",
-          "startMs": 259460,
-          "endMs": 260560
+          "startMs": 235316,
+          "endMs": 236416
         },
         {
           "text": "build",
-          "startMs": 260560,
-          "endMs": 270220
+          "startMs": 236416,
+          "endMs": 246076
         },
         {
           "text": "build",
-          "startMs": 270220,
-          "endMs": 271340
+          "startMs": 246076,
+          "endMs": 247196
         },
         {
           "text": "build",
-          "startMs": 271340,
-          "endMs": 279020
+          "startMs": 247196,
+          "endMs": 254876
         },
         {
           "text": "build",
-          "startMs": 279020,
-          "endMs": 280380
+          "startMs": 254876,
+          "endMs": 256236
         },
         {
           "text": "build",
-          "startMs": 280380,
-          "endMs": 287560
+          "startMs": 256236,
+          "endMs": 263416
         },
         {
           "text": "build",
-          "startMs": 287560,
-          "endMs": 301780
+          "startMs": 263416,
+          "endMs": 277636
         },
         {
           "text": "build",
-          "startMs": 301780,
-          "endMs": 304680
+          "startMs": 277636,
+          "endMs": 280536
         },
         {
           "text": "build",
-          "startMs": 304680,
-          "endMs": 308260
+          "startMs": 280536,
+          "endMs": 284116
         }
       ]
     },
@@ -1590,38 +1620,38 @@
       "text": "Look at the way you go",
       "originalStartMs": 308260,
       "originalEndMs": 315120,
-      "startMs": 308260,
-      "endMs": 315120,
+      "startMs": 236039,
+      "endMs": 239057,
       "words": [
         {
           "text": "Look",
-          "startMs": 308260,
-          "endMs": 312540
+          "startMs": 236039,
+          "endMs": 240319
         },
         {
           "text": "at",
-          "startMs": 312540,
-          "endMs": 312980
+          "startMs": 240319,
+          "endMs": 240759
         },
         {
           "text": "the",
-          "startMs": 312980,
-          "endMs": 313440
+          "startMs": 240759,
+          "endMs": 241219
         },
         {
           "text": "way",
-          "startMs": 313440,
-          "endMs": 314100
+          "startMs": 241219,
+          "endMs": 241879
         },
         {
           "text": "you",
-          "startMs": 314100,
-          "endMs": 314700
+          "startMs": 241879,
+          "endMs": 242479
         },
         {
           "text": "go",
-          "startMs": 314700,
-          "endMs": 315120
+          "startMs": 242479,
+          "endMs": 242899
         }
       ]
     },
@@ -1629,33 +1659,33 @@
       "text": "You're one in a million",
       "originalStartMs": 315120,
       "originalEndMs": 319260,
-      "startMs": 315120,
-      "endMs": 319260,
+      "startMs": 239057,
+      "endMs": 241767,
       "words": [
         {
           "text": "You're",
-          "startMs": 315120,
-          "endMs": 316180
+          "startMs": 239057,
+          "endMs": 240117
         },
         {
           "text": "one",
-          "startMs": 316180,
-          "endMs": 317240
+          "startMs": 240117,
+          "endMs": 241177
         },
         {
           "text": "in",
-          "startMs": 317240,
-          "endMs": 318160
+          "startMs": 241177,
+          "endMs": 242097
         },
         {
           "text": "a",
-          "startMs": 318160,
-          "endMs": 318260
+          "startMs": 242097,
+          "endMs": 242197
         },
         {
           "text": "million",
-          "startMs": 318260,
-          "endMs": 319260
+          "startMs": 242197,
+          "endMs": 243197
         }
       ]
     },
@@ -1663,33 +1693,33 @@
       "text": "And you know it shows",
       "originalStartMs": 319260,
       "originalEndMs": 326080,
-      "startMs": 319260,
-      "endMs": 326080,
+      "startMs": 241767,
+      "endMs": 245305,
       "words": [
         {
           "text": "And",
-          "startMs": 319260,
-          "endMs": 320760
+          "startMs": 241767,
+          "endMs": 243267
         },
         {
           "text": "you",
-          "startMs": 320760,
-          "endMs": 321600
+          "startMs": 243267,
+          "endMs": 244107
         },
         {
           "text": "know",
-          "startMs": 321600,
-          "endMs": 325200
+          "startMs": 244107,
+          "endMs": 247707
         },
         {
           "text": "it",
-          "startMs": 325200,
-          "endMs": 325380
+          "startMs": 247707,
+          "endMs": 247887
         },
         {
           "text": "shows",
-          "startMs": 325380,
-          "endMs": 326080
+          "startMs": 247887,
+          "endMs": 248587
         }
       ]
     },
@@ -1697,23 +1727,23 @@
       "text": "We love you",
       "originalStartMs": 326080,
       "originalEndMs": 329100,
-      "startMs": 326080,
-      "endMs": 329100,
+      "startMs": 245305,
+      "endMs": 249871,
       "words": [
         {
           "text": "We",
-          "startMs": 326080,
-          "endMs": 326340
+          "startMs": 245305,
+          "endMs": 245565
         },
         {
           "text": "love",
-          "startMs": 326340,
-          "endMs": 328580
+          "startMs": 245565,
+          "endMs": 247805
         },
         {
           "text": "you",
-          "startMs": 328580,
-          "endMs": 329100
+          "startMs": 247805,
+          "endMs": 248325
         }
       ]
     },
@@ -1721,43 +1751,43 @@
       "text": "Look at the way that you choose",
       "originalStartMs": 329100,
       "originalEndMs": 333700,
-      "startMs": 329100,
-      "endMs": 333700,
+      "startMs": 249871,
+      "endMs": 253863,
       "words": [
         {
           "text": "Look",
-          "startMs": 329100,
-          "endMs": 330220
+          "startMs": 249871,
+          "endMs": 250991
         },
         {
           "text": "at",
-          "startMs": 330220,
-          "endMs": 330560
+          "startMs": 250991,
+          "endMs": 251331
         },
         {
           "text": "the",
-          "startMs": 330560,
-          "endMs": 330920
+          "startMs": 251331,
+          "endMs": 251691
         },
         {
           "text": "way",
-          "startMs": 330920,
-          "endMs": 331440
+          "startMs": 251691,
+          "endMs": 252211
         },
         {
           "text": "that",
-          "startMs": 331440,
-          "endMs": 332100
+          "startMs": 252211,
+          "endMs": 252871
         },
         {
           "text": "you",
-          "startMs": 332100,
-          "endMs": 332800
+          "startMs": 252871,
+          "endMs": 253571
         },
         {
           "text": "choose",
-          "startMs": 332800,
-          "endMs": 333700
+          "startMs": 253571,
+          "endMs": 254471
         }
       ]
     },
@@ -1765,33 +1795,33 @@
       "text": "You know you'll never lose",
       "originalStartMs": 333700,
       "originalEndMs": 339100,
-      "startMs": 333700,
-      "endMs": 339100,
+      "startMs": 253863,
+      "endMs": 257092,
       "words": [
         {
           "text": "You",
-          "startMs": 333700,
-          "endMs": 334580
+          "startMs": 253863,
+          "endMs": 254743
         },
         {
           "text": "know",
-          "startMs": 334580,
-          "endMs": 335420
+          "startMs": 254743,
+          "endMs": 255583
         },
         {
           "text": "you'll",
-          "startMs": 335420,
-          "endMs": 337240
+          "startMs": 255583,
+          "endMs": 257403
         },
         {
           "text": "never",
-          "startMs": 337240,
-          "endMs": 338240
+          "startMs": 257403,
+          "endMs": 258403
         },
         {
           "text": "lose",
-          "startMs": 338240,
-          "endMs": 339100
+          "startMs": 258403,
+          "endMs": 259263
         }
       ]
     },
@@ -1799,33 +1829,33 @@
       "text": "And all that you are",
       "originalStartMs": 339100,
       "originalEndMs": 342120,
-      "startMs": 339100,
-      "endMs": 342120,
+      "startMs": 257092,
+      "endMs": 258713,
       "words": [
         {
           "text": "And",
-          "startMs": 339100,
-          "endMs": 339440
+          "startMs": 257092,
+          "endMs": 257432
         },
         {
           "text": "all",
-          "startMs": 339440,
-          "endMs": 339920
+          "startMs": 257432,
+          "endMs": 257912
         },
         {
           "text": "that",
-          "startMs": 339920,
-          "endMs": 340480
+          "startMs": 257912,
+          "endMs": 258472
         },
         {
           "text": "you",
-          "startMs": 340480,
-          "endMs": 341100
+          "startMs": 258472,
+          "endMs": 259092
         },
         {
           "text": "are",
-          "startMs": 341100,
-          "endMs": 342120
+          "startMs": 259092,
+          "endMs": 260112
         }
       ]
     },
@@ -1833,38 +1863,38 @@
       "text": "It was all you deserved anyway",
       "originalStartMs": 342120,
       "originalEndMs": 347080,
-      "startMs": 342120,
-      "endMs": 347080,
+      "startMs": 258713,
+      "endMs": 262505,
       "words": [
         {
           "text": "It",
-          "startMs": 342120,
-          "endMs": 342740
+          "startMs": 258713,
+          "endMs": 259333
         },
         {
           "text": "was",
-          "startMs": 342740,
-          "endMs": 343260
+          "startMs": 259333,
+          "endMs": 259853
         },
         {
           "text": "all",
-          "startMs": 343260,
-          "endMs": 344180
+          "startMs": 259853,
+          "endMs": 260773
         },
         {
           "text": "you",
-          "startMs": 344180,
-          "endMs": 344840
+          "startMs": 260773,
+          "endMs": 261433
         },
         {
           "text": "deserved",
-          "startMs": 344840,
-          "endMs": 346360
+          "startMs": 261433,
+          "endMs": 262953
         },
         {
           "text": "anyway",
-          "startMs": 346360,
-          "endMs": 347080
+          "startMs": 262953,
+          "endMs": 263673
         }
       ]
     },
@@ -1872,18 +1902,18 @@
       "text": "Sunny days",
       "originalStartMs": 347080,
       "originalEndMs": 349080,
-      "startMs": 347080,
-      "endMs": 349080,
+      "startMs": 262505,
+      "endMs": 269747,
       "words": [
         {
           "text": "Sunny",
-          "startMs": 347080,
-          "endMs": 347860
+          "startMs": 262505,
+          "endMs": 263285
         },
         {
           "text": "days",
-          "startMs": 347860,
-          "endMs": 349080
+          "startMs": 263285,
+          "endMs": 264505
         }
       ]
     },
@@ -1891,28 +1921,28 @@
       "text": "And we love you",
       "originalStartMs": 349080,
       "originalEndMs": 351600,
-      "startMs": 349080,
-      "endMs": 351600,
+      "startMs": 269747,
+      "endMs": 278842,
       "words": [
         {
           "text": "And",
-          "startMs": 349080,
-          "endMs": 349660
+          "startMs": 269747,
+          "endMs": 270327
         },
         {
           "text": "we",
-          "startMs": 349660,
-          "endMs": 350100
+          "startMs": 270327,
+          "endMs": 270767
         },
         {
           "text": "love",
-          "startMs": 350100,
-          "endMs": 350660
+          "startMs": 270767,
+          "endMs": 271327
         },
         {
           "text": "you",
-          "startMs": 350660,
-          "endMs": 351600
+          "startMs": 271327,
+          "endMs": 272267
         }
       ]
     },
@@ -1920,28 +1950,28 @@
       "text": "And we love you",
       "originalStartMs": 351600,
       "originalEndMs": 355400,
-      "startMs": 351600,
-      "endMs": 355400,
+      "startMs": 278842,
+      "endMs": 285526,
       "words": [
         {
           "text": "And",
-          "startMs": 351600,
-          "endMs": 353800
+          "startMs": 279181,
+          "endMs": 281381
         },
         {
           "text": "we",
-          "startMs": 353800,
-          "endMs": 354180
+          "startMs": 281381,
+          "endMs": 281761
         },
         {
           "text": "love",
-          "startMs": 354180,
-          "endMs": 354940
+          "startMs": 281761,
+          "endMs": 282521
         },
         {
           "text": "you",
-          "startMs": 354940,
-          "endMs": 355400
+          "startMs": 282521,
+          "endMs": 282981
         }
       ]
     },
@@ -1949,30 +1979,40 @@
       "text": "And we love you",
       "originalStartMs": 355400,
       "originalEndMs": 359380,
-      "startMs": 355400,
-      "endMs": 359380,
+      "startMs": 285526,
+      "endMs": 290415,
       "words": [
         {
           "text": "And",
-          "startMs": 355400,
-          "endMs": 357040
+          "startMs": 285812,
+          "endMs": 287452
         },
         {
           "text": "we",
-          "startMs": 357040,
-          "endMs": 358100
+          "startMs": 287452,
+          "endMs": 288512
         },
         {
           "text": "love",
-          "startMs": 358100,
-          "endMs": 358760
+          "startMs": 288512,
+          "endMs": 289172
         },
         {
           "text": "you",
-          "startMs": 358760,
-          "endMs": 359380
+          "startMs": 289172,
+          "endMs": 289792
         }
       ]
+    },
+    {
+      "text": "♪",
+      "startMs": 290415,
+      "endMs": 359380,
+      "originalStartMs": 290415,
+      "originalEndMs": 359380,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
     }
   ]
 }

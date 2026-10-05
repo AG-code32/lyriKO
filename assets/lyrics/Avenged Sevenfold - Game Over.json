@@ -1,0 +1,1516 @@
+{
+  "songId": "avenged-sevenfold-game-over",
+  "title": "Game Over",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\01. Game Over.mp3",
+  "durationMs": 222080,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.922,
+      "medianScore": -0.5234,
+      "goodScoreRatio": 0.8824,
+      "veryBadScoreRatio": 0.0252,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 240,
+    "matchedWords": 235,
+    "wordCoverage": 0.9792,
+    "totalLines": 35,
+    "matchedLines": 35,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "Open, blurry, nurture, loving",
+      "originalStartMs": 43260,
+      "originalEndMs": 44560,
+      "startMs": 43260,
+      "endMs": 44560,
+      "words": [
+        {
+          "text": "Open",
+          "startMs": 43260,
+          "endMs": 43560
+        },
+        {
+          "text": "blurry",
+          "startMs": 43560,
+          "endMs": 43860
+        },
+        {
+          "text": "nurture",
+          "startMs": 43860,
+          "endMs": 44220
+        },
+        {
+          "text": "loving",
+          "startMs": 44220,
+          "endMs": 44560
+        }
+      ]
+    },
+    {
+      "text": "Crawling, walking, fleeting, glory",
+      "originalStartMs": 44560,
+      "originalEndMs": 46080,
+      "startMs": 44560,
+      "endMs": 46080,
+      "words": [
+        {
+          "text": "Crawling",
+          "startMs": 44560,
+          "endMs": 44900
+        },
+        {
+          "text": "walking",
+          "startMs": 44900,
+          "endMs": 45200
+        },
+        {
+          "text": "fleeting",
+          "startMs": 45200,
+          "endMs": 45660
+        },
+        {
+          "text": "glory",
+          "startMs": 45660,
+          "endMs": 46080
+        }
+      ]
+    },
+    {
+      "text": "Welcome, brother, stranger, bloody",
+      "originalStartMs": 46080,
+      "originalEndMs": 47440,
+      "startMs": 46080,
+      "endMs": 47440,
+      "words": [
+        {
+          "text": "Welcome",
+          "startMs": 46080,
+          "endMs": 46500
+        },
+        {
+          "text": "brother",
+          "startMs": 46500,
+          "endMs": 46860
+        },
+        {
+          "text": "stranger",
+          "startMs": 46860,
+          "endMs": 47220
+        },
+        {
+          "text": "bloody",
+          "startMs": 47220,
+          "endMs": 47440
+        }
+      ]
+    },
+    {
+      "text": "Ally, teacher, recess, buddy",
+      "originalStartMs": 47440,
+      "originalEndMs": 48500,
+      "startMs": 47440,
+      "endMs": 48500,
+      "words": [
+        {
+          "text": "Ally",
+          "startMs": 47440,
+          "endMs": 47580
+        },
+        {
+          "text": "teacher",
+          "startMs": 47580,
+          "endMs": 47900
+        },
+        {
+          "text": "recess",
+          "startMs": 47900,
+          "endMs": 48180
+        },
+        {
+          "text": "buddy",
+          "startMs": 48180,
+          "endMs": 48500
+        }
+      ]
+    },
+    {
+      "text": "Secret, toothless, fairy, pillow",
+      "originalStartMs": 48500,
+      "originalEndMs": 49840,
+      "startMs": 48500,
+      "endMs": 49840,
+      "words": [
+        {
+          "text": "Secret",
+          "startMs": 48500,
+          "endMs": 48840
+        },
+        {
+          "text": "toothless",
+          "startMs": 48840,
+          "endMs": 49320
+        },
+        {
+          "text": "fairy",
+          "startMs": 49320,
+          "endMs": 49480
+        },
+        {
+          "text": "pillow",
+          "startMs": 49480,
+          "endMs": 49840
+        }
+      ]
+    },
+    {
+      "text": "Money, kissing, nervous, hero",
+      "originalStartMs": 49840,
+      "originalEndMs": 51000,
+      "startMs": 49840,
+      "endMs": 51000,
+      "words": [
+        {
+          "text": "Money",
+          "startMs": 49840,
+          "endMs": 50160
+        },
+        {
+          "text": "kissing",
+          "startMs": 50160,
+          "endMs": 50540
+        },
+        {
+          "text": "nervous",
+          "startMs": 50540,
+          "endMs": 50840
+        },
+        {
+          "text": "hero",
+          "startMs": 50840,
+          "endMs": 51000
+        }
+      ]
+    },
+    {
+      "text": "(Warmly ordinary) this daytime TV satisfies",
+      "originalStartMs": 51000,
+      "originalEndMs": 53860,
+      "startMs": 51000,
+      "endMs": 53860,
+      "words": [
+        {
+          "text": "Warmly",
+          "startMs": 51000,
+          "endMs": 51240
+        },
+        {
+          "text": "ordinary",
+          "startMs": 51240,
+          "endMs": 51760
+        },
+        {
+          "text": "this",
+          "startMs": 51760,
+          "endMs": 51940
+        },
+        {
+          "text": "daytime",
+          "startMs": 51940,
+          "endMs": 52400
+        },
+        {
+          "text": "TV",
+          "startMs": 52400,
+          "endMs": 52700
+        },
+        {
+          "text": "satisfies",
+          "startMs": 52700,
+          "endMs": 53860
+        }
+      ]
+    },
+    {
+      "text": "(Extraordinary) these hand-me-downs worn in, so nice",
+      "originalStartMs": 53860,
+      "originalEndMs": 55760,
+      "startMs": 53860,
+      "endMs": 55760,
+      "words": [
+        {
+          "text": "Extraordinary",
+          "startMs": 53860,
+          "endMs": 54740
+        },
+        {
+          "text": "these",
+          "startMs": 54740,
+          "endMs": 54860
+        },
+        {
+          "text": "worn",
+          "startMs": 55320,
+          "endMs": 55440
+        },
+        {
+          "text": "in",
+          "startMs": 55440,
+          "endMs": 55500
+        },
+        {
+          "text": "so",
+          "startMs": 55500,
+          "endMs": 55540
+        },
+        {
+          "text": "nice",
+          "startMs": 55540,
+          "endMs": 55760
+        }
+      ]
+    },
+    {
+      "text": "As it may, as it may, as it may, as it may",
+      "originalStartMs": 55760,
+      "originalEndMs": 60120,
+      "startMs": 55760,
+      "endMs": 60120,
+      "words": [
+        {
+          "text": "As",
+          "startMs": 55760,
+          "endMs": 56000
+        },
+        {
+          "text": "it",
+          "startMs": 56000,
+          "endMs": 56140
+        },
+        {
+          "text": "may",
+          "startMs": 56140,
+          "endMs": 56280
+        },
+        {
+          "text": "as",
+          "startMs": 56280,
+          "endMs": 56420
+        },
+        {
+          "text": "it",
+          "startMs": 56420,
+          "endMs": 56460
+        },
+        {
+          "text": "may",
+          "startMs": 56460,
+          "endMs": 56620
+        },
+        {
+          "text": "as",
+          "startMs": 56620,
+          "endMs": 56800
+        },
+        {
+          "text": "it",
+          "startMs": 56800,
+          "endMs": 57180
+        },
+        {
+          "text": "may",
+          "startMs": 57180,
+          "endMs": 57480
+        },
+        {
+          "text": "as",
+          "startMs": 57480,
+          "endMs": 57800
+        },
+        {
+          "text": "it",
+          "startMs": 57800,
+          "endMs": 58240
+        },
+        {
+          "text": "may",
+          "startMs": 58240,
+          "endMs": 60120
+        }
+      ]
+    },
+    {
+      "text": "As it may, as it may, as it may, as it may",
+      "originalStartMs": 60120,
+      "originalEndMs": 66980,
+      "startMs": 60120,
+      "endMs": 66980,
+      "words": [
+        {
+          "text": "As",
+          "startMs": 60120,
+          "endMs": 63420
+        },
+        {
+          "text": "it",
+          "startMs": 63420,
+          "endMs": 63700
+        },
+        {
+          "text": "may",
+          "startMs": 63700,
+          "endMs": 64080
+        },
+        {
+          "text": "as",
+          "startMs": 64080,
+          "endMs": 64380
+        },
+        {
+          "text": "it",
+          "startMs": 64380,
+          "endMs": 64640
+        },
+        {
+          "text": "may",
+          "startMs": 64640,
+          "endMs": 65040
+        },
+        {
+          "text": "as",
+          "startMs": 65040,
+          "endMs": 65380
+        },
+        {
+          "text": "it",
+          "startMs": 65380,
+          "endMs": 65600
+        },
+        {
+          "text": "may",
+          "startMs": 65600,
+          "endMs": 66060
+        },
+        {
+          "text": "as",
+          "startMs": 66060,
+          "endMs": 66360
+        },
+        {
+          "text": "it",
+          "startMs": 66360,
+          "endMs": 66560
+        },
+        {
+          "text": "may",
+          "startMs": 66560,
+          "endMs": 66980
+        }
+      ]
+    },
+    {
+      "text": "Days are fine and come on time",
+      "originalStartMs": 66980,
+      "originalEndMs": 71620,
+      "startMs": 66980,
+      "endMs": 71620,
+      "words": [
+        {
+          "text": "Days",
+          "startMs": 66980,
+          "endMs": 68000
+        },
+        {
+          "text": "are",
+          "startMs": 68000,
+          "endMs": 68260
+        },
+        {
+          "text": "fine",
+          "startMs": 68260,
+          "endMs": 69480
+        },
+        {
+          "text": "and",
+          "startMs": 69480,
+          "endMs": 69660
+        },
+        {
+          "text": "come",
+          "startMs": 69660,
+          "endMs": 70780
+        },
+        {
+          "text": "on",
+          "startMs": 70780,
+          "endMs": 70940
+        },
+        {
+          "text": "time",
+          "startMs": 70940,
+          "endMs": 71620
+        }
+      ]
+    },
+    {
+      "text": "But years leave with nothing to find",
+      "originalStartMs": 71620,
+      "originalEndMs": 77600,
+      "startMs": 71620,
+      "endMs": 77600,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 71620,
+          "endMs": 71820
+        },
+        {
+          "text": "years",
+          "startMs": 71820,
+          "endMs": 72160
+        },
+        {
+          "text": "leave",
+          "startMs": 72160,
+          "endMs": 72560
+        },
+        {
+          "text": "with",
+          "startMs": 72560,
+          "endMs": 72940
+        },
+        {
+          "text": "nothing",
+          "startMs": 72940,
+          "endMs": 73580
+        },
+        {
+          "text": "to",
+          "startMs": 73580,
+          "endMs": 74160
+        },
+        {
+          "text": "find",
+          "startMs": 74160,
+          "endMs": 77600
+        }
+      ]
+    },
+    {
+      "text": "(Wake up!) changes, hormones, high school, threesome",
+      "originalStartMs": 77600,
+      "originalEndMs": 78840,
+      "startMs": 77600,
+      "endMs": 78840,
+      "words": [
+        {
+          "text": "Wake",
+          "startMs": 77600,
+          "endMs": 77680
+        },
+        {
+          "text": "up",
+          "startMs": 77680,
+          "endMs": 77720
+        },
+        {
+          "text": "changes",
+          "startMs": 77720,
+          "endMs": 77900
+        },
+        {
+          "text": "hormones",
+          "startMs": 77900,
+          "endMs": 78200
+        },
+        {
+          "text": "high",
+          "startMs": 78200,
+          "endMs": 78300
+        },
+        {
+          "text": "school",
+          "startMs": 78300,
+          "endMs": 78520
+        },
+        {
+          "text": "threesome",
+          "startMs": 78520,
+          "endMs": 78840
+        }
+      ]
+    },
+    {
+      "text": "Roll call, study, license, freedom",
+      "originalStartMs": 78840,
+      "originalEndMs": 80140,
+      "startMs": 78840,
+      "endMs": 80140,
+      "words": [
+        {
+          "text": "Roll",
+          "startMs": 78840,
+          "endMs": 79000
+        },
+        {
+          "text": "call",
+          "startMs": 79000,
+          "endMs": 79140
+        },
+        {
+          "text": "study",
+          "startMs": 79140,
+          "endMs": 79460
+        },
+        {
+          "text": "license",
+          "startMs": 79460,
+          "endMs": 79800
+        },
+        {
+          "text": "freedom",
+          "startMs": 79800,
+          "endMs": 80140
+        }
+      ]
+    },
+    {
+      "text": "Novice, flirting, first time, lover",
+      "originalStartMs": 80140,
+      "originalEndMs": 81460,
+      "startMs": 80140,
+      "endMs": 81460,
+      "words": [
+        {
+          "text": "Novice",
+          "startMs": 80140,
+          "endMs": 80480
+        },
+        {
+          "text": "flirting",
+          "startMs": 80480,
+          "endMs": 80820
+        },
+        {
+          "text": "first",
+          "startMs": 80820,
+          "endMs": 80980
+        },
+        {
+          "text": "time",
+          "startMs": 80980,
+          "endMs": 81100
+        },
+        {
+          "text": "lover",
+          "startMs": 81100,
+          "endMs": 81460
+        }
+      ]
+    },
+    {
+      "text": "Party, fighting, wasted, summer",
+      "originalStartMs": 81460,
+      "originalEndMs": 82780,
+      "startMs": 81460,
+      "endMs": 82780,
+      "words": [
+        {
+          "text": "Party",
+          "startMs": 81460,
+          "endMs": 81760
+        },
+        {
+          "text": "fighting",
+          "startMs": 81760,
+          "endMs": 82160
+        },
+        {
+          "text": "wasted",
+          "startMs": 82160,
+          "endMs": 82460
+        },
+        {
+          "text": "summer",
+          "startMs": 82460,
+          "endMs": 82780
+        }
+      ]
+    },
+    {
+      "text": "Questions, doubtful, wedding, family",
+      "originalStartMs": 82780,
+      "originalEndMs": 84140,
+      "startMs": 82780,
+      "endMs": 84140,
+      "words": [
+        {
+          "text": "Questions",
+          "startMs": 82780,
+          "endMs": 83140
+        },
+        {
+          "text": "doubtful",
+          "startMs": 83140,
+          "endMs": 83460
+        },
+        {
+          "text": "wedding",
+          "startMs": 83460,
+          "endMs": 83780
+        },
+        {
+          "text": "family",
+          "startMs": 83780,
+          "endMs": 84140
+        }
+      ]
+    },
+    {
+      "text": "Happy, ever, after, dead end",
+      "originalStartMs": 84140,
+      "originalEndMs": 88140,
+      "startMs": 84140,
+      "endMs": 88140,
+      "words": [
+        {
+          "text": "Happy",
+          "startMs": 84140,
+          "endMs": 84900
+        },
+        {
+          "text": "ever",
+          "startMs": 84900,
+          "endMs": 85660
+        },
+        {
+          "text": "after",
+          "startMs": 85660,
+          "endMs": 87020
+        },
+        {
+          "text": "dead",
+          "startMs": 87020,
+          "endMs": 87820
+        },
+        {
+          "text": "end",
+          "startMs": 87820,
+          "endMs": 88140
+        }
+      ]
+    },
+    {
+      "text": "(Daily iteration) the bestest part of waking up",
+      "originalStartMs": 88140,
+      "originalEndMs": 91140,
+      "startMs": 88140,
+      "endMs": 91140,
+      "words": [
+        {
+          "text": "Daily",
+          "startMs": 88140,
+          "endMs": 89300
+        },
+        {
+          "text": "iteration",
+          "startMs": 89300,
+          "endMs": 90200
+        },
+        {
+          "text": "the",
+          "startMs": 90200,
+          "endMs": 90380
+        },
+        {
+          "text": "bestest",
+          "startMs": 90380,
+          "endMs": 90720
+        },
+        {
+          "text": "part",
+          "startMs": 90720,
+          "endMs": 90840
+        },
+        {
+          "text": "of",
+          "startMs": 90840,
+          "endMs": 90880
+        },
+        {
+          "text": "waking",
+          "startMs": 90880,
+          "endMs": 91080
+        },
+        {
+          "text": "up",
+          "startMs": 91080,
+          "endMs": 91140
+        }
+      ]
+    },
+    {
+      "text": "(Mundane ideation) this dark roast got me so fucked up!",
+      "originalStartMs": 91140,
+      "originalEndMs": 99660,
+      "startMs": 91140,
+      "endMs": 99660,
+      "words": [
+        {
+          "text": "Mundane",
+          "startMs": 91140,
+          "endMs": 91340
+        },
+        {
+          "text": "ideation",
+          "startMs": 91340,
+          "endMs": 91720
+        },
+        {
+          "text": "this",
+          "startMs": 91720,
+          "endMs": 92020
+        },
+        {
+          "text": "dark",
+          "startMs": 92020,
+          "endMs": 92260
+        },
+        {
+          "text": "roast",
+          "startMs": 92260,
+          "endMs": 92760
+        },
+        {
+          "text": "got",
+          "startMs": 92760,
+          "endMs": 93240
+        },
+        {
+          "text": "me",
+          "startMs": 93240,
+          "endMs": 93400
+        },
+        {
+          "text": "so",
+          "startMs": 93400,
+          "endMs": 95120
+        },
+        {
+          "text": "fucked",
+          "startMs": 95120,
+          "endMs": 98260
+        },
+        {
+          "text": "up",
+          "startMs": 98260,
+          "endMs": 99660
+        }
+      ]
+    },
+    {
+      "text": "♪As it may, as it may, as it may, as it may",
+      "originalStartMs": 101220,
+      "originalEndMs": 112220,
+      "startMs": 101220,
+      "endMs": 112220,
+      "words": [
+        {
+          "text": "As",
+          "startMs": 101220,
+          "endMs": 101460
+        },
+        {
+          "text": "it",
+          "startMs": 101460,
+          "endMs": 102340
+        },
+        {
+          "text": "may",
+          "startMs": 102340,
+          "endMs": 109220
+        },
+        {
+          "text": "as",
+          "startMs": 109220,
+          "endMs": 109560
+        },
+        {
+          "text": "it",
+          "startMs": 109560,
+          "endMs": 109760
+        },
+        {
+          "text": "may",
+          "startMs": 109760,
+          "endMs": 110220
+        },
+        {
+          "text": "as",
+          "startMs": 110220,
+          "endMs": 110540
+        },
+        {
+          "text": "it",
+          "startMs": 110540,
+          "endMs": 110720
+        },
+        {
+          "text": "may",
+          "startMs": 110720,
+          "endMs": 111200
+        },
+        {
+          "text": "as",
+          "startMs": 111200,
+          "endMs": 111540
+        },
+        {
+          "text": "it",
+          "startMs": 111540,
+          "endMs": 111720
+        },
+        {
+          "text": "may",
+          "startMs": 111720,
+          "endMs": 112220
+        }
+      ]
+    },
+    {
+      "text": "As it may, as it may, as it may, as it may",
+      "originalStartMs": 111720,
+      "originalEndMs": 115100,
+      "startMs": 111720,
+      "endMs": 115100,
+      "words": [
+        {
+          "text": "may",
+          "startMs": 111720,
+          "endMs": 112220
+        },
+        {
+          "text": "as",
+          "startMs": 112220,
+          "endMs": 112540
+        },
+        {
+          "text": "it",
+          "startMs": 112540,
+          "endMs": 112700
+        },
+        {
+          "text": "may",
+          "startMs": 112700,
+          "endMs": 113200
+        },
+        {
+          "text": "as",
+          "startMs": 113200,
+          "endMs": 113540
+        },
+        {
+          "text": "it",
+          "startMs": 113540,
+          "endMs": 113720
+        },
+        {
+          "text": "may",
+          "startMs": 113720,
+          "endMs": 114200
+        },
+        {
+          "text": "as",
+          "startMs": 114200,
+          "endMs": 114500
+        },
+        {
+          "text": "it",
+          "startMs": 114500,
+          "endMs": 114680
+        },
+        {
+          "text": "may",
+          "startMs": 114680,
+          "endMs": 115100
+        }
+      ]
+    },
+    {
+      "text": "Days, they come, and days, they go",
+      "originalStartMs": 115100,
+      "originalEndMs": 121680,
+      "startMs": 115100,
+      "endMs": 121680,
+      "words": [
+        {
+          "text": "Days",
+          "startMs": 115100,
+          "endMs": 116580
+        },
+        {
+          "text": "they",
+          "startMs": 116580,
+          "endMs": 117780
+        },
+        {
+          "text": "come",
+          "startMs": 117780,
+          "endMs": 119580
+        },
+        {
+          "text": "and",
+          "startMs": 119580,
+          "endMs": 119760
+        },
+        {
+          "text": "days",
+          "startMs": 119760,
+          "endMs": 120660
+        },
+        {
+          "text": "they",
+          "startMs": 120660,
+          "endMs": 121000
+        },
+        {
+          "text": "go",
+          "startMs": 121000,
+          "endMs": 121680
+        }
+      ]
+    },
+    {
+      "text": "Until no more days set you free",
+      "originalStartMs": 121680,
+      "originalEndMs": 125880,
+      "startMs": 121680,
+      "endMs": 125880,
+      "words": [
+        {
+          "text": "Until",
+          "startMs": 121680,
+          "endMs": 122620
+        },
+        {
+          "text": "no",
+          "startMs": 122620,
+          "endMs": 122740
+        },
+        {
+          "text": "more",
+          "startMs": 122740,
+          "endMs": 123420
+        },
+        {
+          "text": "days",
+          "startMs": 123420,
+          "endMs": 124020
+        },
+        {
+          "text": "set",
+          "startMs": 124020,
+          "endMs": 124400
+        },
+        {
+          "text": "you",
+          "startMs": 124400,
+          "endMs": 124640
+        },
+        {
+          "text": "free",
+          "startMs": 124640,
+          "endMs": 125880
+        }
+      ]
+    },
+    {
+      "text": "Well on my way",
+      "originalStartMs": 125880,
+      "originalEndMs": 128980,
+      "startMs": 125880,
+      "endMs": 128980,
+      "words": [
+        {
+          "text": "Well",
+          "startMs": 125880,
+          "endMs": 127120
+        },
+        {
+          "text": "on",
+          "startMs": 127120,
+          "endMs": 127300
+        },
+        {
+          "text": "my",
+          "startMs": 127300,
+          "endMs": 127660
+        },
+        {
+          "text": "way",
+          "startMs": 127660,
+          "endMs": 128980
+        }
+      ]
+    },
+    {
+      "text": "My way to lose me",
+      "originalStartMs": 128980,
+      "originalEndMs": 138200,
+      "startMs": 128980,
+      "endMs": 138200,
+      "words": [
+        {
+          "text": "My",
+          "startMs": 128980,
+          "endMs": 130100
+        },
+        {
+          "text": "way",
+          "startMs": 130100,
+          "endMs": 130560
+        },
+        {
+          "text": "to",
+          "startMs": 130560,
+          "endMs": 130860
+        },
+        {
+          "text": "lose",
+          "startMs": 130860,
+          "endMs": 132920
+        },
+        {
+          "text": "me",
+          "startMs": 132920,
+          "endMs": 138200
+        }
+      ]
+    },
+    {
+      "text": "It strikes me that I don't belong here anymore",
+      "originalStartMs": 138200,
+      "originalEndMs": 150440,
+      "startMs": 138200,
+      "endMs": 150440,
+      "words": [
+        {
+          "text": "It",
+          "startMs": 138200,
+          "endMs": 142980
+        },
+        {
+          "text": "strikes",
+          "startMs": 142980,
+          "endMs": 143560
+        },
+        {
+          "text": "me",
+          "startMs": 143560,
+          "endMs": 143760
+        },
+        {
+          "text": "that",
+          "startMs": 143760,
+          "endMs": 144600
+        },
+        {
+          "text": "I",
+          "startMs": 144600,
+          "endMs": 145320
+        },
+        {
+          "text": "don't",
+          "startMs": 145320,
+          "endMs": 145980
+        },
+        {
+          "text": "belong",
+          "startMs": 145980,
+          "endMs": 147180
+        },
+        {
+          "text": "here",
+          "startMs": 147180,
+          "endMs": 148460
+        },
+        {
+          "text": "anymore",
+          "startMs": 148460,
+          "endMs": 150440
+        }
+      ]
+    },
+    {
+      "text": "As I observe my own reflection, try a happy face",
+      "originalStartMs": 150440,
+      "originalEndMs": 160300,
+      "startMs": 150440,
+      "endMs": 160300,
+      "words": [
+        {
+          "text": "As",
+          "startMs": 150440,
+          "endMs": 151980
+        },
+        {
+          "text": "I",
+          "startMs": 151980,
+          "endMs": 152220
+        },
+        {
+          "text": "observe",
+          "startMs": 152220,
+          "endMs": 153160
+        },
+        {
+          "text": "my",
+          "startMs": 153160,
+          "endMs": 153580
+        },
+        {
+          "text": "own",
+          "startMs": 153580,
+          "endMs": 154180
+        },
+        {
+          "text": "reflection",
+          "startMs": 154180,
+          "endMs": 155920
+        },
+        {
+          "text": "try",
+          "startMs": 155920,
+          "endMs": 157340
+        },
+        {
+          "text": "a",
+          "startMs": 157340,
+          "endMs": 157540
+        },
+        {
+          "text": "happy",
+          "startMs": 157540,
+          "endMs": 158220
+        },
+        {
+          "text": "face",
+          "startMs": 158220,
+          "endMs": 160300
+        }
+      ]
+    },
+    {
+      "text": "Staring through the warm tears",
+      "originalStartMs": 160300,
+      "originalEndMs": 164580,
+      "startMs": 160300,
+      "endMs": 164580,
+      "words": [
+        {
+          "text": "Staring",
+          "startMs": 160300,
+          "endMs": 162060
+        },
+        {
+          "text": "through",
+          "startMs": 162060,
+          "endMs": 162420
+        },
+        {
+          "text": "the",
+          "startMs": 162420,
+          "endMs": 162660
+        },
+        {
+          "text": "warm",
+          "startMs": 162660,
+          "endMs": 163360
+        },
+        {
+          "text": "tears",
+          "startMs": 163360,
+          "endMs": 164580
+        }
+      ]
+    },
+    {
+      "text": "A sad frown from the cold years, Adieu",
+      "originalStartMs": 164580,
+      "originalEndMs": 170600,
+      "startMs": 164580,
+      "endMs": 170600,
+      "words": [
+        {
+          "text": "A",
+          "startMs": 164580,
+          "endMs": 164760
+        },
+        {
+          "text": "sad",
+          "startMs": 164760,
+          "endMs": 165480
+        },
+        {
+          "text": "frown",
+          "startMs": 165480,
+          "endMs": 166200
+        },
+        {
+          "text": "from",
+          "startMs": 166200,
+          "endMs": 166520
+        },
+        {
+          "text": "the",
+          "startMs": 166520,
+          "endMs": 166740
+        },
+        {
+          "text": "cold",
+          "startMs": 166740,
+          "endMs": 167680
+        },
+        {
+          "text": "years",
+          "startMs": 167680,
+          "endMs": 168660
+        },
+        {
+          "text": "Adieu",
+          "startMs": 168660,
+          "endMs": 170600
+        }
+      ]
+    },
+    {
+      "text": "I never had the will, anyway",
+      "originalStartMs": 170600,
+      "originalEndMs": 177400,
+      "startMs": 170600,
+      "endMs": 177400,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 170600,
+          "endMs": 171980
+        },
+        {
+          "text": "never",
+          "startMs": 171980,
+          "endMs": 172640
+        },
+        {
+          "text": "had",
+          "startMs": 172640,
+          "endMs": 173000
+        },
+        {
+          "text": "the",
+          "startMs": 173000,
+          "endMs": 173220
+        },
+        {
+          "text": "will",
+          "startMs": 173220,
+          "endMs": 174280
+        },
+        {
+          "text": "anyway",
+          "startMs": 174280,
+          "endMs": 177400
+        }
+      ]
+    },
+    {
+      "text": "Toss a rope over the branch and fall into the night",
+      "originalStartMs": 177400,
+      "originalEndMs": 189020,
+      "startMs": 177400,
+      "endMs": 189020,
+      "words": [
+        {
+          "text": "Toss",
+          "startMs": 177400,
+          "endMs": 180260
+        },
+        {
+          "text": "a",
+          "startMs": 180260,
+          "endMs": 180420
+        },
+        {
+          "text": "rope",
+          "startMs": 180420,
+          "endMs": 180640
+        },
+        {
+          "text": "over",
+          "startMs": 180640,
+          "endMs": 182500
+        },
+        {
+          "text": "the",
+          "startMs": 182500,
+          "endMs": 183140
+        },
+        {
+          "text": "branch",
+          "startMs": 183140,
+          "endMs": 184040
+        },
+        {
+          "text": "and",
+          "startMs": 184040,
+          "endMs": 184560
+        },
+        {
+          "text": "fall",
+          "startMs": 184560,
+          "endMs": 185480
+        },
+        {
+          "text": "into",
+          "startMs": 185480,
+          "endMs": 186460
+        },
+        {
+          "text": "the",
+          "startMs": 186460,
+          "endMs": 186980
+        },
+        {
+          "text": "night",
+          "startMs": 186980,
+          "endMs": 189020
+        }
+      ]
+    },
+    {
+      "text": "And here I swing from my family tree",
+      "originalStartMs": 189020,
+      "originalEndMs": 195180,
+      "startMs": 189020,
+      "endMs": 195180,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 189020,
+          "endMs": 189540
+        },
+        {
+          "text": "here",
+          "startMs": 189540,
+          "endMs": 190180
+        },
+        {
+          "text": "I",
+          "startMs": 190180,
+          "endMs": 190320
+        },
+        {
+          "text": "swing",
+          "startMs": 190320,
+          "endMs": 191800
+        },
+        {
+          "text": "from",
+          "startMs": 191800,
+          "endMs": 192660
+        },
+        {
+          "text": "my",
+          "startMs": 192660,
+          "endMs": 193000
+        },
+        {
+          "text": "family",
+          "startMs": 193000,
+          "endMs": 193580
+        },
+        {
+          "text": "tree",
+          "startMs": 193580,
+          "endMs": 195180
+        }
+      ]
+    },
+    {
+      "text": "Say goodnight",
+      "originalStartMs": 195180,
+      "originalEndMs": 208560,
+      "startMs": 195180,
+      "endMs": 208560,
+      "words": [
+        {
+          "text": "Say",
+          "startMs": 195180,
+          "endMs": 197400
+        },
+        {
+          "text": "goodnight",
+          "startMs": 197400,
+          "endMs": 208560
+        }
+      ]
+    },
+    {
+      "text": "Can't you see life is but a dream anyway?",
+      "originalStartMs": 208560,
+      "originalEndMs": 222080,
+      "startMs": 208560,
+      "endMs": 222080,
+      "words": [
+        {
+          "text": "Can't",
+          "startMs": 208560,
+          "endMs": 215160
+        },
+        {
+          "text": "you",
+          "startMs": 215160,
+          "endMs": 215400
+        },
+        {
+          "text": "see",
+          "startMs": 215400,
+          "endMs": 217260
+        },
+        {
+          "text": "life",
+          "startMs": 217260,
+          "endMs": 218940
+        },
+        {
+          "text": "is",
+          "startMs": 218940,
+          "endMs": 219160
+        },
+        {
+          "text": "but",
+          "startMs": 219160,
+          "endMs": 219440
+        },
+        {
+          "text": "a",
+          "startMs": 219440,
+          "endMs": 219520
+        },
+        {
+          "text": "dream",
+          "startMs": 219520,
+          "endMs": 220600
+        },
+        {
+          "text": "anyway",
+          "startMs": 220600,
+          "endMs": 222080
+        }
+      ]
+    }
+  ]
+}

@@ -479,7 +479,7 @@
       "originalStartMs": 82101,
       "originalEndMs": 86799,
       "startMs": 87566,
-      "endMs": 134414,
+      "endMs": 210407,
       "words": [],
       "manualLine": true,
       "lineType": "instrumental"
@@ -488,48 +488,48 @@
       "text": "Dancing in the wind as roses born again",
       "originalStartMs": 86800,
       "originalEndMs": 99700,
-      "startMs": 134414,
-      "endMs": 139396,
+      "startMs": 210407,
+      "endMs": 218053,
       "words": [
         {
           "text": "Dancing",
-          "startMs": 120486,
-          "endMs": 126066
+          "startMs": 196083,
+          "endMs": 201663
         },
         {
           "text": "in",
-          "startMs": 126066,
-          "endMs": 127386
+          "startMs": 201663,
+          "endMs": 202983
         },
         {
           "text": "the",
-          "startMs": 127386,
-          "endMs": 127586
+          "startMs": 202983,
+          "endMs": 203183
         },
         {
           "text": "wind",
-          "startMs": 127586,
-          "endMs": 128966
+          "startMs": 203183,
+          "endMs": 204563
         },
         {
           "text": "as",
-          "startMs": 128966,
-          "endMs": 129826
+          "startMs": 204563,
+          "endMs": 205423
         },
         {
           "text": "roses",
-          "startMs": 129826,
-          "endMs": 131266
+          "startMs": 205423,
+          "endMs": 206863
         },
         {
           "text": "born",
-          "startMs": 131266,
-          "endMs": 131986
+          "startMs": 206863,
+          "endMs": 207583
         },
         {
           "text": "again",
-          "startMs": 131986,
-          "endMs": 133386
+          "startMs": 207583,
+          "endMs": 208983
         }
       ]
     },
@@ -537,28 +537,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 99700,
       "originalEndMs": 112840,
-      "startMs": 139396,
-      "endMs": 146050,
+      "startMs": 218053,
+      "endMs": 221647,
       "words": [
         {
           "text": "There",
-          "startMs": 133789,
-          "endMs": 134429
+          "startMs": 209386,
+          "endMs": 210026
         },
         {
           "text": "you'll",
-          "startMs": 134429,
-          "endMs": 140769
+          "startMs": 210026,
+          "endMs": 216366
         },
         {
           "text": "find",
-          "startMs": 140769,
-          "endMs": 144609
+          "startMs": 216366,
+          "endMs": 220206
         },
         {
           "text": "me",
-          "startMs": 144609,
-          "endMs": 146929
+          "startMs": 220206,
+          "endMs": 222526
         }
       ]
     },
@@ -566,58 +566,58 @@
       "text": "Before the dawn of man, in castles made of sand",
       "originalStartMs": 112840,
       "originalEndMs": 134020,
-      "startMs": 146050,
-      "endMs": 149570,
+      "startMs": 221647,
+      "endMs": 229398,
       "words": [
         {
           "text": "Before",
-          "startMs": 128390,
-          "endMs": 132990
+          "startMs": 203987,
+          "endMs": 208587
         },
         {
           "text": "the",
-          "startMs": 132990,
-          "endMs": 133930
+          "startMs": 208587,
+          "endMs": 209527
         },
         {
           "text": "dawn",
-          "startMs": 133930,
-          "endMs": 135070
+          "startMs": 209527,
+          "endMs": 210667
         },
         {
           "text": "of",
-          "startMs": 135070,
-          "endMs": 136810
+          "startMs": 210667,
+          "endMs": 212407
         },
         {
           "text": "man",
-          "startMs": 136810,
-          "endMs": 138730
+          "startMs": 212407,
+          "endMs": 214327
         },
         {
           "text": "in",
-          "startMs": 138730,
-          "endMs": 139110
+          "startMs": 214327,
+          "endMs": 214707
         },
         {
           "text": "castles",
-          "startMs": 139110,
-          "endMs": 146570
+          "startMs": 214707,
+          "endMs": 222167
         },
         {
           "text": "made",
-          "startMs": 146570,
-          "endMs": 147610
+          "startMs": 222167,
+          "endMs": 223207
         },
         {
           "text": "of",
-          "startMs": 147610,
-          "endMs": 148210
+          "startMs": 223207,
+          "endMs": 223807
         },
         {
           "text": "sand",
-          "startMs": 148210,
-          "endMs": 149570
+          "startMs": 223807,
+          "endMs": 225167
         }
       ]
     },
@@ -625,28 +625,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 134020,
       "originalEndMs": 146360,
-      "startMs": 149570,
-      "endMs": 152730,
+      "startMs": 229398,
+      "endMs": 233181,
       "words": [
         {
           "text": "There",
-          "startMs": 140390,
-          "endMs": 142710
+          "startMs": 218768,
+          "endMs": 221088
         },
         {
           "text": "you'll",
-          "startMs": 142710,
-          "endMs": 150590
+          "startMs": 221088,
+          "endMs": 228968
         },
         {
           "text": "find",
-          "startMs": 150590,
-          "endMs": 152510
+          "startMs": 228968,
+          "endMs": 230888
         },
         {
           "text": "me",
-          "startMs": 152510,
-          "endMs": 152730
+          "startMs": 230888,
+          "endMs": 231108
         }
       ]
     },
@@ -654,53 +654,53 @@
       "text": "Writing in the caves as fire lights the way",
       "originalStartMs": 146360,
       "originalEndMs": 157780,
-      "startMs": 152730,
-      "endMs": 157780,
+      "startMs": 233181,
+      "endMs": 240767,
       "words": [
         {
           "text": "Writing",
-          "startMs": 146360,
-          "endMs": 147620
+          "startMs": 224122,
+          "endMs": 225382
         },
         {
           "text": "in",
-          "startMs": 147620,
-          "endMs": 148040
+          "startMs": 225382,
+          "endMs": 225802
         },
         {
           "text": "the",
-          "startMs": 148040,
-          "endMs": 148260
+          "startMs": 225802,
+          "endMs": 226022
         },
         {
           "text": "caves",
-          "startMs": 148260,
-          "endMs": 153760
+          "startMs": 226022,
+          "endMs": 231522
         },
         {
           "text": "as",
-          "startMs": 153760,
-          "endMs": 154000
+          "startMs": 231522,
+          "endMs": 231762
         },
         {
           "text": "fire",
-          "startMs": 154000,
-          "endMs": 154680
+          "startMs": 231762,
+          "endMs": 232442
         },
         {
           "text": "lights",
-          "startMs": 154680,
-          "endMs": 156160
+          "startMs": 232442,
+          "endMs": 233922
         },
         {
           "text": "the",
-          "startMs": 156160,
-          "endMs": 156760
+          "startMs": 233922,
+          "endMs": 234522
         },
         {
           "text": "way",
-          "startMs": 156760,
-          "endMs": 157780
+          "startMs": 234522,
+          "endMs": 235542
         }
       ]
     },
@@ -708,28 +708,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 157780,
       "originalEndMs": 164040,
-      "startMs": 157780,
-      "endMs": 164040,
+      "startMs": 240767,
+      "endMs": 244408,
       "words": [
         {
           "text": "There",
-          "startMs": 157780,
-          "endMs": 158880
+          "startMs": 233377,
+          "endMs": 234477
         },
         {
           "text": "you'll",
-          "startMs": 158880,
-          "endMs": 161140
+          "startMs": 234477,
+          "endMs": 236737
         },
         {
           "text": "find",
-          "startMs": 161140,
-          "endMs": 163080
+          "startMs": 236737,
+          "endMs": 238677
         },
         {
           "text": "me",
-          "startMs": 163080,
-          "endMs": 164040
+          "startMs": 238677,
+          "endMs": 239637
         }
       ]
     },
@@ -737,48 +737,48 @@
       "text": "Mask of royal glow, don in pharaoh's clothes",
       "originalStartMs": 164040,
       "originalEndMs": 172700,
-      "startMs": 164040,
-      "endMs": 172700,
+      "startMs": 244408,
+      "endMs": 251973,
       "words": [
         {
           "text": "Mask",
-          "startMs": 164040,
-          "endMs": 165100
+          "startMs": 239637,
+          "endMs": 240697
         },
         {
           "text": "of",
-          "startMs": 165100,
-          "endMs": 165460
+          "startMs": 240697,
+          "endMs": 241057
         },
         {
           "text": "royal",
-          "startMs": 165460,
-          "endMs": 166020
+          "startMs": 241057,
+          "endMs": 241617
         },
         {
           "text": "glow",
-          "startMs": 166020,
-          "endMs": 166880
+          "startMs": 241617,
+          "endMs": 242477
         },
         {
           "text": "don",
-          "startMs": 166880,
-          "endMs": 167480
+          "startMs": 242477,
+          "endMs": 243077
         },
         {
           "text": "in",
-          "startMs": 167480,
-          "endMs": 168120
+          "startMs": 243077,
+          "endMs": 243717
         },
         {
           "text": "pharaoh's",
-          "startMs": 168120,
-          "endMs": 170760
+          "startMs": 243717,
+          "endMs": 246357
         },
         {
           "text": "clothes",
-          "startMs": 170760,
-          "endMs": 172700
+          "startMs": 246357,
+          "endMs": 248297
         }
       ]
     },
@@ -786,43 +786,43 @@
       "text": "There, you'll find me, let it go",
       "originalStartMs": 172700,
       "originalEndMs": 176820,
-      "startMs": 172700,
-      "endMs": 176820,
+      "startMs": 251973,
+      "endMs": 264471,
       "words": [
         {
           "text": "There",
-          "startMs": 172700,
-          "endMs": 173380
+          "startMs": 250076,
+          "endMs": 250756
         },
         {
           "text": "you'll",
-          "startMs": 173380,
-          "endMs": 174880
+          "startMs": 250756,
+          "endMs": 252256
         },
         {
           "text": "find",
-          "startMs": 174880,
-          "endMs": 175560
+          "startMs": 252256,
+          "endMs": 252936
         },
         {
           "text": "me",
-          "startMs": 175560,
-          "endMs": 175780
+          "startMs": 252936,
+          "endMs": 253156
         },
         {
           "text": "let",
-          "startMs": 175780,
-          "endMs": 176280
+          "startMs": 253156,
+          "endMs": 253656
         },
         {
           "text": "it",
-          "startMs": 176280,
-          "endMs": 176500
+          "startMs": 253656,
+          "endMs": 253876
         },
         {
           "text": "go",
-          "startMs": 176500,
-          "endMs": 176820
+          "startMs": 253876,
+          "endMs": 254196
         }
       ]
     },
@@ -830,58 +830,58 @@
       "text": "Yeah, rings of dust and ice, weightless in the night",
       "originalStartMs": 176820,
       "originalEndMs": 191300,
-      "startMs": 176820,
-      "endMs": 184564,
+      "startMs": 264471,
+      "endMs": 274647,
       "words": [
         {
           "text": "Yeah",
-          "startMs": 176820,
-          "endMs": 177780
+          "startMs": 261416,
+          "endMs": 262376
         },
         {
           "text": "rings",
-          "startMs": 177780,
-          "endMs": 178760
+          "startMs": 262376,
+          "endMs": 263356
         },
         {
           "text": "of",
-          "startMs": 178760,
-          "endMs": 179100
+          "startMs": 263356,
+          "endMs": 263696
         },
         {
           "text": "dust",
-          "startMs": 179100,
-          "endMs": 179700
+          "startMs": 263696,
+          "endMs": 264296
         },
         {
           "text": "and",
-          "startMs": 179700,
-          "endMs": 181040
+          "startMs": 264296,
+          "endMs": 265636
         },
         {
           "text": "ice",
-          "startMs": 181040,
-          "endMs": 181800
+          "startMs": 265636,
+          "endMs": 266396
         },
         {
           "text": "weightless",
-          "startMs": 181800,
-          "endMs": 186980
+          "startMs": 266396,
+          "endMs": 271576
         },
         {
           "text": "in",
-          "startMs": 186980,
-          "endMs": 187760
+          "startMs": 271576,
+          "endMs": 272356
         },
         {
           "text": "the",
-          "startMs": 187760,
-          "endMs": 188960
+          "startMs": 272356,
+          "endMs": 273556
         },
         {
           "text": "night",
-          "startMs": 188960,
-          "endMs": 191300
+          "startMs": 273556,
+          "endMs": 275896
         }
       ]
     },
@@ -889,43 +889,43 @@
       "text": "There, you'll find me, let it go",
       "originalStartMs": 191300,
       "originalEndMs": 208920,
-      "startMs": 184564,
-      "endMs": 192300,
+      "startMs": 274647,
+      "endMs": 289267,
       "words": [
         {
           "text": "There",
-          "startMs": 191300,
-          "endMs": 192880
+          "startMs": 280681,
+          "endMs": 282261
         },
         {
           "text": "you'll",
-          "startMs": 192880,
-          "endMs": 198360
+          "startMs": 282261,
+          "endMs": 287741
         },
         {
           "text": "find",
-          "startMs": 198360,
-          "endMs": 202180
+          "startMs": 287741,
+          "endMs": 291561
         },
         {
           "text": "me",
-          "startMs": 202180,
-          "endMs": 203880
+          "startMs": 291561,
+          "endMs": 293261
         },
         {
           "text": "let",
-          "startMs": 203880,
-          "endMs": 204700
+          "startMs": 293261,
+          "endMs": 294081
         },
         {
           "text": "it",
-          "startMs": 204700,
-          "endMs": 207020
+          "startMs": 294081,
+          "endMs": 296401
         },
         {
           "text": "go",
-          "startMs": 207020,
-          "endMs": 208920
+          "startMs": 296401,
+          "endMs": 298301
         }
       ]
     },
@@ -933,8 +933,8 @@
       "text": "♪",
       "originalStartMs": 192301,
       "originalEndMs": 208919,
-      "startMs": 192301,
-      "endMs": 210076,
+      "startMs": 289267,
+      "endMs": 335138,
       "words": [],
       "manualLine": true,
       "lineType": "instrumental"
@@ -943,48 +943,48 @@
       "text": "Dancing in the wind as roses born again",
       "originalStartMs": 208920,
       "originalEndMs": 216980,
-      "startMs": 210076,
-      "endMs": 217736,
+      "startMs": 335138,
+      "endMs": 342580,
       "words": [
         {
           "text": "Dancing",
-          "startMs": 208920,
-          "endMs": 211160
+          "startMs": 331058,
+          "endMs": 333298
         },
         {
           "text": "in",
-          "startMs": 211160,
-          "endMs": 211500
+          "startMs": 333298,
+          "endMs": 333638
         },
         {
           "text": "the",
-          "startMs": 211500,
-          "endMs": 212800
+          "startMs": 333638,
+          "endMs": 334938
         },
         {
           "text": "wind",
-          "startMs": 212800,
-          "endMs": 213900
+          "startMs": 334938,
+          "endMs": 336038
         },
         {
           "text": "as",
-          "startMs": 213900,
-          "endMs": 214120
+          "startMs": 336038,
+          "endMs": 336258
         },
         {
           "text": "roses",
-          "startMs": 214120,
-          "endMs": 214840
+          "startMs": 336258,
+          "endMs": 336978
         },
         {
           "text": "born",
-          "startMs": 214840,
-          "endMs": 215340
+          "startMs": 336978,
+          "endMs": 337478
         },
         {
           "text": "again",
-          "startMs": 215340,
-          "endMs": 216980
+          "startMs": 337478,
+          "endMs": 339118
         }
       ]
     },
@@ -992,28 +992,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 216980,
       "originalEndMs": 220440,
-      "startMs": 217736,
-      "endMs": 221484,
+      "startMs": 342580,
+      "endMs": 346358,
       "words": [
         {
           "text": "There",
-          "startMs": 216980,
-          "endMs": 218320
+          "startMs": 339118,
+          "endMs": 340458
         },
         {
           "text": "you'll",
-          "startMs": 218320,
-          "endMs": 218720
+          "startMs": 340458,
+          "endMs": 340858
         },
         {
           "text": "find",
-          "startMs": 218720,
-          "endMs": 219300
+          "startMs": 340858,
+          "endMs": 341438
         },
         {
           "text": "me",
-          "startMs": 219300,
-          "endMs": 220440
+          "startMs": 341438,
+          "endMs": 342578
         }
       ]
     },
@@ -1021,58 +1021,58 @@
       "text": "Before the dawn of man, in castles made of sand",
       "originalStartMs": 220440,
       "originalEndMs": 228380,
-      "startMs": 221484,
-      "endMs": 229063,
+      "startMs": 346358,
+      "endMs": 354001,
       "words": [
         {
           "text": "Before",
-          "startMs": 220440,
-          "endMs": 222080
+          "startMs": 342578,
+          "endMs": 344218
         },
         {
           "text": "the",
-          "startMs": 222080,
-          "endMs": 222300
+          "startMs": 344218,
+          "endMs": 344438
         },
         {
           "text": "dawn",
-          "startMs": 222300,
-          "endMs": 222900
+          "startMs": 344438,
+          "endMs": 345038
         },
         {
           "text": "of",
-          "startMs": 222900,
-          "endMs": 223040
+          "startMs": 345038,
+          "endMs": 345178
         },
         {
           "text": "man",
-          "startMs": 223040,
-          "endMs": 224840
+          "startMs": 345178,
+          "endMs": 346978
         },
         {
           "text": "in",
-          "startMs": 224840,
-          "endMs": 225360
+          "startMs": 346978,
+          "endMs": 347498
         },
         {
           "text": "castles",
-          "startMs": 225360,
-          "endMs": 226140
+          "startMs": 347498,
+          "endMs": 348278
         },
         {
           "text": "made",
-          "startMs": 226140,
-          "endMs": 226660
+          "startMs": 348278,
+          "endMs": 348798
         },
         {
           "text": "of",
-          "startMs": 226660,
-          "endMs": 226780
+          "startMs": 348798,
+          "endMs": 348918
         },
         {
           "text": "sand",
-          "startMs": 226780,
-          "endMs": 228380
+          "startMs": 348918,
+          "endMs": 350518
         }
       ]
     },
@@ -1080,28 +1080,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 228380,
       "originalEndMs": 231860,
-      "startMs": 229063,
-      "endMs": 233051,
+      "startMs": 354001,
+      "endMs": 357774,
       "words": [
         {
           "text": "There",
-          "startMs": 228380,
-          "endMs": 229660
+          "startMs": 350518,
+          "endMs": 351798
         },
         {
           "text": "you'll",
-          "startMs": 229660,
-          "endMs": 230060
+          "startMs": 351798,
+          "endMs": 352198
         },
         {
           "text": "find",
-          "startMs": 230060,
-          "endMs": 230600
+          "startMs": 352198,
+          "endMs": 352738
         },
         {
           "text": "me",
-          "startMs": 230600,
-          "endMs": 231860
+          "startMs": 352738,
+          "endMs": 353998
         }
       ]
     },
@@ -1109,53 +1109,53 @@
       "text": "Writing in the caves as fire lights the way",
       "originalStartMs": 231860,
       "originalEndMs": 239580,
-      "startMs": 233051,
-      "endMs": 240013,
+      "startMs": 357774,
+      "endMs": 365358,
       "words": [
         {
           "text": "Writing",
-          "startMs": 231860,
-          "endMs": 233800
+          "startMs": 353998,
+          "endMs": 355938
         },
         {
           "text": "in",
-          "startMs": 233800,
-          "endMs": 234140
+          "startMs": 355938,
+          "endMs": 356278
         },
         {
           "text": "the",
-          "startMs": 234140,
-          "endMs": 234320
+          "startMs": 356278,
+          "endMs": 356458
         },
         {
           "text": "caves",
-          "startMs": 234320,
-          "endMs": 236560
+          "startMs": 356458,
+          "endMs": 358698
         },
         {
           "text": "as",
-          "startMs": 236560,
-          "endMs": 236740
+          "startMs": 358698,
+          "endMs": 358878
         },
         {
           "text": "fire",
-          "startMs": 236740,
-          "endMs": 237420
+          "startMs": 358878,
+          "endMs": 359558
         },
         {
           "text": "lights",
-          "startMs": 237420,
-          "endMs": 237820
+          "startMs": 359558,
+          "endMs": 359958
         },
         {
           "text": "the",
-          "startMs": 237820,
-          "endMs": 238000
+          "startMs": 359958,
+          "endMs": 360138
         },
         {
           "text": "way",
-          "startMs": 238000,
-          "endMs": 239580
+          "startMs": 360138,
+          "endMs": 361718
         }
       ]
     },
@@ -1163,28 +1163,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 239580,
       "originalEndMs": 244440,
-      "startMs": 240013,
-      "endMs": 244440,
+      "startMs": 365358,
+      "endMs": 369232,
       "words": [
         {
           "text": "There",
-          "startMs": 239580,
-          "endMs": 241000
+          "startMs": 362371,
+          "endMs": 363791
         },
         {
           "text": "you'll",
-          "startMs": 241000,
-          "endMs": 241400
+          "startMs": 363791,
+          "endMs": 364191
         },
         {
           "text": "find",
-          "startMs": 241400,
-          "endMs": 243160
+          "startMs": 364191,
+          "endMs": 365951
         },
         {
           "text": "me",
-          "startMs": 243160,
-          "endMs": 244440
+          "startMs": 365951,
+          "endMs": 367231
         }
       ]
     },
@@ -1192,48 +1192,48 @@
       "text": "Mask of royal glow, don in pharaoh's clothes",
       "originalStartMs": 244440,
       "originalEndMs": 251640,
-      "startMs": 244440,
-      "endMs": 251820,
+      "startMs": 369232,
+      "endMs": 376804,
       "words": [
         {
           "text": "Mask",
-          "startMs": 244440,
-          "endMs": 244840
+          "startMs": 366578,
+          "endMs": 366978
         },
         {
           "text": "of",
-          "startMs": 244840,
-          "endMs": 245040
+          "startMs": 366978,
+          "endMs": 367178
         },
         {
           "text": "royal",
-          "startMs": 245040,
-          "endMs": 245660
+          "startMs": 367178,
+          "endMs": 367798
         },
         {
           "text": "glow",
-          "startMs": 245660,
-          "endMs": 247260
+          "startMs": 367798,
+          "endMs": 369398
         },
         {
           "text": "don",
-          "startMs": 247260,
-          "endMs": 248660
+          "startMs": 369398,
+          "endMs": 370798
         },
         {
           "text": "in",
-          "startMs": 248660,
-          "endMs": 248800
+          "startMs": 370798,
+          "endMs": 370938
         },
         {
           "text": "pharaoh's",
-          "startMs": 248800,
-          "endMs": 249400
+          "startMs": 370938,
+          "endMs": 371538
         },
         {
           "text": "clothes",
-          "startMs": 249400,
-          "endMs": 251640
+          "startMs": 371538,
+          "endMs": 373778
         }
       ]
     },
@@ -1241,28 +1241,28 @@
       "text": "There, you'll find me",
       "originalStartMs": 251640,
       "originalEndMs": 254880,
-      "startMs": 251820,
-      "endMs": 254880,
+      "startMs": 376804,
+      "endMs": 380323,
       "words": [
         {
           "text": "There",
-          "startMs": 251640,
-          "endMs": 252120
+          "startMs": 375788,
+          "endMs": 376268
         },
         {
           "text": "you'll",
-          "startMs": 252120,
-          "endMs": 252740
+          "startMs": 376268,
+          "endMs": 376888
         },
         {
           "text": "find",
-          "startMs": 252740,
-          "endMs": 253280
+          "startMs": 376888,
+          "endMs": 377428
         },
         {
           "text": "me",
-          "startMs": 253280,
-          "endMs": 254880
+          "startMs": 377428,
+          "endMs": 379028
         }
       ]
     },
@@ -1270,33 +1270,33 @@
       "text": "From all that was before",
       "originalStartMs": 254880,
       "originalEndMs": 270600,
-      "startMs": 254880,
-      "endMs": 270600,
+      "startMs": 380323,
+      "endMs": 384164,
       "words": [
         {
           "text": "From",
-          "startMs": 254880,
-          "endMs": 256620
+          "startMs": 380323,
+          "endMs": 382063
         },
         {
           "text": "all",
-          "startMs": 256620,
-          "endMs": 256940
+          "startMs": 382063,
+          "endMs": 382383
         },
         {
           "text": "that",
-          "startMs": 256940,
-          "endMs": 267780
+          "startMs": 382383,
+          "endMs": 393223
         },
         {
           "text": "was",
-          "startMs": 267780,
-          "endMs": 268180
+          "startMs": 393223,
+          "endMs": 393623
         },
         {
           "text": "before",
-          "startMs": 268180,
-          "endMs": 270600
+          "startMs": 393623,
+          "endMs": 396043
         }
       ]
     },
@@ -1304,53 +1304,53 @@
       "text": "We shut another door, but not a last goodbye",
       "originalStartMs": 270600,
       "originalEndMs": 279680,
-      "startMs": 270600,
-      "endMs": 279680,
+      "startMs": 384164,
+      "endMs": 391968,
       "words": [
         {
           "text": "We",
-          "startMs": 270600,
-          "endMs": 271240
+          "startMs": 384164,
+          "endMs": 384804
         },
         {
           "text": "shut",
-          "startMs": 271240,
-          "endMs": 272200
+          "startMs": 384804,
+          "endMs": 385764
         },
         {
           "text": "another",
-          "startMs": 272200,
-          "endMs": 273320
+          "startMs": 385764,
+          "endMs": 386884
         },
         {
           "text": "door",
-          "startMs": 273320,
-          "endMs": 273920
+          "startMs": 386884,
+          "endMs": 387484
         },
         {
           "text": "but",
-          "startMs": 273920,
-          "endMs": 274360
+          "startMs": 387484,
+          "endMs": 387924
         },
         {
           "text": "not",
-          "startMs": 274360,
-          "endMs": 275540
+          "startMs": 387924,
+          "endMs": 389104
         },
         {
           "text": "a",
-          "startMs": 275540,
-          "endMs": 275800
+          "startMs": 389104,
+          "endMs": 389364
         },
         {
           "text": "last",
-          "startMs": 275800,
-          "endMs": 277220
+          "startMs": 389364,
+          "endMs": 390784
         },
         {
           "text": "goodbye",
-          "startMs": 277220,
-          "endMs": 279680
+          "startMs": 390784,
+          "endMs": 393244
         }
       ]
     },
@@ -1358,23 +1358,23 @@
       "text": "Taken once again",
       "originalStartMs": 279680,
       "originalEndMs": 289640,
-      "startMs": 279680,
-      "endMs": 289640,
+      "startMs": 391968,
+      "endMs": 395293,
       "words": [
         {
           "text": "Taken",
-          "startMs": 279680,
-          "endMs": 287080
+          "startMs": 391968,
+          "endMs": 399368
         },
         {
           "text": "once",
-          "startMs": 287080,
-          "endMs": 288060
+          "startMs": 399368,
+          "endMs": 400348
         },
         {
           "text": "again",
-          "startMs": 288060,
-          "endMs": 289640
+          "startMs": 400348,
+          "endMs": 401928
         }
       ]
     },
@@ -1382,58 +1382,58 @@
       "text": "A fight we'll never win, and time again, we try",
       "originalStartMs": 289640,
       "originalEndMs": 314760,
-      "startMs": 289640,
-      "endMs": 314760,
+      "startMs": 395293,
+      "endMs": 403050,
       "words": [
         {
           "text": "A",
-          "startMs": 289640,
-          "endMs": 290520
+          "startMs": 395293,
+          "endMs": 396173
         },
         {
           "text": "fight",
-          "startMs": 290520,
-          "endMs": 295020
+          "startMs": 396173,
+          "endMs": 400673
         },
         {
           "text": "we'll",
-          "startMs": 295020,
-          "endMs": 297920
+          "startMs": 400673,
+          "endMs": 403573
         },
         {
           "text": "never",
-          "startMs": 297920,
-          "endMs": 311380
+          "startMs": 403573,
+          "endMs": 417033
         },
         {
           "text": "win",
-          "startMs": 311380,
-          "endMs": 312060
+          "startMs": 417033,
+          "endMs": 417713
         },
         {
           "text": "and",
-          "startMs": 312060,
-          "endMs": 312860
+          "startMs": 417713,
+          "endMs": 418513
         },
         {
           "text": "time",
-          "startMs": 312860,
-          "endMs": 313400
+          "startMs": 418513,
+          "endMs": 419053
         },
         {
           "text": "again",
-          "startMs": 313400,
-          "endMs": 314040
+          "startMs": 419053,
+          "endMs": 419693
         },
         {
           "text": "we",
-          "startMs": 314040,
-          "endMs": 314220
+          "startMs": 419693,
+          "endMs": 419873
         },
         {
           "text": "try",
-          "startMs": 314220,
-          "endMs": 314760
+          "startMs": 419873,
+          "endMs": 420413
         }
       ]
     },
@@ -1441,43 +1441,43 @@
       "text": "We loved so many times (I'm gone)",
       "originalStartMs": 314760,
       "originalEndMs": 320680,
-      "startMs": 314760,
-      "endMs": 320680,
+      "startMs": 403050,
+      "endMs": 407067,
       "words": [
         {
           "text": "We",
-          "startMs": 314760,
-          "endMs": 315080
+          "startMs": 403050,
+          "endMs": 403370
         },
         {
           "text": "loved",
-          "startMs": 315080,
-          "endMs": 315920
+          "startMs": 403370,
+          "endMs": 404210
         },
         {
           "text": "so",
-          "startMs": 315920,
-          "endMs": 316180
+          "startMs": 404210,
+          "endMs": 404470
         },
         {
           "text": "many",
-          "startMs": 316180,
-          "endMs": 316620
+          "startMs": 404470,
+          "endMs": 404910
         },
         {
           "text": "times",
-          "startMs": 316620,
-          "endMs": 318580
+          "startMs": 404910,
+          "endMs": 406870
         },
         {
           "text": "I'm",
-          "startMs": 318580,
-          "endMs": 319520
+          "startMs": 406870,
+          "endMs": 407810
         },
         {
           "text": "gone",
-          "startMs": 319520,
-          "endMs": 320680
+          "startMs": 407810,
+          "endMs": 408970
         }
       ]
     },
@@ -1485,68 +1485,68 @@
       "text": "And in so many lives (I'm gone), sometimes we got it right",
       "originalStartMs": 320680,
       "originalEndMs": 328760,
-      "startMs": 320680,
-      "endMs": 328760,
+      "startMs": 407067,
+      "endMs": 414279,
       "words": [
         {
           "text": "And",
-          "startMs": 320680,
-          "endMs": 321660
+          "startMs": 407067,
+          "endMs": 408047
         },
         {
           "text": "in",
-          "startMs": 321660,
-          "endMs": 321900
+          "startMs": 408047,
+          "endMs": 408287
         },
         {
           "text": "so",
-          "startMs": 321900,
-          "endMs": 322280
+          "startMs": 408287,
+          "endMs": 408667
         },
         {
           "text": "many",
-          "startMs": 322280,
-          "endMs": 322960
+          "startMs": 408667,
+          "endMs": 409347
         },
         {
           "text": "lives",
-          "startMs": 322960,
-          "endMs": 323560
+          "startMs": 409347,
+          "endMs": 409947
         },
         {
           "text": "I'm",
-          "startMs": 323560,
-          "endMs": 324240
+          "startMs": 409947,
+          "endMs": 410627
         },
         {
           "text": "gone",
-          "startMs": 324240,
-          "endMs": 324880
+          "startMs": 410627,
+          "endMs": 411267
         },
         {
           "text": "sometimes",
-          "startMs": 324880,
-          "endMs": 326400
+          "startMs": 411267,
+          "endMs": 412787
         },
         {
           "text": "we",
-          "startMs": 326400,
-          "endMs": 326620
+          "startMs": 412787,
+          "endMs": 413007
         },
         {
           "text": "got",
-          "startMs": 326620,
-          "endMs": 327340
+          "startMs": 413007,
+          "endMs": 413727
         },
         {
           "text": "it",
-          "startMs": 327340,
-          "endMs": 327960
+          "startMs": 413727,
+          "endMs": 414347
         },
         {
           "text": "right",
-          "startMs": 327960,
-          "endMs": 328760
+          "startMs": 414347,
+          "endMs": 415147
         }
       ]
     },
@@ -1554,48 +1554,48 @@
       "text": "It found its way back in (I'm gone)",
       "originalStartMs": 328760,
       "originalEndMs": 337460,
-      "startMs": 328760,
-      "endMs": 337460,
+      "startMs": 414279,
+      "endMs": 418250,
       "words": [
         {
           "text": "It",
-          "startMs": 328760,
-          "endMs": 330780
+          "startMs": 414279,
+          "endMs": 416299
         },
         {
           "text": "found",
-          "startMs": 330780,
-          "endMs": 334880
+          "startMs": 416299,
+          "endMs": 420399
         },
         {
           "text": "its",
-          "startMs": 334880,
-          "endMs": 335120
+          "startMs": 420399,
+          "endMs": 420639
         },
         {
           "text": "way",
-          "startMs": 335120,
-          "endMs": 335300
+          "startMs": 420639,
+          "endMs": 420819
         },
         {
           "text": "back",
-          "startMs": 335300,
-          "endMs": 335700
+          "startMs": 420819,
+          "endMs": 421219
         },
         {
           "text": "in",
-          "startMs": 335700,
-          "endMs": 335960
+          "startMs": 421219,
+          "endMs": 421479
         },
         {
           "text": "I'm",
-          "startMs": 335960,
-          "endMs": 336300
+          "startMs": 421479,
+          "endMs": 421819
         },
         {
           "text": "gone",
-          "startMs": 336300,
-          "endMs": 337460
+          "startMs": 421819,
+          "endMs": 422979
         }
       ]
     },
@@ -1603,55 +1603,65 @@
       "text": "Until we meet again (I'm gone), into that good...",
       "originalStartMs": 337460,
       "originalEndMs": 346820,
-      "startMs": 337460,
-      "endMs": 346820,
+      "startMs": 418250,
+      "endMs": 424460,
       "words": [
         {
           "text": "Until",
-          "startMs": 337460,
-          "endMs": 338920
+          "startMs": 417816,
+          "endMs": 419276
         },
         {
           "text": "we",
-          "startMs": 338920,
-          "endMs": 339120
+          "startMs": 419276,
+          "endMs": 419476
         },
         {
           "text": "meet",
-          "startMs": 339120,
-          "endMs": 339660
+          "startMs": 419476,
+          "endMs": 420016
         },
         {
           "text": "again",
-          "startMs": 339660,
-          "endMs": 340360
+          "startMs": 420016,
+          "endMs": 420716
         },
         {
           "text": "I'm",
-          "startMs": 340360,
-          "endMs": 340820
+          "startMs": 420716,
+          "endMs": 421176
         },
         {
           "text": "gone",
-          "startMs": 340820,
-          "endMs": 341800
+          "startMs": 421176,
+          "endMs": 422156
         },
         {
           "text": "into",
-          "startMs": 341800,
-          "endMs": 343160
+          "startMs": 422156,
+          "endMs": 423516
         },
         {
           "text": "that",
-          "startMs": 343160,
-          "endMs": 345260
+          "startMs": 423516,
+          "endMs": 425616
         },
         {
           "text": "good",
-          "startMs": 345260,
-          "endMs": 346820
+          "startMs": 425616,
+          "endMs": 427176
         }
       ]
+    },
+    {
+      "text": "♪",
+      "startMs": 424460,
+      "endMs": 453211,
+      "originalStartMs": 424460,
+      "originalEndMs": 453211,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
     }
   ]
 }

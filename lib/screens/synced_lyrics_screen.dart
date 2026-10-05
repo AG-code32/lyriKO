@@ -8,158 +8,121 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../services/fingerprint_match_service.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/system_audio_capture_service.dart';
-import 'live_lyrics_calibration_screen.dart';
+import '../services/windows_media_session_service.dart';
+import 'lyrics_edit_screen.dart';
 
 class SyncedLyricsScreen extends StatefulWidget {
   final int initialPositionMs;
   final String lockedTrackName;
   final String jsonPath;
 
+  /// When Home found a Windows Media Session, it passes the owning app here.
+  /// Example: chrome.exe or Spotify.exe.
+  final String? mediaSourceAppId;
+
   const SyncedLyricsScreen({
     super.key,
     required this.initialPositionMs,
     required this.lockedTrackName,
     required this.jsonPath,
+    this.mediaSourceAppId,
   });
 
   @override
-  State<SyncedLyricsScreen> createState() =>
-      _SyncedLyricsScreenState();
+  State<SyncedLyricsScreen> createState() => _SyncedLyricsScreenState();
 }
 
-class _SyncedLyricsScreenState
-    extends State<SyncedLyricsScreen> {
-  final SyncedLyricsService _lyricsService =
-      SyncedLyricsService();
-
-  final FingerprintMatchService _fingerprintService =
-      FingerprintMatchService();
-
-  final SystemAudioCaptureService _captureService =
-      SystemAudioCaptureService();
-
-  final ItemScrollController _scrollController =
-      ItemScrollController();
+class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
+  final SyncedLyricsService _lyricsService = SyncedLyricsService();
+  final WindowsMediaSessionService _mediaService =
+      WindowsMediaSessionService();
+  final FingerprintMatchService _fingerprintService = FingerprintMatchService();
+  final SystemAudioCaptureService _captureService = SystemAudioCaptureService();
+  final ItemScrollController _scrollController = ItemScrollController();
 
   SyncedLyricsSong? _song;
 
   Timer? _uiTimer;
-  Timer? _trackingTimer;
+  Timer? _mediaTimer;
+  Timer? _fallbackTimer;
 
-  final Stopwatch _localClock =
-      Stopwatch();
+  final Stopwatch _localClock = Stopwatch();
+  final Stopwatch _fallbackCaptureClock = Stopwatch();
 
-  final Stopwatch _captureClock =
-      Stopwatch();
-
-  int _basePositionMs = 0;
+  int _anchorPositionMs = 0;
   int _currentPositionMs = 0;
-
   int _activeLineIndex = -1;
   int _lastScrolledIndex = -1;
 
-  bool _playing = true;
-  bool _trackingBusy = false;
-  bool _navigationPaused = false;
+  bool _clockRunning = false;
+  bool _openingEditor = false;
+  bool _mediaPollBusy = false;
+  bool _fallbackBusy = false;
+  bool _fallbackStarted = false;
+  bool _fallbackPaused = false;
 
-  int _consecutiveMisses = 0;
+  int? _lastMediaRawPositionMs;
+  bool? _lastMediaPlaying;
+  DateTime? _lastMediaSeenAt;
 
-  int? _lastMeasuredPositionMs;
+  int? _lastFallbackMeasuredMs;
+  int _fallbackStagnantMeasurements = 0;
 
-  int _stagnantMeasurements = 0;
-
+  String _trackingLabel = 'STARTING';
+  Color _trackingColor = Colors.white54;
   String? _error;
 
-  static const Duration _trackingWindow =
-      Duration(seconds: 3);
+  static const Duration _mediaPollInterval = Duration(milliseconds: 500);
+  static const Duration _mediaLostGrace = Duration(seconds: 2);
 
-  static const Duration _trackingInterval =
-      Duration(seconds: 2);
+  static const int _mediaHardSeekThresholdMs = 900;
+  static const int _mediaRawChangeThresholdMs = 120;
+  static const double _mediaSoftCorrectionFactor = 0.45;
 
-  static const int _ignoreErrorMs = 400;
-
-  static const int _hardCorrectionMs = 1500;
-
-  static const double _softCorrectionFactor =
-      0.35;
-
-  //
-  // A single failed fingerprint must NEVER
-  // be interpreted as a pause.
-  //
-  // Four misses = roughly 8 seconds with the
-  // current tracking interval.
-  //
-  static const int _missesBeforeHold = 4;
-
-  //
-  // Repeated reliable measurements at almost
-  // the same position can indicate pause.
-  //
-  static const int _stagnantBeforeHold = 3;
-
-  static const int _stagnantMovementThresholdMs =
-      350;
+  static const int _fallbackMinimumAlignedHashes = 5;
+  static const double _fallbackMinimumRatio = 0.50;
+  static const int _fallbackStagnantToleranceMs = 350;
+  static const int _fallbackStagnantBeforePause = 3;
 
   @override
   void initState() {
     super.initState();
 
-    _basePositionMs =
-        widget.initialPositionMs;
-
-    _currentPositionMs =
-        widget.initialPositionMs;
+    _anchorPositionMs = widget.initialPositionMs;
+    _currentPositionMs = widget.initialPositionMs;
 
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final song =
-          await _lyricsService.loadSong(
-        widget.jsonPath,
-      );
+      final song = await _lyricsService.loadSong(widget.jsonPath);
 
-      _currentPositionMs =
-          _currentPositionMs.clamp(
-        0,
-        song.durationMs,
-      );
+      final safePosition = _clampPosition(widget.initialPositionMs, song);
+      final active = _lyricsService.findActiveLineIndex(song, safePosition);
 
-      _basePositionMs =
-          _currentPositionMs;
-
-      var active =
-          _lyricsService.findActiveLineIndex(
-        song,
-        _currentPositionMs,
-      );
-
-      if (active < 0) {
-        active =
-            _lyricsService.findNearestLineIndex(
-          song,
-          _currentPositionMs,
-        );
-      }
-
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _song = song;
+        _anchorPositionMs = safePosition;
+        _currentPositionMs = safePosition;
         _activeLineIndex = active;
+        _error = null;
       });
 
-      await _startTracking();
+      _setAnchor(safePosition, running: true, forceScroll: false);
 
+      await _mediaService.initialize();
+
+      _startUiTimer();
+      _startMediaTimer();
       _scheduleInitialScroll();
+
+      // Poll immediately rather than waiting for the first timer tick.
+      await _pollMediaSession();
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _error = e.toString();
@@ -167,824 +130,538 @@ class _SyncedLyricsScreenState
     }
   }
 
-  Future<void> _startTracking() async {
-    if (_navigationPaused) {
-      return;
-    }
-
-    await _fingerprintService.ensureReady();
-
-    await _captureService.startContinuousCapture();
-
-    _captureClock
-      ..reset()
-      ..start();
-
-    _localClock
-      ..stop()
-      ..reset();
-
-    if (_playing) {
-      _localClock.start();
-    }
-
+  void _startUiTimer() {
     _uiTimer?.cancel();
 
     _uiTimer = Timer.periodic(
-      const Duration(
-        milliseconds: 40,
-      ),
-      (_) {
-        _updateLocalPosition();
-      },
-    );
-
-    _trackingTimer?.cancel();
-
-    _trackingTimer = Timer.periodic(
-      _trackingInterval,
-      (_) {
-        _trackRealPosition();
-      },
+      const Duration(milliseconds: 40),
+      (_) => _updateVisualPosition(),
     );
   }
 
-  Future<void> _pauseTrackingForNavigation() async {
-    _navigationPaused = true;
+  void _startMediaTimer() {
+    _mediaTimer?.cancel();
 
-    _uiTimer?.cancel();
-    _uiTimer = null;
-
-    _trackingTimer?.cancel();
-    _trackingTimer = null;
-
-    _localClock.stop();
-    _captureClock.stop();
-
-    try {
-      await _captureService.stopContinuousCapture();
-    } catch (_) {}
-
-    try {
-      await _fingerprintService.dispose();
-    } catch (_) {}
-  }
-
-  Future<void> _resumeTrackingAfterNavigation(
-    int? returnedPosition,
-  ) async {
-    if (!mounted) {
-      return;
-    }
-
-    try {
-      final refreshedSong =
-          await _lyricsService.loadSong(
-        widget.jsonPath,
-      );
-
-      var position =
-          returnedPosition ??
-              _currentPositionMs;
-
-      position =
-          position.clamp(
-        0,
-        refreshedSong.durationMs,
-      );
-
-      var active =
-          _lyricsService.findActiveLineIndex(
-        refreshedSong,
-        position,
-      );
-
-      if (active < 0) {
-        active =
-            _lyricsService.findNearestLineIndex(
-          refreshedSong,
-          position,
-        );
-      }
-
-      setState(() {
-        _song = refreshedSong;
-
-        _basePositionMs =
-            position;
-
-        _currentPositionMs =
-            position;
-
-        _activeLineIndex =
-            active;
-
-        _playing = true;
-
-        _consecutiveMisses = 0;
-        _stagnantMeasurements = 0;
-        _lastMeasuredPositionMs = null;
-
-        _navigationPaused = false;
-      });
-
-      await _startTracking();
-
-      if (active >= 0) {
-        _scrollToLine(
-          active,
-          force: true,
-        );
-      }
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _navigationPaused = false;
-        _error = e.toString();
-      });
-    }
-  }
-
-  Future<void> _openLiveCalibration() async {
-    final song =
-        _song;
-
-    if (song == null ||
-        _navigationPaused) {
-      return;
-    }
-
-    final positionBefore =
-        _currentPositionMs;
-
-    await _pauseTrackingForNavigation();
-
-    if (!mounted) {
-      return;
-    }
-
-    final returnedPosition =
-        await Navigator.push<int>(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            LiveLyricsCalibrationScreen(
-          jsonPath:
-              widget.jsonPath,
-          initialPositionMs:
-              positionBefore,
-          lockedTrackName:
-              widget.lockedTrackName,
-        ),
-      ),
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    await _resumeTrackingAfterNavigation(
-      returnedPosition,
+    _mediaTimer = Timer.periodic(
+      _mediaPollInterval,
+      (_) => _pollMediaSession(),
     );
   }
 
-  void _scheduleInitialScroll([
-    int attempt = 0,
-  ]) {
-    if (attempt > 15) {
-      return;
-    }
+  void _updateVisualPosition() {
+    final song = _song;
 
-    WidgetsBinding.instance
-        .addPostFrameCallback(
-      (_) {
-        if (!mounted) {
-          return;
-        }
+    if (song == null || !mounted || _openingEditor) return;
 
-        if (_scrollController.isAttached) {
-          _jumpToInitialLine();
-          return;
-        }
+    final position = _estimatedPositionMs(song);
 
-        Future.delayed(
-          const Duration(
-            milliseconds: 80,
-          ),
-          () {
-            if (mounted) {
-              _scheduleInitialScroll(
-                attempt + 1,
-              );
-            }
-          },
-        );
-      },
-    );
-  }
+    if (position == _currentPositionMs) return;
 
-  void _updateLocalPosition() {
-    final song =
-        _song;
-
-    if (song == null ||
-        !mounted ||
-        !_playing ||
-        _navigationPaused) {
-      return;
-    }
-
-    var position =
-        _basePositionMs +
-            _localClock.elapsedMilliseconds;
-
-    if (position >=
-        song.durationMs) {
-      position =
-          song.durationMs;
-
-      _playing = false;
-
-      _localClock.stop();
-    }
-
-    final active =
-        _lyricsService.findActiveLineIndex(
-      song,
-      position,
-    );
-
-    final changed =
-        active >= 0 &&
-            active !=
-                _activeLineIndex;
+    final active = _lyricsService.findActiveLineIndex(song, position);
+    final changed = active >= 0 && active != _activeLineIndex;
 
     setState(() {
-      _currentPositionMs =
-          position;
-
+      _currentPositionMs = position;
       if (active >= 0) {
-        _activeLineIndex =
-            active;
+        _activeLineIndex = active;
       }
     });
 
     if (changed) {
-      _scrollToLine(
-        active,
-      );
+      _scrollToLine(active);
     }
   }
 
-  bool _sameTrack(
-    FingerprintMatchResult result,
-  ) {
-    if (!result.matched) {
-      return false;
+  int _estimatedPositionMs(SyncedLyricsSong song) {
+    var position = _anchorPositionMs;
+
+    if (_clockRunning) {
+      position += _localClock.elapsedMilliseconds;
     }
 
-    final resultPath =
-        result.trackPath;
-
-    final resultName =
-        result.trackName ?? '';
-
-    final song =
-        _song;
-
-    final candidates = <String>[
-      widget.lockedTrackName,
-      if (song?.audioPath != null)
-        song!.audioPath!,
-      if (song != null)
-        song.title,
-    ];
-
-    for (final candidate
-        in candidates) {
-      if (candidate.trim().isEmpty) {
-        continue;
-      }
-
-      //
-      // Exact normalized path.
-      //
-      if (resultPath != null &&
-          _normalizePath(
-                resultPath,
-              ) ==
-              _normalizePath(
-                candidate,
-              )) {
-        return true;
-      }
-
-      //
-      // Filename without extension.
-      //
-      if (resultPath != null &&
-          _fileNameWithoutExtension(
-                resultPath,
-              ) ==
-              _fileNameWithoutExtension(
-                candidate,
-              )) {
-        return true;
-      }
-
-      //
-      // Title/name fallback.
-      //
-      final normalizedResultName =
-          _normalizeText(
-        resultName,
-      );
-
-      final normalizedCandidate =
-          _normalizeText(
-        candidate,
-      );
-
-      if (normalizedCandidate.isNotEmpty &&
-          normalizedResultName.isNotEmpty &&
-          (normalizedResultName ==
-                  normalizedCandidate ||
-              normalizedResultName.contains(
-                normalizedCandidate,
-              ) ||
-              normalizedCandidate.contains(
-                normalizedResultName,
-              ))) {
-        return true;
-      }
-    }
-
-    return false;
+    return _clampPosition(position, song);
   }
 
-  String _normalizePath(
-    String value,
+  Future<void> _pollMediaSession() async {
+    if (_mediaPollBusy || _openingEditor || _song == null) return;
+
+    _mediaPollBusy = true;
+
+    try {
+      final sessions = await _mediaService.getSessions();
+      final session = _selectMediaSession(sessions);
+
+      if (session != null) {
+        _lastMediaSeenAt = DateTime.now();
+
+        if (_fallbackStarted) {
+          await _stopFingerprintFallback();
+        }
+
+        _applyMediaSession(session);
+        return;
+      }
+
+      final lastSeen = _lastMediaSeenAt;
+      if (lastSeen != null &&
+          DateTime.now().difference(lastSeen) < _mediaLostGrace) {
+        return;
+      }
+
+      await _ensureFingerprintFallback();
+    } finally {
+      _mediaPollBusy = false;
+    }
+  }
+
+  WindowsMediaSessionState? _selectMediaSession(
+    List<WindowsMediaSessionState> sessions,
   ) {
-    return value
-        .replaceAll(
-          '\\',
-          '/',
+    final song = _song;
+    if (song == null) return null;
+
+    final usable = sessions
+        .where(
+          (session) =>
+              session.available &&
+              (session.isPlaying || session.isPaused || session.isStopped),
         )
-        .toLowerCase()
-        .trim();
+        .toList();
+
+    if (usable.isEmpty) return null;
+
+    // First choice: metadata that clearly matches the loaded song.
+    WindowsMediaSessionState? bestMetadata;
+    var bestScore = 0;
+
+    for (final session in usable) {
+      final score = _lyricsService.mediaMetadataScoreForSong(
+        song,
+        title: session.title,
+        artist: session.artist,
+        albumArtist: session.albumArtist,
+      );
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMetadata = session;
+      }
+    }
+
+    if (bestMetadata != null && bestScore >= 70) {
+      return bestMetadata;
+    }
+
+    // Second choice: the application that Home associated with this song.
+    final preferredApp = widget.mediaSourceAppId?.trim().toLowerCase();
+
+    if (preferredApp != null && preferredApp.isNotEmpty) {
+      final sameApp = usable
+          .where(
+            (session) => session.sourceAppId.trim().toLowerCase() == preferredApp,
+          )
+          .toList();
+
+      if (sameApp.isNotEmpty) {
+        sameApp.sort((a, b) {
+          final aRank = a.isPlaying ? 0 : (a.isPaused ? 1 : 2);
+          final bRank = b.isPlaying ? 0 : (b.isPaused ? 1 : 2);
+          return aRank.compareTo(bRank);
+        });
+
+        return sameApp.first;
+      }
+    }
+
+    // The expected real-world use is one active player. If there is exactly
+    // one active session, it is safe to use it even when metadata is empty.
+    final active = usable.where((session) => session.isPlaying || session.isPaused).toList();
+
+    if (active.length == 1) {
+      return active.first;
+    }
+
+    return null;
   }
 
-  String _fileNameWithoutExtension(
-    String value,
-  ) {
-    final normalized =
-        value.replaceAll(
-      '\\',
-      '/',
+  void _applyMediaSession(WindowsMediaSessionState session) {
+    final song = _song;
+    if (song == null) return;
+
+    final rawPosition = _clampPosition(session.positionMs, song);
+    final mediaPosition = _clampPosition(session.estimatedPositionMs(), song);
+    final isPlaying = session.isPlaying;
+    final isPaused = session.isPaused || session.isStopped;
+
+    if (isPaused) {
+      final pausePosition = rawPosition > 0 ? rawPosition : _estimatedPositionMs(song);
+
+      _lastMediaRawPositionMs = rawPosition;
+      _lastMediaPlaying = false;
+
+      _setAnchor(
+        pausePosition,
+        running: false,
+        forceScroll: true,
+      );
+
+      _setTrackingStatus(
+        'PAUSED',
+        Colors.orangeAccent,
+      );
+
+      return;
+    }
+
+    if (!isPlaying) return;
+
+    final predicted = _estimatedPositionMs(song);
+    final previousRaw = _lastMediaRawPositionMs;
+    final rawChanged = previousRaw == null ||
+        (rawPosition - previousRaw).abs() >= _mediaRawChangeThresholdMs;
+
+    final resuming = _lastMediaPlaying != true;
+
+    if (resuming) {
+      _setAnchor(
+        mediaPosition,
+        running: true,
+        forceScroll: true,
+      );
+    } else if (rawChanged) {
+      final drift = mediaPosition - predicted;
+
+      if (drift.abs() >= _mediaHardSeekThresholdMs) {
+        // Forward/backward seek: Windows position wins immediately.
+        _setAnchor(
+          mediaPosition,
+          running: true,
+          forceScroll: true,
+        );
+      } else if (drift.abs() >= 120) {
+        final corrected =
+            predicted + (drift * _mediaSoftCorrectionFactor).round();
+
+        _setAnchor(
+          corrected,
+          running: true,
+          forceScroll: false,
+        );
+      }
+    }
+
+    _lastMediaRawPositionMs = rawPosition;
+    _lastMediaPlaying = true;
+
+    _setTrackingStatus(
+      'MEDIA',
+      Colors.greenAccent,
     );
+  }
 
-    var filename =
-        normalized.split('/').last;
+  void _setAnchor(
+    int positionMs, {
+    required bool running,
+    required bool forceScroll,
+  }) {
+    final song = _song;
+    if (song == null) return;
 
-    final dot =
-        filename.lastIndexOf('.');
+    final position = _clampPosition(positionMs, song);
+    final active = _lyricsService.findActiveLineIndex(song, position);
+    final changed = active >= 0 && active != _activeLineIndex;
 
-    if (dot > 0) {
-      filename =
-          filename.substring(
-        0,
-        dot,
+    _anchorPositionMs = position;
+    _currentPositionMs = position;
+    _clockRunning = running;
+
+    _localClock
+      ..stop()
+      ..reset();
+
+    if (running && position < song.durationMs) {
+      _localClock.start();
+    }
+
+    if (mounted) {
+      setState(() {
+        if (active >= 0) {
+          _activeLineIndex = active;
+        }
+      });
+    }
+
+    if (forceScroll && active >= 0) {
+      _scrollToLine(active, force: true);
+    } else if (changed) {
+      _scrollToLine(active);
+    }
+  }
+
+  void _setTrackingStatus(String label, Color color) {
+    if (_trackingLabel == label && _trackingColor == color) return;
+    if (!mounted) return;
+
+    setState(() {
+      _trackingLabel = label;
+      _trackingColor = color;
+    });
+  }
+
+  Future<void> _ensureFingerprintFallback() async {
+    if (_fallbackStarted || _openingEditor) return;
+
+    try {
+      await _fingerprintService.ensureReady();
+      await _captureService.startContinuousCapture();
+
+      _fallbackCaptureClock
+        ..reset()
+        ..start();
+
+      _fallbackStarted = true;
+      _fallbackPaused = false;
+      _lastFallbackMeasuredMs = null;
+      _fallbackStagnantMeasurements = 0;
+
+      _fallbackTimer?.cancel();
+      _fallbackTimer = Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => _runFingerprintFallback(),
+      );
+
+      _setTrackingStatus(
+        'FINGERPRINT',
+        Colors.amberAccent,
+      );
+    } catch (e) {
+      debugPrint('Fingerprint fallback unavailable: $e');
+      _setTrackingStatus(
+        'LOCAL',
+        Colors.white54,
       );
     }
-
-    return _normalizeText(
-      filename,
-    );
   }
 
-  String _normalizeText(
-    String value,
-  ) {
-    return value
-        .toLowerCase()
-        .replaceAll(
-          RegExp(
-            r'[^a-z0-9]+',
-          ),
-          '',
-        );
-  }
-
-  Future<void> _trackRealPosition() async {
-    if (_trackingBusy ||
-        _navigationPaused) {
+  Future<void> _runFingerprintFallback() async {
+    if (!_fallbackStarted ||
+        _fallbackBusy ||
+        _openingEditor ||
+        _fallbackCaptureClock.elapsed < const Duration(seconds: 5)) {
       return;
     }
 
-    if (_captureClock.elapsed <
-        _trackingWindow) {
-      return;
-    }
+    final song = _song;
+    if (song == null) return;
 
-    final song =
-        _song;
-
-    if (song == null) {
-      return;
-    }
-
-    _trackingBusy = true;
-
+    _fallbackBusy = true;
     String? snapshotPath;
 
     try {
-      final snapshot =
-          await _captureService
-              .snapshotContinuousCapture(
-        last: _trackingWindow,
+      final snapshot = await _captureService.snapshotContinuousCapture(
+        last: const Duration(seconds: 5),
       );
 
-      snapshotPath =
-          snapshot.filePath;
+      snapshotPath = snapshot.filePath;
 
-      final result =
-          await _fingerprintService.match(
-        snapshot.filePath,
-      );
+      final result = await _fingerprintService.match(snapshot.filePath);
+      final aligned = result.alignedHashes ?? 0;
+      final common = result.commonHashes ?? 0;
+      final ratio = common > 0 ? aligned / common : 0.0;
 
-      final sameSong =
-          _sameTrack(
-        result,
-      );
+      final resultPath = _normalizeTrackIdentity(result.trackPath ?? '');
+      final lockedPath = _normalizeTrackIdentity(widget.lockedTrackName);
+      final resultName = _normalizeTrackIdentity(result.trackName ?? '');
+      final songTitle = _normalizeTrackIdentity(song.title);
 
-      final aligned =
-          result.alignedHashes ??
-              0;
+      final sameSong = result.matched &&
+          ((resultPath.isNotEmpty && lockedPath.isNotEmpty && resultPath == lockedPath) ||
+              (resultName.isNotEmpty && songTitle.isNotEmpty &&
+                  (resultName.contains(songTitle) || songTitle.contains(resultName))));
 
-      final common =
-          result.commonHashes ??
-              0;
+      final reliable = sameSong &&
+          result.offsetSeconds != null &&
+          aligned >= _fallbackMinimumAlignedHashes &&
+          ratio >= _fallbackMinimumRatio;
 
-      final ratio =
-          common > 0
-              ? aligned / common
-              : 0.0;
-
-      final reliable =
-          sameSong &&
-              aligned >= 5 &&
-              ratio >= 0.50 &&
-              result.offsetSeconds !=
-                  null;
-
-      if (!reliable) {
-        _registerTrackingMiss();
-        return;
-      }
-
-      //
-      // A reliable match resets the miss counter.
-      //
-      _consecutiveMisses = 0;
+      if (!reliable) return;
 
       var measuredMs =
-          ((result.offsetSeconds! +
-                          result.queryDuration) *
-                      1000)
-                  .round() +
-              result.roundTripTime
-                  .inMilliseconds;
+          ((result.offsetSeconds! + result.queryDuration) * 1000).round();
+      measuredMs += result.roundTripTime.inMilliseconds;
+      measuredMs = _clampPosition(measuredMs, song);
 
-      measuredMs =
-          measuredMs.clamp(
-        0,
-        song.durationMs,
-      );
+      final previous = _lastFallbackMeasuredMs;
 
-      final previous =
-          _lastMeasuredPositionMs;
-
-      if (previous != null) {
-        final movement =
-            measuredMs -
-                previous;
-
-        if (movement.abs() <
-            _stagnantMovementThresholdMs) {
-          _stagnantMeasurements++;
-        } else {
-          //
-          // Movement is confirmed.
-          //
-          // If we were in HOLD, resume immediately.
-          //
-          _stagnantMeasurements = 0;
-
-          if (!_playing) {
-            _setRealPosition(
-              measuredMs,
-              forceScroll: true,
-            );
-
-            _lastMeasuredPositionMs =
-                measuredMs;
-
-            return;
-          }
-        }
+      if (previous != null &&
+          (measuredMs - previous).abs() < _fallbackStagnantToleranceMs) {
+        _fallbackStagnantMeasurements++;
+      } else {
+        _fallbackStagnantMeasurements = 0;
       }
 
-      _lastMeasuredPositionMs =
-          measuredMs;
+      _lastFallbackMeasuredMs = measuredMs;
 
-      //
-      // Do not HOLD after one stagnant reading.
-      //
-      if (_stagnantMeasurements >=
-          _stagnantBeforeHold) {
-        _freezeAtPosition(
+      if (_fallbackStagnantMeasurements >= _fallbackStagnantBeforePause) {
+        _fallbackPaused = true;
+        _setAnchor(
           measuredMs,
-        );
-
-        return;
-      }
-
-      //
-      // If already paused but the new reliable
-      // measurement has not demonstrated movement,
-      // remain paused.
-      //
-      if (!_playing) {
-        return;
-      }
-
-      final error =
-          measuredMs -
-              _currentPositionMs;
-
-      final absoluteError =
-          error.abs();
-
-      if (absoluteError <
-          _ignoreErrorMs) {
-        return;
-      }
-
-      if (absoluteError >=
-          _hardCorrectionMs) {
-        _setRealPosition(
-          measuredMs,
+          running: false,
           forceScroll: true,
         );
-
+        _setTrackingStatus('FP PAUSED', Colors.orangeAccent);
         return;
       }
 
-      final correction =
-          (error *
-                  _softCorrectionFactor)
-              .round();
+      if (_fallbackPaused) {
+        _fallbackPaused = false;
+        _setAnchor(
+          measuredMs,
+          running: true,
+          forceScroll: true,
+        );
+        _setTrackingStatus('FINGERPRINT', Colors.amberAccent);
+        return;
+      }
 
-      _applySoftCorrection(
-        correction,
-      );
-    } catch (_) {
-      _registerTrackingMiss();
-    } finally {
-      if (snapshotPath != null) {
-        await _deleteFile(
-          snapshotPath,
+      final predicted = _estimatedPositionMs(song);
+      final error = measuredMs - predicted;
+
+      if (error.abs() >= 1200) {
+        _setAnchor(
+          measuredMs,
+          running: true,
+          forceScroll: true,
+        );
+      } else if (error.abs() >= 300) {
+        _setAnchor(
+          predicted + (error * 0.35).round(),
+          running: true,
+          forceScroll: false,
         );
       }
-
-      _trackingBusy = false;
+    } catch (e) {
+      debugPrint('Fingerprint fallback error: $e');
+    } finally {
+      if (snapshotPath != null) {
+        await _deleteFile(snapshotPath);
+      }
+      _fallbackBusy = false;
     }
   }
 
-  void _registerTrackingMiss() {
-    _consecutiveMisses++;
+  Future<void> _stopFingerprintFallback() async {
+    if (!_fallbackStarted) return;
 
-    //
-    // One or two fingerprint misses are normal.
-    //
-    // Only after a sustained period without a
-    // reliable fingerprint do we enter HOLD.
-    //
-    if (_consecutiveMisses >=
-        _missesBeforeHold) {
-      _freezePlayback();
-    }
-  }
+    _fallbackTimer?.cancel();
+    _fallbackTimer = null;
+    _fallbackStarted = false;
+    _fallbackPaused = false;
 
-  void _applySoftCorrection(
-    int correctionMs,
-  ) {
-    final song =
-        _song;
-
-    if (song == null) {
-      return;
-    }
-
-    final corrected =
-        (_currentPositionMs +
-                correctionMs)
-            .clamp(
-      0,
-      song.durationMs,
-    );
-
-    _basePositionMs =
-        corrected;
-
-    _currentPositionMs =
-        corrected;
-
-    _localClock
+    _fallbackCaptureClock
       ..stop()
-      ..reset()
-      ..start();
+      ..reset();
 
-    final active =
-        _lyricsService.findActiveLineIndex(
-      song,
-      corrected,
+    try {
+      await _captureService.stopContinuousCapture();
+    } catch (_) {}
+  }
+
+  Future<void> _openEditor() async {
+    if (_openingEditor) return;
+
+    setState(() {
+      _openingEditor = true;
+    });
+
+    _uiTimer?.cancel();
+    _mediaTimer?.cancel();
+    await _stopFingerprintFallback();
+
+    _localClock.stop();
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LyricsEditScreen(
+          jsonPath: widget.jsonPath,
+        ),
+      ),
     );
 
-    if (active >= 0 &&
-        active !=
-            _activeLineIndex) {
+    if (!mounted) return;
+
+    try {
+      final updatedSong = await _lyricsService.loadSong(widget.jsonPath);
+      final safePosition = _clampPosition(_currentPositionMs, updatedSong);
+      final active =
+          _lyricsService.findActiveLineIndex(updatedSong, safePosition);
+
       setState(() {
-        _activeLineIndex =
-            active;
+        _song = updatedSong;
+        _activeLineIndex = active;
+        _openingEditor = false;
+        _error = null;
       });
 
-      _scrollToLine(
-        active,
+      _setAnchor(
+        safePosition,
+        running: false,
+        forceScroll: true,
       );
+
+      _lastMediaRawPositionMs = null;
+      _lastMediaPlaying = null;
+      _lastMediaSeenAt = null;
+
+      _startUiTimer();
+      _startMediaTimer();
+      await _pollMediaSession();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _openingEditor = false;
+        _error = e.toString();
+      });
     }
   }
 
-  void _setRealPosition(
-    int positionMs, {
-    required bool forceScroll,
-  }) {
-    final song =
-        _song;
+  int _clampPosition(int value, SyncedLyricsSong song) {
+    final maximum = song.durationMs > 0 ? song.durationMs : value;
+    return value.clamp(0, maximum).toInt();
+  }
 
-    if (song == null ||
-        !mounted) {
-      return;
-    }
+  void _scheduleInitialScroll([int attempt = 0]) {
+    if (attempt > 15) return;
 
-    final position =
-        positionMs.clamp(
-      0,
-      song.durationMs,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
-    _basePositionMs =
-        position;
-
-    _currentPositionMs =
-        position;
-
-    _localClock
-      ..stop()
-      ..reset();
-
-    if (position <
-        song.durationMs) {
-      _playing = true;
-      _localClock.start();
-    } else {
-      _playing = false;
-    }
-
-    var active =
-        _lyricsService.findActiveLineIndex(
-      song,
-      position,
-    );
-
-    if (active < 0) {
-      active =
-          _lyricsService.findNearestLineIndex(
-        song,
-        position,
-      );
-    }
-
-    final changed =
-        active >= 0 &&
-            active !=
-                _activeLineIndex;
-
-    setState(() {
-      if (active >= 0) {
-        _activeLineIndex =
-            active;
+      if (_scrollController.isAttached) {
+        _jumpToInitialLine();
+        return;
       }
-    });
 
-    if (forceScroll &&
-        active >= 0) {
-      _scrollToLine(
-        active,
-        force: true,
-      );
-    } else if (changed) {
-      _scrollToLine(
-        active,
-      );
-    }
-  }
-
-  void _freezeAtPosition(
-    int positionMs,
-  ) {
-    final song =
-        _song;
-
-    if (song == null) {
-      return;
-    }
-
-    final position =
-        positionMs.clamp(
-      0,
-      song.durationMs,
-    );
-
-    _basePositionMs =
-        position;
-
-    _currentPositionMs =
-        position;
-
-    _localClock
-      ..stop()
-      ..reset();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _playing = false;
-    });
-  }
-
-  void _freezePlayback() {
-    if (!_playing) {
-      return;
-    }
-
-    _basePositionMs =
-        _currentPositionMs;
-
-    _localClock
-      ..stop()
-      ..reset();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _playing = false;
+      Future.delayed(const Duration(milliseconds: 80), () {
+        if (mounted) {
+          _scheduleInitialScroll(attempt + 1);
+        }
+      });
     });
   }
 
   void _jumpToInitialLine() {
-    final song =
-        _song;
+    final song = _song;
+    if (song == null || !_scrollController.isAttached) return;
 
-    if (song == null ||
-        !_scrollController.isAttached) {
-      return;
-    }
+    final index = _activeLineIndex >= 0
+        ? _activeLineIndex
+        : _lyricsService.findNearestLineIndex(song, _currentPositionMs);
 
-    var index =
-        _activeLineIndex;
+    if (index < 0) return;
 
-    if (index < 0) {
-      index =
-          _lyricsService.findNearestLineIndex(
-        song,
-        _currentPositionMs,
-      );
-    }
-
-    if (index < 0) {
-      return;
-    }
-
-    _lastScrolledIndex =
-        index;
+    _lastScrolledIndex = index;
 
     _scrollController.jumpTo(
       index: index,
@@ -996,247 +673,160 @@ class _SyncedLyricsScreenState
     int index, {
     bool force = false,
   }) {
-    if (index < 0) {
-      return;
-    }
+    if (index < 0 || !_scrollController.isAttached) return;
+    if (!force && index == _lastScrolledIndex) return;
 
-    if (!force &&
-        index ==
-            _lastScrolledIndex) {
-      return;
-    }
-
-    if (!_scrollController.isAttached) {
-      return;
-    }
-
-    _lastScrolledIndex =
-        index;
+    _lastScrolledIndex = index;
 
     _scrollController.scrollTo(
       index: index,
       alignment: 0.45,
-      duration:
-          const Duration(
-        milliseconds: 420,
-      ),
-      curve:
-          Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
     );
   }
 
-  Future<void> _deleteFile(
-    String path,
-  ) async {
-    try {
-      final file =
-          File(path);
+  String _normalizeTrackIdentity(String value) {
+    return value
+        .replaceAll('\\', '/')
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '')
+        .trim();
+  }
 
+  Future<void> _deleteFile(String path) async {
+    try {
+      final file = File(path);
       if (await file.exists()) {
         await file.delete();
       }
     } catch (_) {}
   }
 
-  String _formatTime(
-    int milliseconds,
-  ) {
-    final totalSeconds =
-        milliseconds ~/ 1000;
-
-    final minutes =
-        totalSeconds ~/ 60;
-
-    final seconds =
-        totalSeconds % 60;
-
-    return '$minutes:'
-        '${seconds.toString().padLeft(2, '0')}';
+  String _formatTime(int milliseconds) {
+    final totalSeconds = milliseconds ~/ 1000;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
   void dispose() {
     _uiTimer?.cancel();
-    _trackingTimer?.cancel();
+    _mediaTimer?.cancel();
+    _fallbackTimer?.cancel();
 
     _localClock.stop();
-    _captureClock.stop();
+    _fallbackCaptureClock.stop();
 
-    unawaited(
-      _captureService.stopContinuousCapture(),
-    );
-
-    unawaited(
-      _fingerprintService.dispose(),
-    );
+    _captureService.stopContinuousCapture();
+    _fingerprintService.dispose();
 
     super.dispose();
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final song =
-        _song;
+  Widget build(BuildContext context) {
+    final song = _song;
 
     return Scaffold(
-      backgroundColor:
-          const Color(
-        0xFF080808,
-      ),
+      backgroundColor: const Color(0xFF080808),
       body: SafeArea(
         child: _error != null
             ? Center(
-                child:
-                    SelectableText(
-                  _error!,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.redAccent,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
               )
             : song == null
-                ? const Center(
-                    child:
-                        CircularProgressIndicator(),
-                  )
+                ? const Center(child: CircularProgressIndicator())
                 : Column(
                     children: [
-                      _buildHeader(
-                        song,
-                      ),
-                      Expanded(
-                        child:
-                            _buildLyrics(
-                          song,
-                        ),
-                      ),
+                      _buildHeader(song),
+                      Expanded(child: _buildLyrics(song)),
                     ],
                   ),
       ),
     );
   }
 
-  Widget _buildHeader(
-    SyncedLyricsSong song,
-  ) {
+  Widget _buildHeader(SyncedLyricsSong song) {
     return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(
-        24,
-        18,
-        24,
-        12,
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
       child: Row(
         children: [
           IconButton(
-            onPressed: () {
-              Navigator.pop(
-                context,
-              );
-            },
-            icon:
-                const Icon(
-              Icons.arrow_back_rounded,
-            ),
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_rounded),
           ),
-
-          const SizedBox(
-            width: 12,
-          ),
-
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   song.title,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 22,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(
-                  song.artist,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white54,
-                    fontSize: 14,
+                if (song.artist.isNotEmpty)
+                  Text(
+                    song.artist,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-
           OutlinedButton.icon(
-            onPressed:
-                _navigationPaused
-                    ? null
-                    : _openLiveCalibration,
-            icon:
-                const Icon(
-              Icons.tune_rounded,
-              size: 18,
-            ),
-            label:
-                const Text(
-              'CALIBRATE',
-            ),
+            onPressed: _openingEditor ? null : _openEditor,
+            icon: const Icon(Icons.tune_rounded, size: 17),
+            label: const Text('CALIBRATE'),
           ),
-
-          const SizedBox(
-            width: 18,
-          ),
-
+          const SizedBox(width: 18),
           Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                _formatTime(
-                  _currentPositionMs,
-                ),
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white70,
+                _formatTime(_currentPositionMs),
+                style: const TextStyle(
+                  color: Colors.white70,
                   fontSize: 15,
-                  fontFeatures: [
-                    FontFeature
-                        .tabularFigures(),
-                  ],
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
-              Text(
-                _playing
-                    ? 'SYNC'
-                    : 'HOLD',
-                style:
-                    TextStyle(
-                  color:
-                      _playing
-                          ? Colors.greenAccent
-                              .withValues(
-                              alpha: 0.65,
-                            )
-                          : Colors.orangeAccent
-                              .withValues(
-                              alpha: 0.65,
-                            ),
-                  fontSize: 10,
-                  fontWeight:
-                      FontWeight.w700,
-                ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _trackingColor,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _trackingLabel,
+                    style: TextStyle(
+                      color: _trackingColor.withValues(alpha: 0.75),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1245,75 +835,32 @@ class _SyncedLyricsScreenState
     );
   }
 
-  Widget _buildLyrics(
-    SyncedLyricsSong song,
-  ) {
-    return ScrollablePositionedList
-        .builder(
-      itemScrollController:
-          _scrollController,
-      padding:
-          const EdgeInsets.symmetric(
+  Widget _buildLyrics(SyncedLyricsSong song) {
+    return ScrollablePositionedList.builder(
+      itemScrollController: _scrollController,
+      padding: const EdgeInsets.symmetric(
         horizontal: 42,
         vertical: 180,
       ),
-      itemCount:
-          song.lines.length,
-      itemBuilder: (
-        context,
-        index,
-      ) {
-        final line =
-            song.lines[index];
-
-        final active =
-            index ==
-                _activeLineIndex;
+      itemCount: song.lines.length,
+      itemBuilder: (context, index) {
+        final line = song.lines[index];
+        final active = index == _activeLineIndex;
 
         return Padding(
-          padding:
-              const EdgeInsets.symmetric(
-            vertical: 12,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Text(
+            line.text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.white30,
+              fontSize: active ? 32 : 25,
+              height: 1.25,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
-          child: active
-              ? _buildActiveLine(
-                  line,
-                )
-              : Text(
-                  line.text,
-                  textAlign:
-                      TextAlign.center,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white30,
-                    fontSize: 25,
-                    height: 1.25,
-                    fontWeight:
-                        FontWeight.w500,
-                  ),
-                ),
         );
       },
-    );
-  }
-
-  Widget _buildActiveLine(
-    SyncedLyricLine line,
-  ) {
-    return Text(
-      line.text,
-      textAlign:
-          TextAlign.center,
-      style:
-          const TextStyle(
-        color:
-            Colors.white,
-        fontSize: 32,
-        height: 1.25,
-        fontWeight:
-            FontWeight.w700,
-      ),
     );
   }
 }

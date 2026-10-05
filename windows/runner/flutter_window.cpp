@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "media_session_bridge.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -203,6 +204,11 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(
       flutter_controller_
           ->engine());
+
+  RegisterMediaSessionBridge(
+      flutter_controller_
+          ->engine()
+          ->messenger());
 
   system_audio_channel_ =
       std::make_unique<

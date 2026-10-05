@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/fingerprint_match_service.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/system_audio_capture_service.dart';
+import '../services/windows_media_session_service.dart';
 import 'add_song_screen.dart';
 import 'lyrics_edit_screen.dart';
 import 'song_preview_screen.dart';
@@ -30,6 +31,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   final SystemAudioCaptureService _captureService =
       SystemAudioCaptureService();
+
+  final WindowsMediaSessionService _mediaSessionService =
+      WindowsMediaSessionService();
 
   //
   // Optimized recognition schedule.
@@ -87,10 +91,12 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _initialize() async {
     await _loadLibrary();
 
+    // Media Session is optional. If it is available, it becomes
+    // the preferred source for metadata and playback state.
+    await _mediaSessionService.initialize();
+
     try {
-      final info =
-          await _fingerprintService
-              .ensureReady();
+      final info = await _fingerprintService.ensureReady();
 
       if (!mounted) {
         return;
@@ -100,15 +106,15 @@ class _HomeScreenState extends State<HomeScreen>
         _engineInfo = info;
       });
     } catch (e) {
+      // Fingerprint remains a fallback. Do not disable LISTEN just
+      // because the fallback engine is unavailable.
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _error = e.toString();
-
-        _status =
-            'Fingerprint engine unavailable';
+        _engineInfo = null;
+        _error = null;
       });
     }
   }
@@ -164,72 +170,179 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  Future<bool> _tryIdentifyFromMediaSession() async {
+    final sessions = await _mediaSessionService.getSessions();
+
+    if (sessions.isEmpty) {
+      return false;
+    }
+
+    final ordered = [...sessions]
+      ..sort((a, b) {
+        final aRank = a.isPlaying ? 0 : (a.isPaused ? 1 : 2);
+        final bRank = b.isPlaying ? 0 : (b.isPaused ? 1 : 2);
+        return aRank.compareTo(bRank);
+      });
+
+    for (final session in ordered) {
+      if (!session.available || !session.hasMetadata) {
+        continue;
+      }
+
+      final song = await _lyricsService.findSongForMediaMetadata(
+        title: session.title,
+        artist: session.artist,
+        albumArtist: session.albumArtist,
+      );
+
+      if (song == null) {
+        continue;
+      }
+
+      debugPrint(
+        'Media metadata match: '
+        '${session.sourceAppId} | '
+        '${session.artist} | '
+        '${session.title} -> '
+        '${song.displayName}',
+      );
+
+      await _openDetectedSong(
+        song: song,
+        initialPositionMs: session.positionMs,
+        lockedTrackName: song.displayName,
+        mediaSourceAppId: session.sourceAppId,
+      );
+
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<WindowsMediaSessionState?> _findActivePlaybackSession() async {
+    final sessions = await _mediaSessionService.getSessions();
+
+    final active = sessions
+        .where((session) => session.available && (session.isPlaying || session.isPaused))
+        .toList();
+
+    if (active.isEmpty) {
+      return null;
+    }
+
+    active.sort((a, b) {
+      final aRank = a.isPlaying ? 0 : 1;
+      final bRank = b.isPlaying ? 0 : 1;
+      return aRank.compareTo(bRank);
+    });
+
+    return active.first;
+  }
+
+  Future<void> _openDetectedSong({
+    required SyncedLyricsSong song,
+    required int initialPositionMs,
+    required String lockedTrackName,
+    String? mediaSourceAppId,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _status = song.displayName;
+    });
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SyncedLyricsScreen(
+          initialPositionMs: initialPositionMs,
+          lockedTrackName: lockedTrackName,
+          jsonPath: song.jsonPath,
+          mediaSourceAppId: mediaSourceAppId,
+        ),
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _status = 'Tap to identify what is playing';
+    });
+  }
+
   Future<void> _startListening() async {
-    if (_listening ||
-        _engineInfo == null) {
+    if (_listening) {
       return;
     }
 
     setState(() {
       _listening = true;
-
       _stopRequested = false;
-
       _error = null;
-
-      _status =
-          'Listening...';
+      _status = 'Checking media session...';
     });
 
-    _listenAnimation.repeat(
-      reverse: true,
-    );
+    _listenAnimation.repeat(reverse: true);
 
     bool captureStarted = false;
-
-    final watch =
-        Stopwatch()..start();
+    final watch = Stopwatch()..start();
 
     try {
-      await _fingerprintService
-          .ensureReady();
+      // Preferred path: Windows Media Session metadata.
+      final metadataFound = await _tryIdentifyFromMediaSession();
 
-      await _captureService
-          .startContinuousCapture();
+      if (metadataFound || _stopRequested || !mounted) {
+        return;
+      }
 
+      // Fallback path: audfprint.
+      if (_engineInfo == null) {
+        try {
+          _engineInfo = await _fingerprintService.ensureReady();
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _status = 'No metadata match and fingerprint fallback is unavailable';
+              _error = e.toString();
+            });
+          }
+          return;
+        }
+      }
+
+      if (!mounted || _stopRequested) {
+        return;
+      }
+
+      setState(() {
+        _status = 'Listening with fingerprint...';
+      });
+
+      await _fingerprintService.ensureReady();
+      await _captureService.startContinuousCapture();
       captureStarted = true;
 
-      Future<bool> tryIdentify(
-        int windowSeconds,
-      ) async {
-        if (!mounted ||
-            _stopRequested) {
+      Future<bool> tryIdentify(int windowSeconds) async {
+        if (!mounted || _stopRequested) {
           return false;
         }
 
         String? snapshotPath;
 
         try {
-          final snapshot =
-              await _captureService
-                  .snapshotContinuousCapture(
-            last: Duration(
-              seconds: windowSeconds,
-            ),
+          final snapshot = await _captureService.snapshotContinuousCapture(
+            last: Duration(seconds: windowSeconds),
           );
 
-          snapshotPath =
-              snapshot.filePath;
+          snapshotPath = snapshot.filePath;
 
-          final matchWatch =
-              Stopwatch()..start();
-
-          final result =
-              await _fingerprintService
-                  .match(
-            snapshot.filePath,
-          );
-
+          final matchWatch = Stopwatch()..start();
+          final result = await _fingerprintService.match(snapshot.filePath);
           matchWatch.stop();
 
           debugPrint(
@@ -237,52 +350,30 @@ class _HomeScreenState extends State<HomeScreen>
             '${matchWatch.elapsedMilliseconds} ms',
           );
 
-          if (!mounted ||
-              _stopRequested) {
+          if (!mounted || _stopRequested) {
             return false;
           }
 
-          final aligned =
-              result.alignedHashes ?? 0;
+          final aligned = result.alignedHashes ?? 0;
+          final common = result.commonHashes ?? 0;
+          final ratio = common > 0 ? aligned / common : 0.0;
 
-          final common =
-              result.commonHashes ?? 0;
-
-          final ratio =
-              common > 0
-                  ? aligned / common
-                  : 0.0;
-
-          final accepted =
-              result.matched &&
-                  aligned >=
-                      _minimumAlignedHashes &&
-                  ratio >=
-                      _minimumHashRatio &&
-                  result.offsetSeconds !=
-                      null;
+          final accepted = result.matched &&
+              aligned >= _minimumAlignedHashes &&
+              ratio >= _minimumHashRatio &&
+              result.offsetSeconds != null;
 
           if (!accepted) {
             return false;
           }
 
-          final song =
-              await _lyricsService
-                  .findSongForTrackPath(
-            result.trackPath,
-          );
+          final song = await _lyricsService.findSongForTrackPath(result.trackPath);
 
           final positionMs =
-              ((result.offsetSeconds! +
-                          result.queryDuration) *
-                      1000)
-                  .round() +
-              result.roundTripTime
-                  .inMilliseconds;
+              ((result.offsetSeconds! + result.queryDuration) * 1000).round() +
+                  result.roundTripTime.inMilliseconds;
 
-          await _captureService
-              .stopContinuousCapture();
-
+          await _captureService.stopContinuousCapture();
           captureStarted = false;
 
           if (!mounted) {
@@ -294,57 +385,28 @@ class _HomeScreenState extends State<HomeScreen>
               _status =
                   'Song recognized, but no synchronized lyrics are available';
             });
-
             return true;
           }
 
-          setState(() {
-            _status =
-                song.displayName;
-          });
+          // Even when identification required fingerprint, a browser/player
+          // Media Session can still provide play/pause/seek afterwards.
+          final mediaSession = await _findActivePlaybackSession();
 
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  SyncedLyricsScreen(
-                initialPositionMs:
-                    positionMs,
-
-                lockedTrackName:
-                    result.trackPath ??
-                        song.title,
-
-                jsonPath:
-                    song.jsonPath,
-              ),
-            ),
+          await _openDetectedSong(
+            song: song,
+            initialPositionMs: positionMs,
+            lockedTrackName: result.trackPath ?? song.title,
+            mediaSourceAppId: mediaSession?.sourceAppId,
           );
-
-          if (!mounted) {
-            return true;
-          }
-
-          setState(() {
-            _status =
-                'Tap to identify what is playing';
-          });
 
           return true;
         } catch (e) {
-          debugPrint(
-            'Fingerprint attempt failed: $e',
-          );
-
+          debugPrint('Fingerprint attempt failed: $e');
           return false;
         } finally {
           if (snapshotPath != null) {
             try {
-              final file =
-                  File(
-                snapshotPath,
-              );
-
+              final file = File(snapshotPath);
               if (await file.exists()) {
                 await file.delete();
               }
@@ -358,75 +420,46 @@ class _HomeScreenState extends State<HomeScreen>
           break;
         }
 
-        final targetDuration =
-            Duration(
-          seconds: target,
-        );
-
-        final remaining =
-            targetDuration -
-                watch.elapsed;
+        final targetDuration = Duration(seconds: target);
+        final remaining = targetDuration - watch.elapsed;
 
         if (!remaining.isNegative) {
-          await Future.delayed(
-            remaining,
-          );
+          await Future.delayed(remaining);
         }
 
-        if (!mounted ||
-            _stopRequested) {
+        if (!mounted || _stopRequested) {
           break;
         }
 
-        final found =
-            await tryIdentify(
-          _windowForAttempt(
-            target,
-          ),
-        );
-
+        final found = await tryIdentify(_windowForAttempt(target));
         if (found) {
           return;
         }
       }
 
-      while (mounted &&
-          !_stopRequested) {
-        await Future.delayed(
-          const Duration(
-            seconds: 2,
-          ),
-        );
+      while (mounted && !_stopRequested) {
+        await Future.delayed(const Duration(seconds: 2));
 
         if (_stopRequested) {
           break;
         }
 
-        final found =
-            await tryIdentify(
-          5,
-        );
-
+        final found = await tryIdentify(5);
         if (found) {
           return;
         }
       }
     } catch (e) {
-      if (mounted &&
-          !_stopRequested) {
+      if (mounted && !_stopRequested) {
         setState(() {
-          _error =
-              e.toString();
-
-          _status =
-              'Could not start listening';
+          _error = e.toString();
+          _status = 'Could not start listening';
         });
       }
     } finally {
       if (captureStarted) {
         try {
-          await _captureService
-              .stopContinuousCapture();
+          await _captureService.stopContinuousCapture();
         } catch (_) {}
       }
 
@@ -435,13 +468,10 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         setState(() {
           _listening = false;
-
           _stopRequested = false;
 
-          if (_status ==
-              'Stopping...') {
-            _status =
-                'Tap to identify what is playing';
+          if (_status == 'Stopping...') {
+            _status = 'Tap to identify what is playing';
           }
         });
       }
@@ -882,12 +912,9 @@ class _HomeScreenState extends State<HomeScreen>
                                 customBorder:
                                     const CircleBorder(),
                                 onTap:
-                                    _engineInfo ==
-                                            null
-                                        ? null
-                                        : _listening
-                                            ? _stopListening
-                                            : _startListening,
+                                    _listening
+                                        ? _stopListening
+                                        : _startListening,
                                 child:
                                     Icon(
                                   _listening

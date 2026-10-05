@@ -43,6 +43,10 @@ class _LyricsAudioValidation {
   final double distinctiveWordCoverage;
 
   final int transcriptWordCount;
+  final int acceptedSamples;
+  final int strongSamples;
+  final int evaluatedSamples;
+
   final Duration whisperTime;
 
   final String transcript;
@@ -53,9 +57,43 @@ class _LyricsAudioValidation {
     required this.trigramCoverage,
     required this.distinctiveWordCoverage,
     required this.transcriptWordCount,
+    required this.acceptedSamples,
+    required this.strongSamples,
+    required this.evaluatedSamples,
     required this.whisperTime,
     required this.transcript,
   });
+}
+
+class _WhisperSampleScore {
+  final String transcript;
+  final int wordCount;
+
+  final double bigramCoverage;
+  final double trigramCoverage;
+  final double distinctiveWordCoverage;
+
+  final bool accepted;
+  final bool strong;
+
+  final Duration processingTime;
+
+  const _WhisperSampleScore({
+    required this.transcript,
+    required this.wordCount,
+    required this.bigramCoverage,
+    required this.trigramCoverage,
+    required this.distinctiveWordCoverage,
+    required this.accepted,
+    required this.strong,
+    required this.processingTime,
+  });
+
+  double get rankingScore {
+    return bigramCoverage * 0.45 +
+        trigramCoverage * 0.30 +
+        distinctiveWordCoverage * 0.25;
+  }
 }
 
 class LyricsSyncBuilderService {
@@ -126,13 +164,32 @@ class LyricsSyncBuilderService {
   // still produces a substantial amount of matching
   // 2-word and 3-word phrases.
   //
-  static const double _minimumBigramCoverage = 0.08;
+  static const int _sampleDurationSeconds = 15;
 
-  static const double _minimumTrigramCoverage = 0.03;
+  static const int _desiredSampleCount = 4;
 
-  static const double _minimumDistinctiveWordCoverage = 0.20;
+  static const int _absoluteMinimumWhisperWords = 5;
 
-  static const int _minimumWhisperWords = 12;
+  static const int _minimumSampleWords = 4;
+
+  //
+  // A normal sample is useful when it has both phrase-level
+  // evidence and/or enough distinctive words.
+  //
+  static const double _minimumSampleBigramCoverage = 0.12;
+
+  static const double _minimumSampleTrigramCoverage = 0.05;
+
+  static const double _minimumSampleDistinctiveCoverage = 0.35;
+
+  //
+  // One very strong sample is enough to validate the song.
+  //
+  static const double _strongSampleBigramCoverage = 0.30;
+
+  static const double _strongSampleTrigramCoverage = 0.15;
+
+  static const double _strongSampleDistinctiveCoverage = 0.60;
 
   static const Set<String> _commonWords = {
     'the',
@@ -281,16 +338,21 @@ class LyricsSyncBuilderService {
           'Lyrics validation failed.\n\n'
           'The pasted lyrics do not appear '
           'to belong to the selected audio.\n\n'
-          'Whisper phrase match:\n'
+          'Best Whisper sample:\n'
           '• 2-word phrases: '
           '$bigramPercent%\n'
           '• 3-word phrases: '
           '$trigramPercent%\n'
           '• distinctive words: '
           '$distinctivePercent%\n\n'
+          'Samples accepted: '
+          '${validation.acceptedSamples}/'
+          '${validation.evaluatedSamples}\n'
+          'Strong samples: '
+          '${validation.strongSamples}\n\n'
           'Whisper detected '
           '${validation.transcriptWordCount} '
-          'words from the audio.\n\n'
+          'usable words across the sampled audio.\n\n'
           'Please check that the MP3 and '
           'lyrics are from the same song.',
         );
@@ -435,10 +497,11 @@ class LyricsSyncBuilderService {
             '$artist - $title '
             'created successfully.\n'
             'Lyrics/audio validation: '
-            '$bigramPercent% phrase match '
-            '(2-word), '
-            '$trigramPercent% '
-            '(3-word).',
+            '${validation.acceptedSamples}/'
+            '${validation.evaluatedSamples} samples matched. '
+            'Best sample: '
+            '$bigramPercent% bigram, '
+            '$trigramPercent% trigram.',
 
         songId: songId,
 
@@ -469,124 +532,413 @@ class LyricsSyncBuilderService {
     required String audioPath,
     required List<String> lyrics,
   }) async {
-    final whisper = await _whisperService.transcribe(audioPath);
+    final durationSeconds = await _readAudioDurationSeconds(
+      audioPath,
+    );
 
-    final transcript = whisper.text.trim();
-
-    final lyricText = lyrics.join(' ');
-
-    final lyricTokens = _tokenize(lyricText);
-
-    final transcriptTokens = _tokenize(transcript);
-
-    if (transcriptTokens.length < _minimumWhisperWords) {
+    if (durationSeconds <= 0) {
       throw StateError(
-        'Lyrics validation could not be completed.\n\n'
-        'Whisper detected only '
-        '${transcriptTokens.length} usable words '
-        'from the selected audio.\n\n'
-        'The vocals may be too quiet, the song may '
-        'contain a long instrumental section, or '
-        'the audio may not be suitable for automatic '
-        'validation.',
+        'Could not determine audio duration.',
       );
     }
 
-    final bigramCoverage = _ngramCoverage(
-      source: lyricTokens,
-      target: transcriptTokens,
-      size: 2,
+    final lyricTokens = _tokenize(
+      lyrics.join(' '),
     );
 
-    final trigramCoverage = _ngramCoverage(
-      source: lyricTokens,
-      target: transcriptTokens,
-      size: 3,
+    if (lyricTokens.isEmpty) {
+      throw StateError(
+        'Lyrics validation received no usable lyric words.',
+      );
+    }
+
+    final sampleStarts = _buildSampleStarts(
+      durationSeconds,
     );
 
-    final distinctiveCoverage = _distinctiveWordCoverage(
-      lyricTokens,
-      transcriptTokens,
+    final scores = <_WhisperSampleScore>[];
+
+    final transcripts = <String>[];
+
+    var totalWords = 0;
+
+    var totalWhisperTime = Duration.zero;
+
+    for (var i = 0; i < sampleStarts.length; i++) {
+      String? samplePath;
+
+      try {
+        samplePath = await _createValidationSample(
+          audioPath: audioPath,
+          startSeconds: sampleStarts[i],
+          sampleIndex: i,
+        );
+
+        final whisper = await _whisperService.transcribePrepared(
+          samplePath,
+        );
+
+        totalWhisperTime += whisper.processingTime;
+
+        final transcript = whisper.text.trim();
+
+        final transcriptTokens = _tokenize(
+          transcript,
+        );
+
+        totalWords += transcriptTokens.length;
+
+        if (transcript.isNotEmpty) {
+          transcripts.add(transcript);
+        }
+
+        if (transcriptTokens.length < _minimumSampleWords) {
+          continue;
+        }
+
+        final bigramCoverage = _heardNgramCoverage(
+          heard: transcriptTokens,
+          lyrics: lyricTokens,
+          size: 2,
+        );
+
+        final trigramCoverage = _heardNgramCoverage(
+          heard: transcriptTokens,
+          lyrics: lyricTokens,
+          size: 3,
+        );
+
+        final distinctiveCoverage = _heardDistinctiveWordCoverage(
+          heard: transcriptTokens,
+          lyrics: lyricTokens,
+        );
+
+        final phraseEvidence =
+            bigramCoverage >= _minimumSampleBigramCoverage &&
+            trigramCoverage >= _minimumSampleTrigramCoverage;
+
+        final wordEvidence =
+            distinctiveCoverage >= _minimumSampleDistinctiveCoverage &&
+            bigramCoverage >= 0.08;
+
+        final accepted = phraseEvidence || wordEvidence;
+
+        final strongPhraseEvidence =
+            bigramCoverage >= _strongSampleBigramCoverage &&
+            trigramCoverage >= _strongSampleTrigramCoverage;
+
+        final strongWordEvidence =
+            distinctiveCoverage >= _strongSampleDistinctiveCoverage &&
+            bigramCoverage >= 0.15;
+
+        final strong = strongPhraseEvidence || strongWordEvidence;
+
+        scores.add(
+          _WhisperSampleScore(
+            transcript: transcript,
+            wordCount: transcriptTokens.length,
+            bigramCoverage: bigramCoverage,
+            trigramCoverage: trigramCoverage,
+            distinctiveWordCoverage: distinctiveCoverage,
+            accepted: accepted,
+            strong: strong,
+            processingTime: whisper.processingTime,
+          ),
+        );
+      } catch (_) {
+        //
+        // One difficult sample should not reject the entire song.
+        // Other sections may still provide enough evidence.
+        //
+      } finally {
+        if (samplePath != null) {
+          await _deleteTemporaryFile(
+            samplePath,
+          );
+        }
+      }
+    }
+
+    if (totalWords < _absoluteMinimumWhisperWords) {
+      throw StateError(
+        'Lyrics validation could not be completed.\n\n'
+        'Whisper detected only '
+        '$totalWords usable words across '
+        '${sampleStarts.length} sampled parts of the song.\n\n'
+        'The vocals may be too quiet, the song may contain '
+        'long instrumental sections, or the audio may not be '
+        'suitable for automatic validation.',
+      );
+    }
+
+    if (scores.isEmpty) {
+      throw StateError(
+        'Lyrics validation could not obtain '
+        'a usable Whisper sample.',
+      );
+    }
+
+    scores.sort(
+      (a, b) => b.rankingScore.compareTo(
+        a.rankingScore,
+      ),
     );
 
-    //
-    // We require evidence at phrase level.
-    //
-    // Individual words alone are too easy to match
-    // accidentally between two unrelated songs.
-    //
-    final phraseEvidence =
-        bigramCoverage >= _minimumBigramCoverage &&
-        trigramCoverage >= _minimumTrigramCoverage;
+    final best = scores.first;
 
-    //
-    // Distinctive-word coverage provides a second
-    // path because Whisper can occasionally break
-    // phrases while still hearing the important
-    // words correctly.
-    //
-    final strongWordEvidence =
-        distinctiveCoverage >= _minimumDistinctiveWordCoverage &&
-        bigramCoverage >= 0.05;
+    final acceptedSamples = scores
+        .where(
+          (score) => score.accepted,
+        )
+        .length;
 
-    final accepted = phraseEvidence || strongWordEvidence;
+    final strongSamples = scores
+        .where(
+          (score) => score.strong,
+        )
+        .length;
+
+    final accepted =
+        acceptedSamples >= 2 ||
+        strongSamples >= 1;
 
     return _LyricsAudioValidation(
       accepted: accepted,
-
-      bigramCoverage: bigramCoverage,
-
-      trigramCoverage: trigramCoverage,
-
-      distinctiveWordCoverage: distinctiveCoverage,
-
-      transcriptWordCount: transcriptTokens.length,
-
-      whisperTime: whisper.processingTime,
-
-      transcript: transcript,
+      bigramCoverage: best.bigramCoverage,
+      trigramCoverage: best.trigramCoverage,
+      distinctiveWordCoverage: best.distinctiveWordCoverage,
+      transcriptWordCount: totalWords,
+      acceptedSamples: acceptedSamples,
+      strongSamples: strongSamples,
+      evaluatedSamples: scores.length,
+      whisperTime: totalWhisperTime,
+      transcript: transcripts.join(' '),
     );
+  }
+
+  Future<double> _readAudioDurationSeconds(
+    String audioPath,
+  ) async {
+    final result = await Process.run(
+      'ffprobe',
+      [
+        '-v',
+        'error',
+        '-show_entries',
+        'format=duration',
+        '-of',
+        'default=noprint_wrappers=1:nokey=1',
+        audioPath,
+      ],
+      runInShell: true,
+    );
+
+    if (result.exitCode != 0) {
+      throw StateError(
+        'FFprobe could not read audio duration.\n\n'
+        '${result.stderr}',
+      );
+    }
+
+    return double.tryParse(
+          result.stdout.toString().trim(),
+        ) ??
+        0;
+  }
+
+  List<double> _buildSampleStarts(
+    double durationSeconds,
+  ) {
+    final sampleDuration = _sampleDurationSeconds.toDouble();
+
+    if (durationSeconds <= sampleDuration + 2) {
+      return [
+        0,
+      ];
+    }
+
+    final maximumStart =
+        durationSeconds - sampleDuration;
+
+    const fractions = <double>[
+      0.10,
+      0.32,
+      0.56,
+      0.78,
+    ];
+
+    final starts = <double>[];
+
+    for (final fraction in fractions) {
+      final start =
+          (durationSeconds * fraction)
+              .clamp(
+                0.0,
+                maximumStart,
+              )
+              .toDouble();
+
+      final tooClose = starts.any(
+        (existing) =>
+            (existing - start).abs() < 5,
+      );
+
+      if (!tooClose) {
+        starts.add(start);
+      }
+
+      if (starts.length >= _desiredSampleCount) {
+        break;
+      }
+    }
+
+    if (starts.isEmpty) {
+      starts.add(0);
+    }
+
+    return starts;
+  }
+
+  Future<String> _createValidationSample({
+    required String audioPath,
+    required double startSeconds,
+    required int sampleIndex,
+  }) async {
+    final timestamp =
+        DateTime.now().microsecondsSinceEpoch;
+
+    final outputPath =
+        '${Directory.systemTemp.path}'
+        '\\lyriko_validation_${timestamp}_$sampleIndex.wav';
+
+    final result = await Process.run(
+      'ffmpeg',
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-ss',
+        startSeconds.toStringAsFixed(3),
+        '-i',
+        audioPath,
+        '-t',
+        _sampleDurationSeconds.toString(),
+        '-ar',
+        '16000',
+        '-ac',
+        '1',
+        '-c:a',
+        'pcm_s16le',
+        outputPath,
+      ],
+      runInShell: true,
+    );
+
+    if (result.exitCode != 0) {
+      throw StateError(
+        'Could not create Whisper validation sample.\n\n'
+        '${result.stderr}',
+      );
+    }
+
+    final file = File(
+      outputPath,
+    );
+
+    if (!await file.exists()) {
+      throw StateError(
+        'FFmpeg did not create the Whisper validation sample.',
+      );
+    }
+
+    return outputPath;
+  }
+
+  Future<void> _deleteTemporaryFile(
+    String path,
+  ) async {
+    try {
+      final file = File(
+        path,
+      );
+
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Temporary cleanup is not critical.
+    }
   }
 
   List<String> _tokenize(String text) {
     var normalized = text.toLowerCase();
 
-    normalized = normalized.replaceAll('’', "'");
+    normalized = normalized.replaceAll(
+      '’',
+      "'",
+    );
 
-    normalized = normalized.replaceAll(RegExp(r"[^a-z0-9']+"), ' ');
+    normalized = normalized.replaceAll(
+      RegExp(r"[^a-z0-9']+"),
+      ' ',
+    );
 
     return normalized
-        .split(RegExp(r'\s+'))
-        .map((token) => token.trim())
-        .where((token) => token.isNotEmpty)
+        .split(
+          RegExp(r'\s+'),
+        )
+        .map(
+          (token) => token.trim(),
+        )
+        .where(
+          (token) => token.isNotEmpty,
+        )
         .toList();
   }
 
-  double _ngramCoverage({
-    required List<String> source,
-    required List<String> target,
+  //
+  // We evaluate the phrases Whisper actually heard.
+  //
+  // This avoids penalizing a 15-second sample for not containing
+  // every phrase from the complete song.
+  //
+  double _heardNgramCoverage({
+    required List<String> heard,
+    required List<String> lyrics,
     required int size,
   }) {
-    if (source.length < size || target.length < size) {
+    if (heard.length < size || lyrics.length < size) {
       return 0;
     }
 
-    final targetNgrams = <String>{};
+    final lyricNgrams = <String>{};
 
-    for (var i = 0; i <= target.length - size; i++) {
-      targetNgrams.add(target.sublist(i, i + size).join('\u0001'));
+    for (var i = 0; i <= lyrics.length - size; i++) {
+      lyricNgrams.add(
+        lyrics
+            .sublist(
+              i,
+              i + size,
+            )
+            .join('\u0001'),
+      );
     }
 
     var total = 0;
 
     var matched = 0;
 
-    for (var i = 0; i <= source.length - size; i++) {
-      final ngram = source.sublist(i, i + size).join('\u0001');
+    for (var i = 0; i <= heard.length - size; i++) {
+      final ngram = heard
+          .sublist(
+            i,
+            i + size,
+          )
+          .join('\u0001');
 
       total++;
 
-      if (targetNgrams.contains(ngram)) {
+      if (lyricNgrams.contains(ngram)) {
         matched++;
       }
     }
@@ -598,46 +950,45 @@ class LyricsSyncBuilderService {
     return matched / total;
   }
 
-  double _distinctiveWordCoverage(
-    List<String> lyrics,
-    List<String> transcript,
-  ) {
-    final lyricWords = lyrics
-        .where((word) => word.length >= 5 && !_commonWords.contains(word))
+  double _heardDistinctiveWordCoverage({
+    required List<String> heard,
+    required List<String> lyrics,
+  }) {
+    final heardWords = heard
+        .where(
+          (word) =>
+              word.length >= 5 &&
+              !_commonWords.contains(word),
+        )
         .toSet();
 
-    if (lyricWords.isEmpty) {
+    if (heardWords.isEmpty) {
       return 0;
     }
 
-    final transcriptWords = transcript.toSet();
+    final lyricWords = lyrics.toSet();
 
     var matched = 0;
 
-    for (final lyricWord in lyricWords) {
-      if (transcriptWords.contains(lyricWord)) {
+    for (final heardWord in heardWords) {
+      if (lyricWords.contains(heardWord)) {
         matched++;
-
         continue;
       }
 
-      //
-      // Whisper often gets a sung word nearly right.
-      //
-      // Examples:
-      // wondering / wandering
-      // shedding / shading
-      //
       var fuzzyMatch = false;
 
-      for (final transcriptWord in transcriptWords) {
-        if (transcriptWord.length < 4) {
+      for (final lyricWord in lyricWords) {
+        if (lyricWord.length < 4) {
           continue;
         }
 
-        if (_wordSimilarity(lyricWord, transcriptWord) >= 0.80) {
+        if (_wordSimilarity(
+              heardWord,
+              lyricWord,
+            ) >=
+            0.80) {
           fuzzyMatch = true;
-
           break;
         }
       }
@@ -647,7 +998,7 @@ class LyricsSyncBuilderService {
       }
     }
 
-    return matched / lyricWords.length;
+    return matched / heardWords.length;
   }
 
   double _wordSimilarity(String a, String b) {
@@ -655,9 +1006,15 @@ class LyricsSyncBuilderService {
       return 1;
     }
 
-    final distance = _levenshtein(a, b);
+    final distance = _levenshtein(
+      a,
+      b,
+    );
 
-    final longest = a.length > b.length ? a.length : b.length;
+    final longest =
+        a.length > b.length
+        ? a.length
+        : b.length;
 
     if (longest == 0) {
       return 1;
@@ -675,10 +1032,16 @@ class LyricsSyncBuilderService {
       return a.length;
     }
 
-    var previous = List<int>.generate(b.length + 1, (index) => index);
+    var previous = List<int>.generate(
+      b.length + 1,
+      (index) => index,
+    );
 
     for (var i = 0; i < a.length; i++) {
-      final current = List<int>.filled(b.length + 1, 0);
+      final current = List<int>.filled(
+        b.length + 1,
+        0,
+      );
 
       current[0] = i + 1;
 
@@ -687,7 +1050,9 @@ class LyricsSyncBuilderService {
 
         final deletion = previous[j + 1] + 1;
 
-        final substitution = previous[j] + (a[i] == b[j] ? 0 : 1);
+        final substitution =
+            previous[j] +
+            (a[i] == b[j] ? 0 : 1);
 
         var best = insertion;
 

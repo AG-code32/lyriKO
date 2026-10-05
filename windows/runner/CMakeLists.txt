@@ -11,6 +11,8 @@ add_executable(${BINARY_NAME} WIN32
   "main.cpp"
   "utils.cpp"
   "win32_window.cpp"
+  "media_session_bridge.cpp"
+  "media_session_bridge.h"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
   "Runner.rc"
   "runner.exe.manifest"
@@ -30,11 +32,14 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTT
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 
-# Add dependency libraries and include directories. Add any application-specific
-# dependencies here.
+# Flutter + existing WASAPI dependencies.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE ole32.lib uuid.lib)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+
+# Required for Windows.Media.Control / C++ WinRT.
+target_link_libraries(${BINARY_NAME} PRIVATE windowsapp.lib)
+
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.

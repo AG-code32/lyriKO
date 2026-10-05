@@ -407,6 +407,119 @@ class SyncedLyricsService {
     return null;
   }
 
+
+  Future<SyncedLyricsSong?> findSongForMediaMetadata({
+    required String title,
+    String artist = '',
+    String albumArtist = '',
+  }) async {
+    final songs = await loadLibrary();
+
+    SyncedLyricsSong? bestSong;
+    var bestScore = 0;
+
+    for (final song in songs) {
+      final score = mediaMetadataScoreForSong(
+        song,
+        title: title,
+        artist: artist,
+        albumArtist: albumArtist,
+      );
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestSong = song;
+      }
+    }
+
+    return bestScore >= 70 ? bestSong : null;
+  }
+
+  int mediaMetadataScoreForSong(
+    SyncedLyricsSong song, {
+    required String title,
+    String artist = '',
+    String albumArtist = '',
+  }) {
+    final mediaTitle = _normalizeMediaText(title);
+    final songTitle = _normalizeMediaText(song.title);
+
+    if (mediaTitle.isEmpty || songTitle.isEmpty) {
+      return 0;
+    }
+
+    final mediaArtist = _normalizeMediaText(artist);
+    final mediaAlbumArtist = _normalizeMediaText(albumArtist);
+    final songArtist = _normalizeMediaText(song.artist);
+
+    final titleExact = mediaTitle == songTitle;
+    final titleContains = mediaTitle.contains(songTitle);
+    final reverseTitleContains = songTitle.contains(mediaTitle);
+
+    final artistConfirmed = songArtist.isEmpty ||
+        mediaArtist == songArtist ||
+        mediaAlbumArtist == songArtist ||
+        mediaArtist.contains(songArtist) ||
+        mediaAlbumArtist.contains(songArtist) ||
+        mediaTitle.contains(songArtist);
+
+    if (titleExact && artistConfirmed) {
+      return 100;
+    }
+
+    if (titleExact) {
+      return 90;
+    }
+
+    if (titleContains && artistConfirmed) {
+      return 88;
+    }
+
+    if (titleContains && songTitle.length >= 6) {
+      return 74;
+    }
+
+    if (reverseTitleContains && artistConfirmed && mediaTitle.length >= 6) {
+      return 72;
+    }
+
+    return 0;
+  }
+
+  String _normalizeMediaText(String value) {
+    var normalized = value.toLowerCase();
+
+    const noise = <String>[
+      'official music video',
+      'official video',
+      'official audio',
+      'official visualizer',
+      'visualizer',
+      'lyric video',
+      'lyrics video',
+      'lyrics',
+      'audio',
+      'video',
+      'remastered',
+      'remaster',
+      'hd',
+      '4k',
+    ];
+
+    for (final item in noise) {
+      normalized = normalized.replaceAll(item, ' ');
+    }
+
+    normalized = normalized
+        .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+        .replaceAll(RegExp(r'\[[^]]*\]'), ' ')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    return normalized;
+  }
+
   int findActiveLineIndex(SyncedLyricsSong song, int positionMs) {
     if (song.lines.isEmpty) {
       return -1;
