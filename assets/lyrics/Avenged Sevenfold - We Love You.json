@@ -1,0 +1,1978 @@
+{
+  "songId": "avenged-sevenfold-we-love-you",
+  "title": "We Love You",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\04. We Love You.mp3",
+  "durationMs": 359380,
+  "alignment": {
+    "totalLyricWords": 293,
+    "totalCtcWords": 292,
+    "matchedWords": 291,
+    "wordCoverage": 0.9932,
+    "totalLines": 56,
+    "matchedLines": 56,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "There you are, you've come so far",
+      "originalStartMs": 7580,
+      "originalEndMs": 12640,
+      "startMs": 7580,
+      "endMs": 12640,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 7580,
+          "endMs": 7960
+        },
+        {
+          "text": "you",
+          "startMs": 7960,
+          "endMs": 8920
+        },
+        {
+          "text": "are",
+          "startMs": 8920,
+          "endMs": 10540
+        },
+        {
+          "text": "you've",
+          "startMs": 10540,
+          "endMs": 11160
+        },
+        {
+          "text": "come",
+          "startMs": 11160,
+          "endMs": 11740
+        },
+        {
+          "text": "so",
+          "startMs": 11740,
+          "endMs": 12100
+        },
+        {
+          "text": "far",
+          "startMs": 12100,
+          "endMs": 12640
+        }
+      ]
+    },
+    {
+      "text": "Sunny days, the air tastes so sweet, flowers greet",
+      "originalStartMs": 12640,
+      "originalEndMs": 21500,
+      "startMs": 12640,
+      "endMs": 21500,
+      "words": [
+        {
+          "text": "Sunny",
+          "startMs": 12640,
+          "endMs": 13760
+        },
+        {
+          "text": "days",
+          "startMs": 13760,
+          "endMs": 14660
+        },
+        {
+          "text": "the",
+          "startMs": 14660,
+          "endMs": 15340
+        },
+        {
+          "text": "air",
+          "startMs": 15340,
+          "endMs": 16980
+        },
+        {
+          "text": "tastes",
+          "startMs": 16980,
+          "endMs": 18380
+        },
+        {
+          "text": "so",
+          "startMs": 18380,
+          "endMs": 18640
+        },
+        {
+          "text": "sweet",
+          "startMs": 18640,
+          "endMs": 19720
+        },
+        {
+          "text": "flowers",
+          "startMs": 19720,
+          "endMs": 21060
+        },
+        {
+          "text": "greet",
+          "startMs": 21060,
+          "endMs": 21500
+        }
+      ]
+    },
+    {
+      "text": "Birds will sing you mean everything",
+      "originalStartMs": 21500,
+      "originalEndMs": 26620,
+      "startMs": 21500,
+      "endMs": 26620,
+      "words": [
+        {
+          "text": "Birds",
+          "startMs": 21500,
+          "endMs": 22720
+        },
+        {
+          "text": "will",
+          "startMs": 22720,
+          "endMs": 23160
+        },
+        {
+          "text": "sing",
+          "startMs": 23160,
+          "endMs": 23680
+        },
+        {
+          "text": "you",
+          "startMs": 23680,
+          "endMs": 24340
+        },
+        {
+          "text": "mean",
+          "startMs": 24340,
+          "endMs": 25340
+        },
+        {
+          "text": "everything",
+          "startMs": 25340,
+          "endMs": 26620
+        }
+      ]
+    },
+    {
+      "text": "You can be anything",
+      "originalStartMs": 26620,
+      "originalEndMs": 33600,
+      "startMs": 26620,
+      "endMs": 33600,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 26620,
+          "endMs": 27080
+        },
+        {
+          "text": "can",
+          "startMs": 27080,
+          "endMs": 27440
+        },
+        {
+          "text": "be",
+          "startMs": 27440,
+          "endMs": 27680
+        },
+        {
+          "text": "anything",
+          "startMs": 27680,
+          "endMs": 33600
+        }
+      ]
+    },
+    {
+      "text": "More power, more pace, more money",
+      "originalStartMs": 33600,
+      "originalEndMs": 43560,
+      "startMs": 33600,
+      "endMs": 43560,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 33600,
+          "endMs": 39280
+        },
+        {
+          "text": "power",
+          "startMs": 39280,
+          "endMs": 40180
+        },
+        {
+          "text": "more",
+          "startMs": 40180,
+          "endMs": 40980
+        },
+        {
+          "text": "pace",
+          "startMs": 40980,
+          "endMs": 41940
+        },
+        {
+          "text": "more",
+          "startMs": 41940,
+          "endMs": 42740
+        },
+        {
+          "text": "money",
+          "startMs": 42740,
+          "endMs": 43560
+        }
+      ]
+    },
+    {
+      "text": "More taste, more sex, more pills",
+      "originalStartMs": 43560,
+      "originalEndMs": 48780,
+      "startMs": 43560,
+      "endMs": 48780,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 43560,
+          "endMs": 44420
+        },
+        {
+          "text": "taste",
+          "startMs": 44420,
+          "endMs": 45360
+        },
+        {
+          "text": "more",
+          "startMs": 45360,
+          "endMs": 46140
+        },
+        {
+          "text": "sex",
+          "startMs": 46140,
+          "endMs": 47020
+        },
+        {
+          "text": "more",
+          "startMs": 47020,
+          "endMs": 47840
+        },
+        {
+          "text": "pills",
+          "startMs": 47840,
+          "endMs": 48780
+        }
+      ]
+    },
+    {
+      "text": "More skin, more shills",
+      "originalStartMs": 48780,
+      "originalEndMs": 52240,
+      "startMs": 48780,
+      "endMs": 52240,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 48780,
+          "endMs": 49580
+        },
+        {
+          "text": "skin",
+          "startMs": 49580,
+          "endMs": 50420
+        },
+        {
+          "text": "more",
+          "startMs": 50420,
+          "endMs": 51300
+        },
+        {
+          "text": "shills",
+          "startMs": 51300,
+          "endMs": 52240
+        }
+      ]
+    },
+    {
+      "text": "Build tall, build higher, build far",
+      "originalStartMs": 52240,
+      "originalEndMs": 57300,
+      "startMs": 52240,
+      "endMs": 57300,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 52240,
+          "endMs": 53060
+        },
+        {
+          "text": "tall",
+          "startMs": 53060,
+          "endMs": 53860
+        },
+        {
+          "text": "build",
+          "startMs": 53860,
+          "endMs": 54760
+        },
+        {
+          "text": "higher",
+          "startMs": 54760,
+          "endMs": 55600
+        },
+        {
+          "text": "build",
+          "startMs": 55600,
+          "endMs": 56500
+        },
+        {
+          "text": "far",
+          "startMs": 56500,
+          "endMs": 57300
+        }
+      ]
+    },
+    {
+      "text": "Build wider, build here, build down",
+      "originalStartMs": 57300,
+      "originalEndMs": 62480,
+      "startMs": 57300,
+      "endMs": 62480,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 57300,
+          "endMs": 58240
+        },
+        {
+          "text": "wider",
+          "startMs": 58240,
+          "endMs": 59040
+        },
+        {
+          "text": "build",
+          "startMs": 59040,
+          "endMs": 59940
+        },
+        {
+          "text": "here",
+          "startMs": 59940,
+          "endMs": 60680
+        },
+        {
+          "text": "build",
+          "startMs": 60680,
+          "endMs": 61680
+        },
+        {
+          "text": "down",
+          "startMs": 61680,
+          "endMs": 62480
+        }
+      ]
+    },
+    {
+      "text": "Build up, build now",
+      "originalStartMs": 62480,
+      "originalEndMs": 66200,
+      "startMs": 62480,
+      "endMs": 66200,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 62480,
+          "endMs": 63000
+        },
+        {
+          "text": "up",
+          "startMs": 63000,
+          "endMs": 63720
+        },
+        {
+          "text": "build",
+          "startMs": 63720,
+          "endMs": 65320
+        },
+        {
+          "text": "now",
+          "startMs": 65320,
+          "endMs": 66200
+        }
+      ]
+    },
+    {
+      "text": "Well, look at the way you go",
+      "originalStartMs": 66200,
+      "originalEndMs": 70080,
+      "startMs": 66200,
+      "endMs": 70080,
+      "words": [
+        {
+          "text": "Well",
+          "startMs": 66200,
+          "endMs": 67020
+        },
+        {
+          "text": "look",
+          "startMs": 67020,
+          "endMs": 67360
+        },
+        {
+          "text": "at",
+          "startMs": 67360,
+          "endMs": 67560
+        },
+        {
+          "text": "the",
+          "startMs": 67560,
+          "endMs": 67780
+        },
+        {
+          "text": "way",
+          "startMs": 67780,
+          "endMs": 68860
+        },
+        {
+          "text": "you",
+          "startMs": 68860,
+          "endMs": 69660
+        },
+        {
+          "text": "go",
+          "startMs": 69660,
+          "endMs": 70080
+        }
+      ]
+    },
+    {
+      "text": "You're one in a million",
+      "originalStartMs": 70080,
+      "originalEndMs": 72800,
+      "startMs": 70080,
+      "endMs": 72800,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 70080,
+          "endMs": 70620
+        },
+        {
+          "text": "one",
+          "startMs": 70620,
+          "endMs": 70860
+        },
+        {
+          "text": "in",
+          "startMs": 70860,
+          "endMs": 71060
+        },
+        {
+          "text": "a",
+          "startMs": 71060,
+          "endMs": 71180
+        },
+        {
+          "text": "million",
+          "startMs": 71180,
+          "endMs": 72800
+        }
+      ]
+    },
+    {
+      "text": "And you know it shows",
+      "originalStartMs": 72800,
+      "originalEndMs": 75840,
+      "startMs": 72800,
+      "endMs": 75840,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 72800,
+          "endMs": 73020
+        },
+        {
+          "text": "you",
+          "startMs": 73020,
+          "endMs": 73960
+        },
+        {
+          "text": "know",
+          "startMs": 73960,
+          "endMs": 74260
+        },
+        {
+          "text": "it",
+          "startMs": 74260,
+          "endMs": 74400
+        },
+        {
+          "text": "shows",
+          "startMs": 74400,
+          "endMs": 75840
+        }
+      ]
+    },
+    {
+      "text": "We love you",
+      "originalStartMs": 75840,
+      "originalEndMs": 77500,
+      "startMs": 75840,
+      "endMs": 77500,
+      "words": [
+        {
+          "text": "We",
+          "startMs": 75840,
+          "endMs": 76140
+        },
+        {
+          "text": "love",
+          "startMs": 76140,
+          "endMs": 76680
+        },
+        {
+          "text": "you",
+          "startMs": 76680,
+          "endMs": 77500
+        }
+      ]
+    },
+    {
+      "text": "Unto the mud",
+      "originalStartMs": 77500,
+      "originalEndMs": 86700,
+      "startMs": 77500,
+      "endMs": 86700,
+      "words": [
+        {
+          "text": "Unto",
+          "startMs": 77500,
+          "endMs": 78920
+        },
+        {
+          "text": "the",
+          "startMs": 78920,
+          "endMs": 79260
+        },
+        {
+          "text": "mud",
+          "startMs": 79260,
+          "endMs": 86700
+        }
+      ]
+    },
+    {
+      "text": "More wants, more needs, more hits",
+      "originalStartMs": 86700,
+      "originalEndMs": 98480,
+      "startMs": 86700,
+      "endMs": 98480,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 86700,
+          "endMs": 94220
+        },
+        {
+          "text": "wants",
+          "startMs": 94220,
+          "endMs": 95060
+        },
+        {
+          "text": "more",
+          "startMs": 95060,
+          "endMs": 95940
+        },
+        {
+          "text": "needs",
+          "startMs": 95940,
+          "endMs": 96860
+        },
+        {
+          "text": "more",
+          "startMs": 96860,
+          "endMs": 97640
+        },
+        {
+          "text": "hits",
+          "startMs": 97640,
+          "endMs": 98480
+        }
+      ]
+    },
+    {
+      "text": "Morphine, more speed, more drive",
+      "originalStartMs": 98480,
+      "originalEndMs": 103660,
+      "startMs": 98480,
+      "endMs": 103660,
+      "words": [
+        {
+          "text": "Morphine",
+          "startMs": 98480,
+          "endMs": 100240
+        },
+        {
+          "text": "more",
+          "startMs": 100240,
+          "endMs": 100980
+        },
+        {
+          "text": "speed",
+          "startMs": 100980,
+          "endMs": 101900
+        },
+        {
+          "text": "more",
+          "startMs": 101900,
+          "endMs": 102700
+        },
+        {
+          "text": "drive",
+          "startMs": 102700,
+          "endMs": 103660
+        }
+      ]
+    },
+    {
+      "text": "More self, more time",
+      "originalStartMs": 103660,
+      "originalEndMs": 107100,
+      "startMs": 103660,
+      "endMs": 107100,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 103660,
+          "endMs": 104460
+        },
+        {
+          "text": "self",
+          "startMs": 104460,
+          "endMs": 105260
+        },
+        {
+          "text": "more",
+          "startMs": 105260,
+          "endMs": 106160
+        },
+        {
+          "text": "time",
+          "startMs": 106160,
+          "endMs": 107100
+        }
+      ]
+    },
+    {
+      "text": "Build out, build fast, build strong",
+      "originalStartMs": 107100,
+      "originalEndMs": 112180,
+      "startMs": 107100,
+      "endMs": 112180,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 107100,
+          "endMs": 108020
+        },
+        {
+          "text": "out",
+          "startMs": 108020,
+          "endMs": 108780
+        },
+        {
+          "text": "build",
+          "startMs": 108780,
+          "endMs": 109640
+        },
+        {
+          "text": "fast",
+          "startMs": 109640,
+          "endMs": 110540
+        },
+        {
+          "text": "build",
+          "startMs": 110540,
+          "endMs": 111300
+        },
+        {
+          "text": "strong",
+          "startMs": 111300,
+          "endMs": 112180
+        }
+      ]
+    },
+    {
+      "text": "Build vast, build too, build more",
+      "originalStartMs": 112180,
+      "originalEndMs": 117360,
+      "startMs": 112180,
+      "endMs": 117360,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 112180,
+          "endMs": 113080
+        },
+        {
+          "text": "vast",
+          "startMs": 113080,
+          "endMs": 113960
+        },
+        {
+          "text": "build",
+          "startMs": 113960,
+          "endMs": 114780
+        },
+        {
+          "text": "too",
+          "startMs": 114780,
+          "endMs": 115620
+        },
+        {
+          "text": "build",
+          "startMs": 115620,
+          "endMs": 116500
+        },
+        {
+          "text": "more",
+          "startMs": 116500,
+          "endMs": 117360
+        }
+      ]
+    },
+    {
+      "text": "Build all, build war",
+      "originalStartMs": 117360,
+      "originalEndMs": 121620,
+      "startMs": 117360,
+      "endMs": 121620,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 117360,
+          "endMs": 118280
+        },
+        {
+          "text": "all",
+          "startMs": 118280,
+          "endMs": 119080
+        },
+        {
+          "text": "build",
+          "startMs": 119080,
+          "endMs": 120100
+        },
+        {
+          "text": "war",
+          "startMs": 120100,
+          "endMs": 121620
+        }
+      ]
+    },
+    {
+      "text": "Look at the way you go",
+      "originalStartMs": 121620,
+      "originalEndMs": 128540,
+      "startMs": 121620,
+      "endMs": 128540,
+      "words": [
+        {
+          "text": "Look",
+          "startMs": 121620,
+          "endMs": 123200
+        },
+        {
+          "text": "at",
+          "startMs": 123200,
+          "endMs": 123540
+        },
+        {
+          "text": "the",
+          "startMs": 123540,
+          "endMs": 125020
+        },
+        {
+          "text": "way",
+          "startMs": 125020,
+          "endMs": 126720
+        },
+        {
+          "text": "you",
+          "startMs": 126720,
+          "endMs": 127400
+        },
+        {
+          "text": "go",
+          "startMs": 127400,
+          "endMs": 128540
+        }
+      ]
+    },
+    {
+      "text": "You're one in a million",
+      "originalStartMs": 128540,
+      "originalEndMs": 133900,
+      "startMs": 128540,
+      "endMs": 133900,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 128540,
+          "endMs": 130900
+        },
+        {
+          "text": "one",
+          "startMs": 130900,
+          "endMs": 131540
+        },
+        {
+          "text": "in",
+          "startMs": 131540,
+          "endMs": 132000
+        },
+        {
+          "text": "a",
+          "startMs": 132000,
+          "endMs": 132320
+        },
+        {
+          "text": "million",
+          "startMs": 132320,
+          "endMs": 133900
+        }
+      ]
+    },
+    {
+      "text": "And you know it shows",
+      "originalStartMs": 133900,
+      "originalEndMs": 140420,
+      "startMs": 133900,
+      "endMs": 140420,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 133900,
+          "endMs": 134240
+        },
+        {
+          "text": "you",
+          "startMs": 134240,
+          "endMs": 134420
+        },
+        {
+          "text": "know",
+          "startMs": 134420,
+          "endMs": 137700
+        },
+        {
+          "text": "it",
+          "startMs": 137700,
+          "endMs": 137880
+        },
+        {
+          "text": "shows",
+          "startMs": 137880,
+          "endMs": 140420
+        }
+      ]
+    },
+    {
+      "text": "And we love you (Ah-ah)",
+      "originalStartMs": 140420,
+      "originalEndMs": 147200,
+      "startMs": 140420,
+      "endMs": 147200,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 140420,
+          "endMs": 140700
+        },
+        {
+          "text": "we",
+          "startMs": 140700,
+          "endMs": 141000
+        },
+        {
+          "text": "love",
+          "startMs": 141000,
+          "endMs": 144120
+        },
+        {
+          "text": "you",
+          "startMs": 144120,
+          "endMs": 147200
+        }
+      ]
+    },
+    {
+      "text": "Do unto the mud",
+      "originalStartMs": 147560,
+      "originalEndMs": 155220,
+      "startMs": 147560,
+      "endMs": 155220,
+      "words": [
+        {
+          "text": "Do",
+          "startMs": 147560,
+          "endMs": 147820
+        },
+        {
+          "text": "unto",
+          "startMs": 147820,
+          "endMs": 148260
+        },
+        {
+          "text": "the",
+          "startMs": 148260,
+          "endMs": 148740
+        },
+        {
+          "text": "mud",
+          "startMs": 148740,
+          "endMs": 155220
+        }
+      ]
+    },
+    {
+      "text": "Mud",
+      "originalStartMs": 155220,
+      "originalEndMs": 157220,
+      "startMs": 155220,
+      "endMs": 157220,
+      "words": [
+        {
+          "text": "Mud",
+          "startMs": 155220,
+          "endMs": 157220
+        }
+      ]
+    },
+    {
+      "text": "Race to scale the body stack",
+      "originalStartMs": 157220,
+      "originalEndMs": 159100,
+      "startMs": 157220,
+      "endMs": 159100,
+      "words": [
+        {
+          "text": "Race",
+          "startMs": 157220,
+          "endMs": 157460
+        },
+        {
+          "text": "to",
+          "startMs": 157460,
+          "endMs": 157540
+        },
+        {
+          "text": "scale",
+          "startMs": 157540,
+          "endMs": 157980
+        },
+        {
+          "text": "the",
+          "startMs": 157980,
+          "endMs": 158160
+        },
+        {
+          "text": "body",
+          "startMs": 158160,
+          "endMs": 158520
+        },
+        {
+          "text": "stack",
+          "startMs": 158520,
+          "endMs": 159100
+        }
+      ]
+    },
+    {
+      "text": "Lay foot to face atop broken back",
+      "originalStartMs": 159100,
+      "originalEndMs": 161220,
+      "startMs": 159100,
+      "endMs": 161220,
+      "words": [
+        {
+          "text": "Lay",
+          "startMs": 159100,
+          "endMs": 159260
+        },
+        {
+          "text": "foot",
+          "startMs": 159260,
+          "endMs": 159520
+        },
+        {
+          "text": "to",
+          "startMs": 159520,
+          "endMs": 159640
+        },
+        {
+          "text": "face",
+          "startMs": 159640,
+          "endMs": 160000
+        },
+        {
+          "text": "atop",
+          "startMs": 160000,
+          "endMs": 160360
+        },
+        {
+          "text": "broken",
+          "startMs": 160360,
+          "endMs": 160800
+        },
+        {
+          "text": "back",
+          "startMs": 160800,
+          "endMs": 161220
+        }
+      ]
+    },
+    {
+      "text": "A failure here is a failure earned",
+      "originalStartMs": 161220,
+      "originalEndMs": 163440,
+      "startMs": 161220,
+      "endMs": 163440,
+      "words": [
+        {
+          "text": "A",
+          "startMs": 161220,
+          "endMs": 161360
+        },
+        {
+          "text": "failure",
+          "startMs": 161360,
+          "endMs": 162040
+        },
+        {
+          "text": "here",
+          "startMs": 162040,
+          "endMs": 162200
+        },
+        {
+          "text": "is",
+          "startMs": 162200,
+          "endMs": 162340
+        },
+        {
+          "text": "a",
+          "startMs": 162340,
+          "endMs": 162440
+        },
+        {
+          "text": "failure",
+          "startMs": 162440,
+          "endMs": 163100
+        },
+        {
+          "text": "earned",
+          "startMs": 163100,
+          "endMs": 163440
+        }
+      ]
+    },
+    {
+      "text": "So do unto the top",
+      "originalStartMs": 163440,
+      "originalEndMs": 166040,
+      "startMs": 163440,
+      "endMs": 166040,
+      "words": [
+        {
+          "text": "So",
+          "startMs": 163440,
+          "endMs": 163600
+        },
+        {
+          "text": "do",
+          "startMs": 163600,
+          "endMs": 163800
+        },
+        {
+          "text": "unto",
+          "startMs": 163800,
+          "endMs": 164400
+        },
+        {
+          "text": "the",
+          "startMs": 164400,
+          "endMs": 164600
+        },
+        {
+          "text": "top",
+          "startMs": 164600,
+          "endMs": 166040
+        }
+      ]
+    },
+    {
+      "text": "Do unto the end",
+      "originalStartMs": 166040,
+      "originalEndMs": 193140,
+      "startMs": 166040,
+      "endMs": 193140,
+      "words": [
+        {
+          "text": "Do",
+          "startMs": 166040,
+          "endMs": 167400
+        },
+        {
+          "text": "unto",
+          "startMs": 167400,
+          "endMs": 175220
+        },
+        {
+          "text": "the",
+          "startMs": 175220,
+          "endMs": 184800
+        },
+        {
+          "text": "end",
+          "startMs": 184800,
+          "endMs": 193140
+        }
+      ]
+    },
+    {
+      "text": "Do unto the mud, do!",
+      "originalStartMs": 193140,
+      "originalEndMs": 199260,
+      "startMs": 193140,
+      "endMs": 199260,
+      "words": [
+        {
+          "text": "Do",
+          "startMs": 193140,
+          "endMs": 193860
+        },
+        {
+          "text": "unto",
+          "startMs": 193860,
+          "endMs": 197000
+        },
+        {
+          "text": "the",
+          "startMs": 197000,
+          "endMs": 197700
+        },
+        {
+          "text": "mud",
+          "startMs": 197700,
+          "endMs": 198260
+        },
+        {
+          "text": "do",
+          "startMs": 198260,
+          "endMs": 199260
+        }
+      ]
+    },
+    {
+      "text": "More power, more pace, more money",
+      "originalStartMs": 199260,
+      "originalEndMs": 204440,
+      "startMs": 199260,
+      "endMs": 204440,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 199260,
+          "endMs": 200440
+        },
+        {
+          "text": "power",
+          "startMs": 200440,
+          "endMs": 201260
+        },
+        {
+          "text": "more",
+          "startMs": 201260,
+          "endMs": 202060
+        },
+        {
+          "text": "pace",
+          "startMs": 202060,
+          "endMs": 202920
+        },
+        {
+          "text": "more",
+          "startMs": 202920,
+          "endMs": 203760
+        },
+        {
+          "text": "money",
+          "startMs": 203760,
+          "endMs": 204440
+        }
+      ]
+    },
+    {
+      "text": "More taste, more sex, more pills",
+      "originalStartMs": 204440,
+      "originalEndMs": 209060,
+      "startMs": 204440,
+      "endMs": 209060,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 204440,
+          "endMs": 205280
+        },
+        {
+          "text": "taste",
+          "startMs": 205280,
+          "endMs": 206140
+        },
+        {
+          "text": "more",
+          "startMs": 206140,
+          "endMs": 206860
+        },
+        {
+          "text": "sex",
+          "startMs": 206860,
+          "endMs": 207520
+        },
+        {
+          "text": "more",
+          "startMs": 207520,
+          "endMs": 208280
+        },
+        {
+          "text": "pills",
+          "startMs": 208280,
+          "endMs": 209060
+        }
+      ]
+    },
+    {
+      "text": "More skin, more shills",
+      "originalStartMs": 209060,
+      "originalEndMs": 211780,
+      "startMs": 209060,
+      "endMs": 211780,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 209060,
+          "endMs": 209680
+        },
+        {
+          "text": "skin",
+          "startMs": 209680,
+          "endMs": 210340
+        },
+        {
+          "text": "more",
+          "startMs": 210340,
+          "endMs": 211040
+        },
+        {
+          "text": "shills",
+          "startMs": 211040,
+          "endMs": 211780
+        }
+      ]
+    },
+    {
+      "text": "More wants, more needs, more hits",
+      "originalStartMs": 211780,
+      "originalEndMs": 215440,
+      "startMs": 211780,
+      "endMs": 215440,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 211780,
+          "endMs": 212360
+        },
+        {
+          "text": "wants",
+          "startMs": 212360,
+          "endMs": 213020
+        },
+        {
+          "text": "more",
+          "startMs": 213020,
+          "endMs": 213660
+        },
+        {
+          "text": "needs",
+          "startMs": 213660,
+          "endMs": 214360
+        },
+        {
+          "text": "more",
+          "startMs": 214360,
+          "endMs": 214880
+        },
+        {
+          "text": "hits",
+          "startMs": 214880,
+          "endMs": 215440
+        }
+      ]
+    },
+    {
+      "text": "Morphine, more speed, more drive",
+      "originalStartMs": 215440,
+      "originalEndMs": 218920,
+      "startMs": 215440,
+      "endMs": 218920,
+      "words": [
+        {
+          "text": "Morphine",
+          "startMs": 215440,
+          "endMs": 216560
+        },
+        {
+          "text": "more",
+          "startMs": 216560,
+          "endMs": 217120
+        },
+        {
+          "text": "speed",
+          "startMs": 217120,
+          "endMs": 217760
+        },
+        {
+          "text": "more",
+          "startMs": 217760,
+          "endMs": 218320
+        },
+        {
+          "text": "drive",
+          "startMs": 218320,
+          "endMs": 218920
+        }
+      ]
+    },
+    {
+      "text": "More self, more time",
+      "originalStartMs": 218920,
+      "originalEndMs": 221020,
+      "startMs": 218920,
+      "endMs": 221020,
+      "words": [
+        {
+          "text": "More",
+          "startMs": 218920,
+          "endMs": 219400
+        },
+        {
+          "text": "self",
+          "startMs": 219400,
+          "endMs": 219940
+        },
+        {
+          "text": "more",
+          "startMs": 219940,
+          "endMs": 220480
+        },
+        {
+          "text": "time",
+          "startMs": 220480,
+          "endMs": 221020
+        }
+      ]
+    },
+    {
+      "text": "Build tall, build higher, build far",
+      "originalStartMs": 221020,
+      "originalEndMs": 223900,
+      "startMs": 221020,
+      "endMs": 223900,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 221020,
+          "endMs": 221560
+        },
+        {
+          "text": "tall",
+          "startMs": 221560,
+          "endMs": 221980
+        },
+        {
+          "text": "build",
+          "startMs": 221980,
+          "endMs": 222560
+        },
+        {
+          "text": "higher",
+          "startMs": 222560,
+          "endMs": 222960
+        },
+        {
+          "text": "build",
+          "startMs": 222960,
+          "endMs": 223440
+        },
+        {
+          "text": "far",
+          "startMs": 223440,
+          "endMs": 223900
+        }
+      ]
+    },
+    {
+      "text": "Build wider, build here, build down",
+      "originalStartMs": 223900,
+      "originalEndMs": 226680,
+      "startMs": 223900,
+      "endMs": 226680,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 223900,
+          "endMs": 224480
+        },
+        {
+          "text": "wider",
+          "startMs": 224480,
+          "endMs": 224880
+        },
+        {
+          "text": "build",
+          "startMs": 224880,
+          "endMs": 225420
+        },
+        {
+          "text": "here",
+          "startMs": 225420,
+          "endMs": 225780
+        },
+        {
+          "text": "build",
+          "startMs": 225780,
+          "endMs": 226240
+        },
+        {
+          "text": "down",
+          "startMs": 226240,
+          "endMs": 226680
+        }
+      ]
+    },
+    {
+      "text": "Build up, build now",
+      "originalStartMs": 226680,
+      "originalEndMs": 242940,
+      "startMs": 226680,
+      "endMs": 242940,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 226680,
+          "endMs": 227260
+        },
+        {
+          "text": "up",
+          "startMs": 227260,
+          "endMs": 227540
+        },
+        {
+          "text": "build",
+          "startMs": 227540,
+          "endMs": 242080
+        },
+        {
+          "text": "now",
+          "startMs": 242080,
+          "endMs": 242940
+        }
+      ]
+    },
+    {
+      "text": "Build out, build fast, build strong",
+      "originalStartMs": 242940,
+      "originalEndMs": 255140,
+      "startMs": 242940,
+      "endMs": 255140,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 242940,
+          "endMs": 243760
+        },
+        {
+          "text": "out",
+          "startMs": 243760,
+          "endMs": 245080
+        },
+        {
+          "text": "build",
+          "startMs": 245080,
+          "endMs": 245700
+        },
+        {
+          "text": "fast",
+          "startMs": 245700,
+          "endMs": 250340
+        },
+        {
+          "text": "build",
+          "startMs": 250340,
+          "endMs": 252740
+        },
+        {
+          "text": "strong",
+          "startMs": 252740,
+          "endMs": 255140
+        }
+      ]
+    },
+    {
+      "text": "Build vast, build, build, build, build, build, build, build, build, build",
+      "originalStartMs": 255140,
+      "originalEndMs": 308260,
+      "startMs": 255140,
+      "endMs": 308260,
+      "words": [
+        {
+          "text": "Build",
+          "startMs": 255140,
+          "endMs": 258380
+        },
+        {
+          "text": "vast",
+          "startMs": 258380,
+          "endMs": 259460
+        },
+        {
+          "text": "build",
+          "startMs": 259460,
+          "endMs": 260560
+        },
+        {
+          "text": "build",
+          "startMs": 260560,
+          "endMs": 270220
+        },
+        {
+          "text": "build",
+          "startMs": 270220,
+          "endMs": 271340
+        },
+        {
+          "text": "build",
+          "startMs": 271340,
+          "endMs": 279020
+        },
+        {
+          "text": "build",
+          "startMs": 279020,
+          "endMs": 280380
+        },
+        {
+          "text": "build",
+          "startMs": 280380,
+          "endMs": 287560
+        },
+        {
+          "text": "build",
+          "startMs": 287560,
+          "endMs": 301780
+        },
+        {
+          "text": "build",
+          "startMs": 301780,
+          "endMs": 304680
+        },
+        {
+          "text": "build",
+          "startMs": 304680,
+          "endMs": 308260
+        }
+      ]
+    },
+    {
+      "text": "Look at the way you go",
+      "originalStartMs": 308260,
+      "originalEndMs": 315120,
+      "startMs": 308260,
+      "endMs": 315120,
+      "words": [
+        {
+          "text": "Look",
+          "startMs": 308260,
+          "endMs": 312540
+        },
+        {
+          "text": "at",
+          "startMs": 312540,
+          "endMs": 312980
+        },
+        {
+          "text": "the",
+          "startMs": 312980,
+          "endMs": 313440
+        },
+        {
+          "text": "way",
+          "startMs": 313440,
+          "endMs": 314100
+        },
+        {
+          "text": "you",
+          "startMs": 314100,
+          "endMs": 314700
+        },
+        {
+          "text": "go",
+          "startMs": 314700,
+          "endMs": 315120
+        }
+      ]
+    },
+    {
+      "text": "You're one in a million",
+      "originalStartMs": 315120,
+      "originalEndMs": 319260,
+      "startMs": 315120,
+      "endMs": 319260,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 315120,
+          "endMs": 316180
+        },
+        {
+          "text": "one",
+          "startMs": 316180,
+          "endMs": 317240
+        },
+        {
+          "text": "in",
+          "startMs": 317240,
+          "endMs": 318160
+        },
+        {
+          "text": "a",
+          "startMs": 318160,
+          "endMs": 318260
+        },
+        {
+          "text": "million",
+          "startMs": 318260,
+          "endMs": 319260
+        }
+      ]
+    },
+    {
+      "text": "And you know it shows",
+      "originalStartMs": 319260,
+      "originalEndMs": 326080,
+      "startMs": 319260,
+      "endMs": 326080,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 319260,
+          "endMs": 320760
+        },
+        {
+          "text": "you",
+          "startMs": 320760,
+          "endMs": 321600
+        },
+        {
+          "text": "know",
+          "startMs": 321600,
+          "endMs": 325200
+        },
+        {
+          "text": "it",
+          "startMs": 325200,
+          "endMs": 325380
+        },
+        {
+          "text": "shows",
+          "startMs": 325380,
+          "endMs": 326080
+        }
+      ]
+    },
+    {
+      "text": "We love you",
+      "originalStartMs": 326080,
+      "originalEndMs": 329100,
+      "startMs": 326080,
+      "endMs": 329100,
+      "words": [
+        {
+          "text": "We",
+          "startMs": 326080,
+          "endMs": 326340
+        },
+        {
+          "text": "love",
+          "startMs": 326340,
+          "endMs": 328580
+        },
+        {
+          "text": "you",
+          "startMs": 328580,
+          "endMs": 329100
+        }
+      ]
+    },
+    {
+      "text": "Look at the way that you choose",
+      "originalStartMs": 329100,
+      "originalEndMs": 333700,
+      "startMs": 329100,
+      "endMs": 333700,
+      "words": [
+        {
+          "text": "Look",
+          "startMs": 329100,
+          "endMs": 330220
+        },
+        {
+          "text": "at",
+          "startMs": 330220,
+          "endMs": 330560
+        },
+        {
+          "text": "the",
+          "startMs": 330560,
+          "endMs": 330920
+        },
+        {
+          "text": "way",
+          "startMs": 330920,
+          "endMs": 331440
+        },
+        {
+          "text": "that",
+          "startMs": 331440,
+          "endMs": 332100
+        },
+        {
+          "text": "you",
+          "startMs": 332100,
+          "endMs": 332800
+        },
+        {
+          "text": "choose",
+          "startMs": 332800,
+          "endMs": 333700
+        }
+      ]
+    },
+    {
+      "text": "You know you'll never lose",
+      "originalStartMs": 333700,
+      "originalEndMs": 339100,
+      "startMs": 333700,
+      "endMs": 339100,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 333700,
+          "endMs": 334580
+        },
+        {
+          "text": "know",
+          "startMs": 334580,
+          "endMs": 335420
+        },
+        {
+          "text": "you'll",
+          "startMs": 335420,
+          "endMs": 337240
+        },
+        {
+          "text": "never",
+          "startMs": 337240,
+          "endMs": 338240
+        },
+        {
+          "text": "lose",
+          "startMs": 338240,
+          "endMs": 339100
+        }
+      ]
+    },
+    {
+      "text": "And all that you are",
+      "originalStartMs": 339100,
+      "originalEndMs": 342120,
+      "startMs": 339100,
+      "endMs": 342120,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 339100,
+          "endMs": 339440
+        },
+        {
+          "text": "all",
+          "startMs": 339440,
+          "endMs": 339920
+        },
+        {
+          "text": "that",
+          "startMs": 339920,
+          "endMs": 340480
+        },
+        {
+          "text": "you",
+          "startMs": 340480,
+          "endMs": 341100
+        },
+        {
+          "text": "are",
+          "startMs": 341100,
+          "endMs": 342120
+        }
+      ]
+    },
+    {
+      "text": "It was all you deserved anyway",
+      "originalStartMs": 342120,
+      "originalEndMs": 347080,
+      "startMs": 342120,
+      "endMs": 347080,
+      "words": [
+        {
+          "text": "It",
+          "startMs": 342120,
+          "endMs": 342740
+        },
+        {
+          "text": "was",
+          "startMs": 342740,
+          "endMs": 343260
+        },
+        {
+          "text": "all",
+          "startMs": 343260,
+          "endMs": 344180
+        },
+        {
+          "text": "you",
+          "startMs": 344180,
+          "endMs": 344840
+        },
+        {
+          "text": "deserved",
+          "startMs": 344840,
+          "endMs": 346360
+        },
+        {
+          "text": "anyway",
+          "startMs": 346360,
+          "endMs": 347080
+        }
+      ]
+    },
+    {
+      "text": "Sunny days",
+      "originalStartMs": 347080,
+      "originalEndMs": 349080,
+      "startMs": 347080,
+      "endMs": 349080,
+      "words": [
+        {
+          "text": "Sunny",
+          "startMs": 347080,
+          "endMs": 347860
+        },
+        {
+          "text": "days",
+          "startMs": 347860,
+          "endMs": 349080
+        }
+      ]
+    },
+    {
+      "text": "And we love you",
+      "originalStartMs": 349080,
+      "originalEndMs": 351600,
+      "startMs": 349080,
+      "endMs": 351600,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 349080,
+          "endMs": 349660
+        },
+        {
+          "text": "we",
+          "startMs": 349660,
+          "endMs": 350100
+        },
+        {
+          "text": "love",
+          "startMs": 350100,
+          "endMs": 350660
+        },
+        {
+          "text": "you",
+          "startMs": 350660,
+          "endMs": 351600
+        }
+      ]
+    },
+    {
+      "text": "And we love you",
+      "originalStartMs": 351600,
+      "originalEndMs": 355400,
+      "startMs": 351600,
+      "endMs": 355400,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 351600,
+          "endMs": 353800
+        },
+        {
+          "text": "we",
+          "startMs": 353800,
+          "endMs": 354180
+        },
+        {
+          "text": "love",
+          "startMs": 354180,
+          "endMs": 354940
+        },
+        {
+          "text": "you",
+          "startMs": 354940,
+          "endMs": 355400
+        }
+      ]
+    },
+    {
+      "text": "And we love you",
+      "originalStartMs": 355400,
+      "originalEndMs": 359380,
+      "startMs": 355400,
+      "endMs": 359380,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 355400,
+          "endMs": 357040
+        },
+        {
+          "text": "we",
+          "startMs": 357040,
+          "endMs": 358100
+        },
+        {
+          "text": "love",
+          "startMs": 358100,
+          "endMs": 358760
+        },
+        {
+          "text": "you",
+          "startMs": 358760,
+          "endMs": 359380
+        }
+      ]
+    }
+  ]
+}

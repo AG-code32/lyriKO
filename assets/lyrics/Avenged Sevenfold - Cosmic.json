@@ -1,0 +1,1657 @@
+{
+  "songId": "avenged-sevenfold-cosmic",
+  "title": "Cosmic",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\05. Cosmic.mp3",
+  "durationMs": 453211,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.3234,
+      "medianScore": -0.239,
+      "goodScoreRatio": 1.0,
+      "veryBadScoreRatio": 0.0,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 268,
+    "matchedWords": 268,
+    "wordCoverage": 1.0,
+    "totalLines": 37,
+    "matchedLines": 37,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "Fade from all that was before",
+      "originalStartMs": 760,
+      "originalEndMs": 5740,
+      "startMs": 760,
+      "endMs": 6680,
+      "words": [
+        {
+          "text": "Fade",
+          "startMs": 760,
+          "endMs": 1940
+        },
+        {
+          "text": "from",
+          "startMs": 1940,
+          "endMs": 3080
+        },
+        {
+          "text": "all",
+          "startMs": 3080,
+          "endMs": 3440
+        },
+        {
+          "text": "that",
+          "startMs": 3440,
+          "endMs": 3680
+        },
+        {
+          "text": "was",
+          "startMs": 3680,
+          "endMs": 4100
+        },
+        {
+          "text": "before",
+          "startMs": 4100,
+          "endMs": 5740
+        }
+      ]
+    },
+    {
+      "text": "We shut another door, but not a last goodbye",
+      "originalStartMs": 5740,
+      "originalEndMs": 13620,
+      "startMs": 6680,
+      "endMs": 16107,
+      "words": [
+        {
+          "text": "We",
+          "startMs": 5740,
+          "endMs": 6740
+        },
+        {
+          "text": "shut",
+          "startMs": 6740,
+          "endMs": 7460
+        },
+        {
+          "text": "another",
+          "startMs": 7460,
+          "endMs": 8020
+        },
+        {
+          "text": "door",
+          "startMs": 8020,
+          "endMs": 9400
+        },
+        {
+          "text": "but",
+          "startMs": 9400,
+          "endMs": 10420
+        },
+        {
+          "text": "not",
+          "startMs": 10420,
+          "endMs": 10980
+        },
+        {
+          "text": "a",
+          "startMs": 10980,
+          "endMs": 11100
+        },
+        {
+          "text": "last",
+          "startMs": 11100,
+          "endMs": 11560
+        },
+        {
+          "text": "goodbye",
+          "startMs": 11560,
+          "endMs": 13620
+        }
+      ]
+    },
+    {
+      "text": "Fate has taken once again",
+      "originalStartMs": 13620,
+      "originalEndMs": 20920,
+      "startMs": 16107,
+      "endMs": 20920,
+      "words": [
+        {
+          "text": "Fate",
+          "startMs": 13620,
+          "endMs": 17020
+        },
+        {
+          "text": "has",
+          "startMs": 17020,
+          "endMs": 18080
+        },
+        {
+          "text": "taken",
+          "startMs": 18080,
+          "endMs": 18780
+        },
+        {
+          "text": "once",
+          "startMs": 18780,
+          "endMs": 19240
+        },
+        {
+          "text": "again",
+          "startMs": 19240,
+          "endMs": 20920
+        }
+      ]
+    },
+    {
+      "text": "A fight we'll never win, and time again, we try",
+      "originalStartMs": 20920,
+      "originalEndMs": 30360,
+      "startMs": 20920,
+      "endMs": 31250,
+      "words": [
+        {
+          "text": "A",
+          "startMs": 20920,
+          "endMs": 21960
+        },
+        {
+          "text": "fight",
+          "startMs": 21960,
+          "endMs": 22560
+        },
+        {
+          "text": "we'll",
+          "startMs": 22560,
+          "endMs": 22780
+        },
+        {
+          "text": "never",
+          "startMs": 22780,
+          "endMs": 23220
+        },
+        {
+          "text": "win",
+          "startMs": 23220,
+          "endMs": 24640
+        },
+        {
+          "text": "and",
+          "startMs": 24640,
+          "endMs": 25600
+        },
+        {
+          "text": "time",
+          "startMs": 25600,
+          "endMs": 26180
+        },
+        {
+          "text": "again",
+          "startMs": 26180,
+          "endMs": 26740
+        },
+        {
+          "text": "we",
+          "startMs": 26740,
+          "endMs": 27060
+        },
+        {
+          "text": "try",
+          "startMs": 27060,
+          "endMs": 30360
+        }
+      ]
+    },
+    {
+      "text": "Left alone, I can't wait too long, fade",
+      "originalStartMs": 30360,
+      "originalEndMs": 43540,
+      "startMs": 31250,
+      "endMs": 40449,
+      "words": []
+    },
+    {
+      "text": "♪",
+      "originalStartMs": 31361,
+      "originalEndMs": 43539,
+      "startMs": 40450,
+      "endMs": 49191,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
+    },
+    {
+      "text": "Love, we loved so many times",
+      "originalStartMs": 43540,
+      "originalEndMs": 53640,
+      "startMs": 49191,
+      "endMs": 53640,
+      "words": []
+    },
+    {
+      "text": "And in so many lives, sometimes we got it right",
+      "originalStartMs": 53640,
+      "originalEndMs": 60400,
+      "startMs": 53640,
+      "endMs": 61422,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 53640,
+          "endMs": 54040
+        },
+        {
+          "text": "in",
+          "startMs": 54040,
+          "endMs": 54320
+        },
+        {
+          "text": "so",
+          "startMs": 54320,
+          "endMs": 54540
+        },
+        {
+          "text": "many",
+          "startMs": 54540,
+          "endMs": 54940
+        },
+        {
+          "text": "lives",
+          "startMs": 54940,
+          "endMs": 56680
+        },
+        {
+          "text": "sometimes",
+          "startMs": 56680,
+          "endMs": 57400
+        },
+        {
+          "text": "we",
+          "startMs": 57400,
+          "endMs": 57540
+        },
+        {
+          "text": "got",
+          "startMs": 57540,
+          "endMs": 58040
+        },
+        {
+          "text": "it",
+          "startMs": 58040,
+          "endMs": 58320
+        },
+        {
+          "text": "right",
+          "startMs": 58320,
+          "endMs": 60400
+        }
+      ]
+    },
+    {
+      "text": "Pain, it found its way back in",
+      "originalStartMs": 60400,
+      "originalEndMs": 65600,
+      "startMs": 61422,
+      "endMs": 65600,
+      "words": [
+        {
+          "text": "Pain",
+          "startMs": 60400,
+          "endMs": 62580
+        },
+        {
+          "text": "it",
+          "startMs": 62580,
+          "endMs": 63120
+        },
+        {
+          "text": "found",
+          "startMs": 63120,
+          "endMs": 63540
+        },
+        {
+          "text": "its",
+          "startMs": 63540,
+          "endMs": 63720
+        },
+        {
+          "text": "way",
+          "startMs": 63720,
+          "endMs": 63980
+        },
+        {
+          "text": "back",
+          "startMs": 63980,
+          "endMs": 64520
+        },
+        {
+          "text": "in",
+          "startMs": 64520,
+          "endMs": 65600
+        }
+      ]
+    },
+    {
+      "text": "Until we meet again into that good night",
+      "originalStartMs": 65600,
+      "originalEndMs": 73140,
+      "startMs": 65600,
+      "endMs": 73140,
+      "words": [
+        {
+          "text": "Until",
+          "startMs": 65600,
+          "endMs": 66520
+        },
+        {
+          "text": "we",
+          "startMs": 66520,
+          "endMs": 66740
+        },
+        {
+          "text": "meet",
+          "startMs": 66740,
+          "endMs": 67060
+        },
+        {
+          "text": "again",
+          "startMs": 67060,
+          "endMs": 68540
+        },
+        {
+          "text": "into",
+          "startMs": 68540,
+          "endMs": 69800
+        },
+        {
+          "text": "that",
+          "startMs": 69800,
+          "endMs": 70140
+        },
+        {
+          "text": "good",
+          "startMs": 70140,
+          "endMs": 70520
+        },
+        {
+          "text": "night",
+          "startMs": 70520,
+          "endMs": 73140
+        }
+      ]
+    },
+    {
+      "text": "None too far as we chase through the stars beyond forever",
+      "originalStartMs": 73140,
+      "originalEndMs": 81100,
+      "startMs": 73140,
+      "endMs": 81100,
+      "words": [
+        {
+          "text": "None",
+          "startMs": 73140,
+          "endMs": 74060
+        },
+        {
+          "text": "too",
+          "startMs": 74060,
+          "endMs": 75180
+        },
+        {
+          "text": "far",
+          "startMs": 75180,
+          "endMs": 75740
+        },
+        {
+          "text": "as",
+          "startMs": 75740,
+          "endMs": 76060
+        },
+        {
+          "text": "we",
+          "startMs": 76060,
+          "endMs": 76320
+        },
+        {
+          "text": "chase",
+          "startMs": 76320,
+          "endMs": 77240
+        },
+        {
+          "text": "through",
+          "startMs": 77240,
+          "endMs": 77640
+        },
+        {
+          "text": "the",
+          "startMs": 77640,
+          "endMs": 77840
+        },
+        {
+          "text": "stars",
+          "startMs": 77840,
+          "endMs": 78820
+        },
+        {
+          "text": "beyond",
+          "startMs": 78820,
+          "endMs": 79720
+        },
+        {
+          "text": "forever",
+          "startMs": 79720,
+          "endMs": 81100
+        }
+      ]
+    },
+    {
+      "text": "I'll follow you",
+      "originalStartMs": 81100,
+      "originalEndMs": 86800,
+      "startMs": 81100,
+      "endMs": 87532,
+      "words": [
+        {
+          "text": "I'll",
+          "startMs": 81100,
+          "endMs": 82120
+        },
+        {
+          "text": "follow",
+          "startMs": 82120,
+          "endMs": 82680
+        },
+        {
+          "text": "you",
+          "startMs": 82680,
+          "endMs": 86800
+        }
+      ]
+    },
+    {
+      "text": "♪",
+      "originalStartMs": 82101,
+      "originalEndMs": 86799,
+      "startMs": 87566,
+      "endMs": 134414,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
+    },
+    {
+      "text": "Dancing in the wind as roses born again",
+      "originalStartMs": 86800,
+      "originalEndMs": 99700,
+      "startMs": 134414,
+      "endMs": 139396,
+      "words": [
+        {
+          "text": "Dancing",
+          "startMs": 120486,
+          "endMs": 126066
+        },
+        {
+          "text": "in",
+          "startMs": 126066,
+          "endMs": 127386
+        },
+        {
+          "text": "the",
+          "startMs": 127386,
+          "endMs": 127586
+        },
+        {
+          "text": "wind",
+          "startMs": 127586,
+          "endMs": 128966
+        },
+        {
+          "text": "as",
+          "startMs": 128966,
+          "endMs": 129826
+        },
+        {
+          "text": "roses",
+          "startMs": 129826,
+          "endMs": 131266
+        },
+        {
+          "text": "born",
+          "startMs": 131266,
+          "endMs": 131986
+        },
+        {
+          "text": "again",
+          "startMs": 131986,
+          "endMs": 133386
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 99700,
+      "originalEndMs": 112840,
+      "startMs": 139396,
+      "endMs": 146050,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 133789,
+          "endMs": 134429
+        },
+        {
+          "text": "you'll",
+          "startMs": 134429,
+          "endMs": 140769
+        },
+        {
+          "text": "find",
+          "startMs": 140769,
+          "endMs": 144609
+        },
+        {
+          "text": "me",
+          "startMs": 144609,
+          "endMs": 146929
+        }
+      ]
+    },
+    {
+      "text": "Before the dawn of man, in castles made of sand",
+      "originalStartMs": 112840,
+      "originalEndMs": 134020,
+      "startMs": 146050,
+      "endMs": 149570,
+      "words": [
+        {
+          "text": "Before",
+          "startMs": 128390,
+          "endMs": 132990
+        },
+        {
+          "text": "the",
+          "startMs": 132990,
+          "endMs": 133930
+        },
+        {
+          "text": "dawn",
+          "startMs": 133930,
+          "endMs": 135070
+        },
+        {
+          "text": "of",
+          "startMs": 135070,
+          "endMs": 136810
+        },
+        {
+          "text": "man",
+          "startMs": 136810,
+          "endMs": 138730
+        },
+        {
+          "text": "in",
+          "startMs": 138730,
+          "endMs": 139110
+        },
+        {
+          "text": "castles",
+          "startMs": 139110,
+          "endMs": 146570
+        },
+        {
+          "text": "made",
+          "startMs": 146570,
+          "endMs": 147610
+        },
+        {
+          "text": "of",
+          "startMs": 147610,
+          "endMs": 148210
+        },
+        {
+          "text": "sand",
+          "startMs": 148210,
+          "endMs": 149570
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 134020,
+      "originalEndMs": 146360,
+      "startMs": 149570,
+      "endMs": 152730,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 140390,
+          "endMs": 142710
+        },
+        {
+          "text": "you'll",
+          "startMs": 142710,
+          "endMs": 150590
+        },
+        {
+          "text": "find",
+          "startMs": 150590,
+          "endMs": 152510
+        },
+        {
+          "text": "me",
+          "startMs": 152510,
+          "endMs": 152730
+        }
+      ]
+    },
+    {
+      "text": "Writing in the caves as fire lights the way",
+      "originalStartMs": 146360,
+      "originalEndMs": 157780,
+      "startMs": 152730,
+      "endMs": 157780,
+      "words": [
+        {
+          "text": "Writing",
+          "startMs": 146360,
+          "endMs": 147620
+        },
+        {
+          "text": "in",
+          "startMs": 147620,
+          "endMs": 148040
+        },
+        {
+          "text": "the",
+          "startMs": 148040,
+          "endMs": 148260
+        },
+        {
+          "text": "caves",
+          "startMs": 148260,
+          "endMs": 153760
+        },
+        {
+          "text": "as",
+          "startMs": 153760,
+          "endMs": 154000
+        },
+        {
+          "text": "fire",
+          "startMs": 154000,
+          "endMs": 154680
+        },
+        {
+          "text": "lights",
+          "startMs": 154680,
+          "endMs": 156160
+        },
+        {
+          "text": "the",
+          "startMs": 156160,
+          "endMs": 156760
+        },
+        {
+          "text": "way",
+          "startMs": 156760,
+          "endMs": 157780
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 157780,
+      "originalEndMs": 164040,
+      "startMs": 157780,
+      "endMs": 164040,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 157780,
+          "endMs": 158880
+        },
+        {
+          "text": "you'll",
+          "startMs": 158880,
+          "endMs": 161140
+        },
+        {
+          "text": "find",
+          "startMs": 161140,
+          "endMs": 163080
+        },
+        {
+          "text": "me",
+          "startMs": 163080,
+          "endMs": 164040
+        }
+      ]
+    },
+    {
+      "text": "Mask of royal glow, don in pharaoh's clothes",
+      "originalStartMs": 164040,
+      "originalEndMs": 172700,
+      "startMs": 164040,
+      "endMs": 172700,
+      "words": [
+        {
+          "text": "Mask",
+          "startMs": 164040,
+          "endMs": 165100
+        },
+        {
+          "text": "of",
+          "startMs": 165100,
+          "endMs": 165460
+        },
+        {
+          "text": "royal",
+          "startMs": 165460,
+          "endMs": 166020
+        },
+        {
+          "text": "glow",
+          "startMs": 166020,
+          "endMs": 166880
+        },
+        {
+          "text": "don",
+          "startMs": 166880,
+          "endMs": 167480
+        },
+        {
+          "text": "in",
+          "startMs": 167480,
+          "endMs": 168120
+        },
+        {
+          "text": "pharaoh's",
+          "startMs": 168120,
+          "endMs": 170760
+        },
+        {
+          "text": "clothes",
+          "startMs": 170760,
+          "endMs": 172700
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me, let it go",
+      "originalStartMs": 172700,
+      "originalEndMs": 176820,
+      "startMs": 172700,
+      "endMs": 176820,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 172700,
+          "endMs": 173380
+        },
+        {
+          "text": "you'll",
+          "startMs": 173380,
+          "endMs": 174880
+        },
+        {
+          "text": "find",
+          "startMs": 174880,
+          "endMs": 175560
+        },
+        {
+          "text": "me",
+          "startMs": 175560,
+          "endMs": 175780
+        },
+        {
+          "text": "let",
+          "startMs": 175780,
+          "endMs": 176280
+        },
+        {
+          "text": "it",
+          "startMs": 176280,
+          "endMs": 176500
+        },
+        {
+          "text": "go",
+          "startMs": 176500,
+          "endMs": 176820
+        }
+      ]
+    },
+    {
+      "text": "Yeah, rings of dust and ice, weightless in the night",
+      "originalStartMs": 176820,
+      "originalEndMs": 191300,
+      "startMs": 176820,
+      "endMs": 184564,
+      "words": [
+        {
+          "text": "Yeah",
+          "startMs": 176820,
+          "endMs": 177780
+        },
+        {
+          "text": "rings",
+          "startMs": 177780,
+          "endMs": 178760
+        },
+        {
+          "text": "of",
+          "startMs": 178760,
+          "endMs": 179100
+        },
+        {
+          "text": "dust",
+          "startMs": 179100,
+          "endMs": 179700
+        },
+        {
+          "text": "and",
+          "startMs": 179700,
+          "endMs": 181040
+        },
+        {
+          "text": "ice",
+          "startMs": 181040,
+          "endMs": 181800
+        },
+        {
+          "text": "weightless",
+          "startMs": 181800,
+          "endMs": 186980
+        },
+        {
+          "text": "in",
+          "startMs": 186980,
+          "endMs": 187760
+        },
+        {
+          "text": "the",
+          "startMs": 187760,
+          "endMs": 188960
+        },
+        {
+          "text": "night",
+          "startMs": 188960,
+          "endMs": 191300
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me, let it go",
+      "originalStartMs": 191300,
+      "originalEndMs": 208920,
+      "startMs": 184564,
+      "endMs": 192300,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 191300,
+          "endMs": 192880
+        },
+        {
+          "text": "you'll",
+          "startMs": 192880,
+          "endMs": 198360
+        },
+        {
+          "text": "find",
+          "startMs": 198360,
+          "endMs": 202180
+        },
+        {
+          "text": "me",
+          "startMs": 202180,
+          "endMs": 203880
+        },
+        {
+          "text": "let",
+          "startMs": 203880,
+          "endMs": 204700
+        },
+        {
+          "text": "it",
+          "startMs": 204700,
+          "endMs": 207020
+        },
+        {
+          "text": "go",
+          "startMs": 207020,
+          "endMs": 208920
+        }
+      ]
+    },
+    {
+      "text": "♪",
+      "originalStartMs": 192301,
+      "originalEndMs": 208919,
+      "startMs": 192301,
+      "endMs": 210076,
+      "words": [],
+      "manualLine": true,
+      "lineType": "instrumental"
+    },
+    {
+      "text": "Dancing in the wind as roses born again",
+      "originalStartMs": 208920,
+      "originalEndMs": 216980,
+      "startMs": 210076,
+      "endMs": 217736,
+      "words": [
+        {
+          "text": "Dancing",
+          "startMs": 208920,
+          "endMs": 211160
+        },
+        {
+          "text": "in",
+          "startMs": 211160,
+          "endMs": 211500
+        },
+        {
+          "text": "the",
+          "startMs": 211500,
+          "endMs": 212800
+        },
+        {
+          "text": "wind",
+          "startMs": 212800,
+          "endMs": 213900
+        },
+        {
+          "text": "as",
+          "startMs": 213900,
+          "endMs": 214120
+        },
+        {
+          "text": "roses",
+          "startMs": 214120,
+          "endMs": 214840
+        },
+        {
+          "text": "born",
+          "startMs": 214840,
+          "endMs": 215340
+        },
+        {
+          "text": "again",
+          "startMs": 215340,
+          "endMs": 216980
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 216980,
+      "originalEndMs": 220440,
+      "startMs": 217736,
+      "endMs": 221484,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 216980,
+          "endMs": 218320
+        },
+        {
+          "text": "you'll",
+          "startMs": 218320,
+          "endMs": 218720
+        },
+        {
+          "text": "find",
+          "startMs": 218720,
+          "endMs": 219300
+        },
+        {
+          "text": "me",
+          "startMs": 219300,
+          "endMs": 220440
+        }
+      ]
+    },
+    {
+      "text": "Before the dawn of man, in castles made of sand",
+      "originalStartMs": 220440,
+      "originalEndMs": 228380,
+      "startMs": 221484,
+      "endMs": 229063,
+      "words": [
+        {
+          "text": "Before",
+          "startMs": 220440,
+          "endMs": 222080
+        },
+        {
+          "text": "the",
+          "startMs": 222080,
+          "endMs": 222300
+        },
+        {
+          "text": "dawn",
+          "startMs": 222300,
+          "endMs": 222900
+        },
+        {
+          "text": "of",
+          "startMs": 222900,
+          "endMs": 223040
+        },
+        {
+          "text": "man",
+          "startMs": 223040,
+          "endMs": 224840
+        },
+        {
+          "text": "in",
+          "startMs": 224840,
+          "endMs": 225360
+        },
+        {
+          "text": "castles",
+          "startMs": 225360,
+          "endMs": 226140
+        },
+        {
+          "text": "made",
+          "startMs": 226140,
+          "endMs": 226660
+        },
+        {
+          "text": "of",
+          "startMs": 226660,
+          "endMs": 226780
+        },
+        {
+          "text": "sand",
+          "startMs": 226780,
+          "endMs": 228380
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 228380,
+      "originalEndMs": 231860,
+      "startMs": 229063,
+      "endMs": 233051,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 228380,
+          "endMs": 229660
+        },
+        {
+          "text": "you'll",
+          "startMs": 229660,
+          "endMs": 230060
+        },
+        {
+          "text": "find",
+          "startMs": 230060,
+          "endMs": 230600
+        },
+        {
+          "text": "me",
+          "startMs": 230600,
+          "endMs": 231860
+        }
+      ]
+    },
+    {
+      "text": "Writing in the caves as fire lights the way",
+      "originalStartMs": 231860,
+      "originalEndMs": 239580,
+      "startMs": 233051,
+      "endMs": 240013,
+      "words": [
+        {
+          "text": "Writing",
+          "startMs": 231860,
+          "endMs": 233800
+        },
+        {
+          "text": "in",
+          "startMs": 233800,
+          "endMs": 234140
+        },
+        {
+          "text": "the",
+          "startMs": 234140,
+          "endMs": 234320
+        },
+        {
+          "text": "caves",
+          "startMs": 234320,
+          "endMs": 236560
+        },
+        {
+          "text": "as",
+          "startMs": 236560,
+          "endMs": 236740
+        },
+        {
+          "text": "fire",
+          "startMs": 236740,
+          "endMs": 237420
+        },
+        {
+          "text": "lights",
+          "startMs": 237420,
+          "endMs": 237820
+        },
+        {
+          "text": "the",
+          "startMs": 237820,
+          "endMs": 238000
+        },
+        {
+          "text": "way",
+          "startMs": 238000,
+          "endMs": 239580
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 239580,
+      "originalEndMs": 244440,
+      "startMs": 240013,
+      "endMs": 244440,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 239580,
+          "endMs": 241000
+        },
+        {
+          "text": "you'll",
+          "startMs": 241000,
+          "endMs": 241400
+        },
+        {
+          "text": "find",
+          "startMs": 241400,
+          "endMs": 243160
+        },
+        {
+          "text": "me",
+          "startMs": 243160,
+          "endMs": 244440
+        }
+      ]
+    },
+    {
+      "text": "Mask of royal glow, don in pharaoh's clothes",
+      "originalStartMs": 244440,
+      "originalEndMs": 251640,
+      "startMs": 244440,
+      "endMs": 251820,
+      "words": [
+        {
+          "text": "Mask",
+          "startMs": 244440,
+          "endMs": 244840
+        },
+        {
+          "text": "of",
+          "startMs": 244840,
+          "endMs": 245040
+        },
+        {
+          "text": "royal",
+          "startMs": 245040,
+          "endMs": 245660
+        },
+        {
+          "text": "glow",
+          "startMs": 245660,
+          "endMs": 247260
+        },
+        {
+          "text": "don",
+          "startMs": 247260,
+          "endMs": 248660
+        },
+        {
+          "text": "in",
+          "startMs": 248660,
+          "endMs": 248800
+        },
+        {
+          "text": "pharaoh's",
+          "startMs": 248800,
+          "endMs": 249400
+        },
+        {
+          "text": "clothes",
+          "startMs": 249400,
+          "endMs": 251640
+        }
+      ]
+    },
+    {
+      "text": "There, you'll find me",
+      "originalStartMs": 251640,
+      "originalEndMs": 254880,
+      "startMs": 251820,
+      "endMs": 254880,
+      "words": [
+        {
+          "text": "There",
+          "startMs": 251640,
+          "endMs": 252120
+        },
+        {
+          "text": "you'll",
+          "startMs": 252120,
+          "endMs": 252740
+        },
+        {
+          "text": "find",
+          "startMs": 252740,
+          "endMs": 253280
+        },
+        {
+          "text": "me",
+          "startMs": 253280,
+          "endMs": 254880
+        }
+      ]
+    },
+    {
+      "text": "From all that was before",
+      "originalStartMs": 254880,
+      "originalEndMs": 270600,
+      "startMs": 254880,
+      "endMs": 270600,
+      "words": [
+        {
+          "text": "From",
+          "startMs": 254880,
+          "endMs": 256620
+        },
+        {
+          "text": "all",
+          "startMs": 256620,
+          "endMs": 256940
+        },
+        {
+          "text": "that",
+          "startMs": 256940,
+          "endMs": 267780
+        },
+        {
+          "text": "was",
+          "startMs": 267780,
+          "endMs": 268180
+        },
+        {
+          "text": "before",
+          "startMs": 268180,
+          "endMs": 270600
+        }
+      ]
+    },
+    {
+      "text": "We shut another door, but not a last goodbye",
+      "originalStartMs": 270600,
+      "originalEndMs": 279680,
+      "startMs": 270600,
+      "endMs": 279680,
+      "words": [
+        {
+          "text": "We",
+          "startMs": 270600,
+          "endMs": 271240
+        },
+        {
+          "text": "shut",
+          "startMs": 271240,
+          "endMs": 272200
+        },
+        {
+          "text": "another",
+          "startMs": 272200,
+          "endMs": 273320
+        },
+        {
+          "text": "door",
+          "startMs": 273320,
+          "endMs": 273920
+        },
+        {
+          "text": "but",
+          "startMs": 273920,
+          "endMs": 274360
+        },
+        {
+          "text": "not",
+          "startMs": 274360,
+          "endMs": 275540
+        },
+        {
+          "text": "a",
+          "startMs": 275540,
+          "endMs": 275800
+        },
+        {
+          "text": "last",
+          "startMs": 275800,
+          "endMs": 277220
+        },
+        {
+          "text": "goodbye",
+          "startMs": 277220,
+          "endMs": 279680
+        }
+      ]
+    },
+    {
+      "text": "Taken once again",
+      "originalStartMs": 279680,
+      "originalEndMs": 289640,
+      "startMs": 279680,
+      "endMs": 289640,
+      "words": [
+        {
+          "text": "Taken",
+          "startMs": 279680,
+          "endMs": 287080
+        },
+        {
+          "text": "once",
+          "startMs": 287080,
+          "endMs": 288060
+        },
+        {
+          "text": "again",
+          "startMs": 288060,
+          "endMs": 289640
+        }
+      ]
+    },
+    {
+      "text": "A fight we'll never win, and time again, we try",
+      "originalStartMs": 289640,
+      "originalEndMs": 314760,
+      "startMs": 289640,
+      "endMs": 314760,
+      "words": [
+        {
+          "text": "A",
+          "startMs": 289640,
+          "endMs": 290520
+        },
+        {
+          "text": "fight",
+          "startMs": 290520,
+          "endMs": 295020
+        },
+        {
+          "text": "we'll",
+          "startMs": 295020,
+          "endMs": 297920
+        },
+        {
+          "text": "never",
+          "startMs": 297920,
+          "endMs": 311380
+        },
+        {
+          "text": "win",
+          "startMs": 311380,
+          "endMs": 312060
+        },
+        {
+          "text": "and",
+          "startMs": 312060,
+          "endMs": 312860
+        },
+        {
+          "text": "time",
+          "startMs": 312860,
+          "endMs": 313400
+        },
+        {
+          "text": "again",
+          "startMs": 313400,
+          "endMs": 314040
+        },
+        {
+          "text": "we",
+          "startMs": 314040,
+          "endMs": 314220
+        },
+        {
+          "text": "try",
+          "startMs": 314220,
+          "endMs": 314760
+        }
+      ]
+    },
+    {
+      "text": "We loved so many times (I'm gone)",
+      "originalStartMs": 314760,
+      "originalEndMs": 320680,
+      "startMs": 314760,
+      "endMs": 320680,
+      "words": [
+        {
+          "text": "We",
+          "startMs": 314760,
+          "endMs": 315080
+        },
+        {
+          "text": "loved",
+          "startMs": 315080,
+          "endMs": 315920
+        },
+        {
+          "text": "so",
+          "startMs": 315920,
+          "endMs": 316180
+        },
+        {
+          "text": "many",
+          "startMs": 316180,
+          "endMs": 316620
+        },
+        {
+          "text": "times",
+          "startMs": 316620,
+          "endMs": 318580
+        },
+        {
+          "text": "I'm",
+          "startMs": 318580,
+          "endMs": 319520
+        },
+        {
+          "text": "gone",
+          "startMs": 319520,
+          "endMs": 320680
+        }
+      ]
+    },
+    {
+      "text": "And in so many lives (I'm gone), sometimes we got it right",
+      "originalStartMs": 320680,
+      "originalEndMs": 328760,
+      "startMs": 320680,
+      "endMs": 328760,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 320680,
+          "endMs": 321660
+        },
+        {
+          "text": "in",
+          "startMs": 321660,
+          "endMs": 321900
+        },
+        {
+          "text": "so",
+          "startMs": 321900,
+          "endMs": 322280
+        },
+        {
+          "text": "many",
+          "startMs": 322280,
+          "endMs": 322960
+        },
+        {
+          "text": "lives",
+          "startMs": 322960,
+          "endMs": 323560
+        },
+        {
+          "text": "I'm",
+          "startMs": 323560,
+          "endMs": 324240
+        },
+        {
+          "text": "gone",
+          "startMs": 324240,
+          "endMs": 324880
+        },
+        {
+          "text": "sometimes",
+          "startMs": 324880,
+          "endMs": 326400
+        },
+        {
+          "text": "we",
+          "startMs": 326400,
+          "endMs": 326620
+        },
+        {
+          "text": "got",
+          "startMs": 326620,
+          "endMs": 327340
+        },
+        {
+          "text": "it",
+          "startMs": 327340,
+          "endMs": 327960
+        },
+        {
+          "text": "right",
+          "startMs": 327960,
+          "endMs": 328760
+        }
+      ]
+    },
+    {
+      "text": "It found its way back in (I'm gone)",
+      "originalStartMs": 328760,
+      "originalEndMs": 337460,
+      "startMs": 328760,
+      "endMs": 337460,
+      "words": [
+        {
+          "text": "It",
+          "startMs": 328760,
+          "endMs": 330780
+        },
+        {
+          "text": "found",
+          "startMs": 330780,
+          "endMs": 334880
+        },
+        {
+          "text": "its",
+          "startMs": 334880,
+          "endMs": 335120
+        },
+        {
+          "text": "way",
+          "startMs": 335120,
+          "endMs": 335300
+        },
+        {
+          "text": "back",
+          "startMs": 335300,
+          "endMs": 335700
+        },
+        {
+          "text": "in",
+          "startMs": 335700,
+          "endMs": 335960
+        },
+        {
+          "text": "I'm",
+          "startMs": 335960,
+          "endMs": 336300
+        },
+        {
+          "text": "gone",
+          "startMs": 336300,
+          "endMs": 337460
+        }
+      ]
+    },
+    {
+      "text": "Until we meet again (I'm gone), into that good...",
+      "originalStartMs": 337460,
+      "originalEndMs": 346820,
+      "startMs": 337460,
+      "endMs": 346820,
+      "words": [
+        {
+          "text": "Until",
+          "startMs": 337460,
+          "endMs": 338920
+        },
+        {
+          "text": "we",
+          "startMs": 338920,
+          "endMs": 339120
+        },
+        {
+          "text": "meet",
+          "startMs": 339120,
+          "endMs": 339660
+        },
+        {
+          "text": "again",
+          "startMs": 339660,
+          "endMs": 340360
+        },
+        {
+          "text": "I'm",
+          "startMs": 340360,
+          "endMs": 340820
+        },
+        {
+          "text": "gone",
+          "startMs": 340820,
+          "endMs": 341800
+        },
+        {
+          "text": "into",
+          "startMs": 341800,
+          "endMs": 343160
+        },
+        {
+          "text": "that",
+          "startMs": 343160,
+          "endMs": 345260
+        },
+        {
+          "text": "good",
+          "startMs": 345260,
+          "endMs": 346820
+        }
+      ]
+    }
+  ]
+}

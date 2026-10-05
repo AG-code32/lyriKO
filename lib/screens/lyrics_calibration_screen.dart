@@ -1,42 +1,53 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
-class LyricsCalibrationScreen extends StatefulWidget {
+import '../services/synced_lyrics_service.dart';
+
+class LyricsCalibrationScreen
+    extends StatefulWidget {
+  final String jsonPath;
+
   const LyricsCalibrationScreen({
     super.key,
+    required this.jsonPath,
   });
 
   @override
-  State<LyricsCalibrationScreen> createState() =>
-      _LyricsCalibrationScreenState();
+  State<LyricsCalibrationScreen>
+      createState() =>
+          _LyricsCalibrationScreenState();
 }
 
 class _LyricsCalibrationScreenState
-    extends State<LyricsCalibrationScreen> {
-  final AudioPlayer _player = AudioPlayer();
+    extends State<
+        LyricsCalibrationScreen> {
+  final AudioPlayer _player =
+      AudioPlayer();
 
-  StreamSubscription<Duration>? _positionSub;
-  StreamSubscription<PlayerState>? _stateSub;
+  final FocusNode _keyboardFocus =
+      FocusNode();
+
+  StreamSubscription<Duration>?
+      _positionSub;
+
+  StreamSubscription<PlayerState>?
+      _stateSub;
 
   Map<String, dynamic>? _json;
 
-  List<Map<String, dynamic>> _lines = [];
+  List<Map<String, dynamic>>
+      _lines = [];
 
-  //
-  // Línea que corresponde al tiempo real del reproductor.
-  //
+  String _title = '';
+  String _artist = '';
+
   int _autoLineIndex = 0;
 
-  //
-  // Si tiene valor, esta es la línea bloqueada para edición.
-  // El reproductor puede moverse sin cambiar la línea visible.
-  //
   int? _editingLineIndex;
 
   int _positionMs = 0;
@@ -53,33 +64,11 @@ class _LyricsCalibrationScreenState
   String? _lastSavedMessage;
 
   int get _displayedLineIndex =>
-      _editingLineIndex ?? _autoLineIndex;
+      _editingLineIndex ??
+      _autoLineIndex;
 
   bool get _isEditLocked =>
       _editingLineIndex != null;
-
-  String get _userProfile {
-    final value =
-        Platform.environment['USERPROFILE'];
-
-    if (value == null ||
-        value.isEmpty) {
-      throw StateError(
-        'USERPROFILE could not be found.',
-      );
-    }
-
-    return value;
-  }
-
-  String get _projectRoot =>
-      '$_userProfile\\Desktop\\fluter_projects\\Lyriko\\lyrics_app';
-
-  String get _syncJsonPath =>
-      '$_projectRoot\\assets\\lyrics\\Avenged Sevenfold - Nobody.json';
-
-  String get _albumRoot =>
-      r'F:\Nueva carpeta\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)';
 
   @override
   void initState() {
@@ -90,24 +79,27 @@ class _LyricsCalibrationScreenState
 
   Future<void> _load() async {
     try {
-      final jsonFile =
-          File(_syncJsonPath);
+      final file =
+          File(
+        widget.jsonPath,
+      );
 
-      if (!await jsonFile.exists()) {
+      if (!await file.exists()) {
         throw StateError(
           'Sync JSON not found:\n'
-          '$_syncJsonPath',
+          '${widget.jsonPath}',
         );
       }
 
       final raw =
-          await jsonFile.readAsString(
+          await file.readAsString(
         encoding: utf8,
       );
 
       final decoded =
-          jsonDecode(raw)
-              as Map<String, dynamic>;
+          Map<String, dynamic>.from(
+        jsonDecode(raw) as Map,
+      );
 
       final rawLines =
           decoded['lines'];
@@ -121,30 +113,54 @@ class _LyricsCalibrationScreenState
 
       final lines =
           rawLines
+              .whereType<Map>()
               .map(
                 (item) =>
-                    Map<String, dynamic>.from(
-                  item as Map,
+                    Map<String, dynamic>
+                        .from(
+                  item,
                 ),
               )
               .toList();
 
-      //
-      // Mantener referencia CTC original.
-      //
       for (final line in lines) {
         line['originalStartMs'] ??=
             line['startMs'] ?? 0;
 
         line['originalEndMs'] ??=
             line['endMs'] ?? 0;
+
+        line['startMs'] ??=
+            line['originalStartMs'];
+
+        line['endMs'] ??=
+            line['originalEndMs'];
       }
 
-      final mp3Path =
-          await _findNobodyMp3();
+      final title =
+          decoded['title']
+                  ?.toString() ??
+              'Unknown song';
+
+      final artist =
+          decoded['artist']
+                  ?.toString() ??
+              '';
+
+      final audioPath =
+          await _resolveAudioPath(
+        decoded,
+        title,
+      );
+
+      if (audioPath == null) {
+        throw StateError(
+          'Reference audio could not be found.',
+        );
+      }
 
       await _player.setFilePath(
-        mp3Path,
+        audioPath,
       );
 
       await _player.setVolume(
@@ -156,13 +172,6 @@ class _LyricsCalibrationScreenState
                   ?.inMilliseconds ??
               0;
 
-      //
-      // El reproductor SIEMPRE calcula
-      // qué línea corresponde al tiempo.
-      //
-      // Pero si estamos en EDIT LOCK,
-      // NO modifica la línea que vemos.
-      //
       _positionSub =
           _player.positionStream.listen(
         (position) {
@@ -170,21 +179,21 @@ class _LyricsCalibrationScreenState
             return;
           }
 
-          final newPosition =
+          final milliseconds =
               position.inMilliseconds;
 
-          final newAutoLine =
+          final autoIndex =
               _findLineForPosition(
-            newPosition,
+            milliseconds,
           );
 
           setState(() {
             _positionMs =
-                newPosition;
+                milliseconds;
 
-            if (newAutoLine >= 0) {
+            if (autoIndex >= 0) {
               _autoLineIndex =
-                  newAutoLine;
+                  autoIndex;
             }
           });
         },
@@ -209,87 +218,104 @@ class _LyricsCalibrationScreenState
       }
 
       setState(() {
-        _json =
-            decoded;
-
-        _lines =
-            lines;
-
-        _autoLineIndex =
-            0;
-
-        _editingLineIndex =
-            null;
-
-        _loading =
-            false;
+        _json = decoded;
+        _lines = lines;
+        _title = title;
+        _artist = artist;
+        _autoLineIndex = 0;
+        _editingLineIndex = null;
+        _loading = false;
       });
-
-      //
-      // Al abrir:
-      // ir EXACTAMENTE al start guardado
-      // de la primera línea.
-      //
-      final firstStart =
-          _effectiveStart(0);
 
       await _player.seek(
         Duration(
           milliseconds:
-              _clamp(
-            firstStart,
+              _effectiveStart(
+            0,
           ),
         ),
       );
 
-      _syncAutoLineToPlayer();
+      WidgetsBinding.instance
+          .addPostFrameCallback(
+        (_) {
+          _keyboardFocus
+              .requestFocus();
+        },
+      );
     } catch (e) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _loading =
-            false;
-
-        _error =
-            e.toString();
+        _loading = false;
+        _error = e.toString();
       });
     }
   }
 
-  Future<String> _findNobodyMp3() async {
-    final folder =
-        Directory(_albumRoot);
+  Future<String?>
+      _resolveAudioPath(
+    Map<String, dynamic> json,
+    String title,
+  ) async {
+    final value =
+        json['audioPath']
+            ?.toString()
+            .trim();
 
-    if (!await folder.exists()) {
-      throw StateError(
-        'Album folder not found:\n'
-        '$_albumRoot',
+    if (value != null &&
+        value.isNotEmpty &&
+        await File(
+          value,
+        ).exists()) {
+      return value;
+    }
+
+    //
+    // Compatibility with the original
+    // Nobody JSON.
+    //
+    if (title
+            .toLowerCase()
+            .trim() ==
+        'nobody') {
+      const folderPath =
+          r'F:\Nueva carpeta\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)';
+
+      final directory =
+          Directory(
+        folderPath,
       );
+
+      if (await directory.exists()) {
+        await for (final entity
+            in directory.list(
+          recursive: true,
+          followLinks: false,
+        )) {
+          if (entity is! File) {
+            continue;
+          }
+
+          final lower =
+              entity.path
+                  .toLowerCase();
+
+          if (lower.endsWith(
+                '.mp3',
+              ) &&
+              lower.contains(
+                'nobody',
+              )) {
+            return entity.path;
+          }
+        }
+      }
     }
 
-    await for (final entity
-        in folder.list(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (entity is! File) {
-        continue;
-      }
-
-      final lower =
-          entity.path.toLowerCase();
-
-      if (lower.endsWith('.mp3') &&
-          lower.contains('nobody')) {
-        return entity.path;
-      }
-    }
-
-    throw StateError(
-      'Nobody MP3 was not found.',
-    );
+    return null;
   }
 
   Map<String, dynamic> _line(
@@ -300,39 +326,32 @@ class _LyricsCalibrationScreenState
     );
   }
 
-  int _manualStart(
+  int _start(
     int index,
   ) {
-    final value =
-        _lines[index]['startMs'];
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return 0;
+    return (_lines[index]
+                ['startMs']
+            as num?)
+        ?.toInt() ??
+        0;
   }
 
   int _originalStart(
     int index,
   ) {
-    final value =
-        _lines[index]
-            ['originalStartMs'];
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return _manualStart(
-      index,
-    );
+    return (_lines[index]
+                ['originalStartMs']
+            as num?)
+        ?.toInt() ??
+        _start(
+          index,
+        );
   }
 
   int _effectiveStart(
     int index,
   ) {
-    return _manualStart(
+    return _start(
       index,
     );
   }
@@ -345,20 +364,20 @@ class _LyricsCalibrationScreenState
     }
 
     if (positionMs <
-        _effectiveStart(0)) {
+        _effectiveStart(
+          0,
+        )) {
       return 0;
     }
 
-    //
-    // Encontrar la última línea cuyo
-    // startMs sea <= al playhead.
-    //
     for (var i =
             _lines.length - 1;
         i >= 0;
         i--) {
       if (positionMs >=
-          _effectiveStart(i)) {
+          _effectiveStart(
+            i,
+          )) {
         return i;
       }
     }
@@ -379,30 +398,6 @@ class _LyricsCalibrationScreenState
     }
 
     return value;
-  }
-
-  String _formatTime(
-    int milliseconds,
-  ) {
-    var ms =
-        milliseconds;
-
-    if (ms < 0) {
-      ms = 0;
-    }
-
-    final minutes =
-        ms ~/ 60000;
-
-    final seconds =
-        (ms % 60000) ~/ 1000;
-
-    final millis =
-        ms % 1000;
-
-    return '$minutes:'
-        '${seconds.toString().padLeft(2, '0')}.'
-        '${millis.toString().padLeft(3, '0')}';
   }
 
   Future<void> _togglePlay() async {
@@ -429,40 +424,12 @@ class _LyricsCalibrationScreenState
             target,
       ),
     );
-
-    _syncAutoLineToPlayer();
-  }
-
-  void _syncAutoLineToPlayer() {
-    if (!mounted ||
-        _lines.isEmpty) {
-      return;
-    }
-
-    final position =
-        _player.position
-            .inMilliseconds;
-
-    final index =
-        _findLineForPosition(
-      position,
-    );
-
-    setState(() {
-      _positionMs =
-          position;
-
-      if (index >= 0) {
-        _autoLineIndex =
-            index;
-      }
-    });
   }
 
   Future<void> _setVolume(
     double value,
   ) async {
-    final safeVolume =
+    final safe =
         value.clamp(
       0.0,
       1.0,
@@ -470,25 +437,20 @@ class _LyricsCalibrationScreenState
 
     setState(() {
       _volume =
-          safeVolume;
+          safe;
     });
 
     await _player.setVolume(
-      safeVolume,
+      safe,
     );
   }
 
-  //
-  // =============================
-  // AUTO FOLLOW
-  // =============================
-  //
   void _returnToAutoFollow() {
     final position =
         _player.position
             .inMilliseconds;
 
-    final index =
+    final auto =
         _findLineForPosition(
       position,
     );
@@ -497,12 +459,9 @@ class _LyricsCalibrationScreenState
       _editingLineIndex =
           null;
 
-      _positionMs =
-          position;
-
-      if (index >= 0) {
+      if (auto >= 0) {
         _autoLineIndex =
-            index;
+            auto;
       }
 
       _lastSavedMessage =
@@ -510,25 +469,13 @@ class _LyricsCalibrationScreenState
     });
   }
 
-  //
-  // =============================
-  // MARK
-  // =============================
-  //
   Future<void> _markNow() async {
     if (_marking ||
         _lines.isEmpty) {
       return;
     }
 
-    //
-    // Si estamos editando una línea bloqueada,
-    // modificamos ESA línea.
-    //
-    // Si estamos en AUTO FOLLOW,
-    // modificamos la línea activa automática.
-    //
-    final lineIndex =
+    final index =
         _displayedLineIndex;
 
     final position =
@@ -536,14 +483,13 @@ class _LyricsCalibrationScreenState
             .inMilliseconds;
 
     setState(() {
-      _marking =
-          true;
+      _marking = true;
     });
 
     try {
       final current =
           _line(
-        lineIndex,
+        index,
       );
 
       current['startMs'] =
@@ -552,13 +498,13 @@ class _LyricsCalibrationScreenState
       current['words'] =
           <dynamic>[];
 
-      _lines[lineIndex] =
+      _lines[index] =
           current;
 
-      if (lineIndex > 0) {
+      if (index > 0) {
         final previous =
             _line(
-          lineIndex - 1,
+          index - 1,
         );
 
         previous['endMs'] =
@@ -569,7 +515,7 @@ class _LyricsCalibrationScreenState
         previous['words'] =
             <dynamic>[];
 
-        _lines[lineIndex - 1] =
+        _lines[index - 1] =
             previous;
       }
 
@@ -579,63 +525,33 @@ class _LyricsCalibrationScreenState
         return;
       }
 
-      final autoIndex =
-          _findLineForPosition(
-        position,
-      );
-
       setState(() {
-        if (autoIndex >= 0) {
-          _autoLineIndex =
-              autoIndex;
-        }
+        _marking = false;
 
         _lastSavedMessage =
-            'Line ${lineIndex + 1} saved at '
-            '${_formatTime(position)}';
-
-        _marking =
-            false;
+            'Line ${index + 1} saved';
       });
-
-      //
-      // Si había EDIT LOCK,
-      // permanece bloqueado.
-      //
-      // Tú decides cuándo volver a AUTO.
-      //
     } catch (e) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _marking =
-            false;
-
-        _error =
-            e.toString();
+        _marking = false;
+        _error = e.toString();
       });
     }
   }
 
-  //
-  // =============================
-  // RESET TO CTC
-  // =============================
-  //
-  Future<void> _resetCurrentLineToCtc() async {
-    if (_lines.isEmpty ||
-        _marking) {
+  Future<void>
+      _resetCurrentLineToCtc() async {
+    if (_lines.isEmpty) {
       return;
     }
 
     final index =
         _displayedLineIndex;
 
-    //
-    // Entramos en EDIT LOCK.
-    //
     setState(() {
       _editingLineIndex =
           index;
@@ -680,9 +596,6 @@ class _LyricsCalibrationScreenState
 
     await _saveJson();
 
-    //
-    // Ir EXACTAMENTE al CTC.
-    //
     await _player.seek(
       Duration(
         milliseconds:
@@ -692,32 +605,19 @@ class _LyricsCalibrationScreenState
       ),
     );
 
-    _syncAutoLineToPlayer();
-
     if (!mounted) {
       return;
     }
 
     setState(() {
-      //
-      // IMPORTANTE:
-      // aunque el reproductor piense que corresponde
-      // otra línea, mantenemos la elegida.
-      //
       _editingLineIndex =
           index;
 
       _lastSavedMessage =
-          'Line ${index + 1} reset to CTC '
-          '${_formatTime(original)}';
+          'Line ${index + 1} reset to CTC';
     });
   }
 
-  //
-  // =============================
-  // PREVIOUS
-  // =============================
-  //
   Future<void> _previousLine() async {
     final current =
         _displayedLineIndex;
@@ -729,20 +629,11 @@ class _LyricsCalibrationScreenState
     final target =
         current - 1;
 
-    //
-    // BLOQUEAMOS esta línea para editar.
-    //
     setState(() {
       _editingLineIndex =
           target;
-
-      _lastSavedMessage =
-          null;
     });
 
-    //
-    // Ir exactamente a su start actual.
-    //
     await _player.seek(
       Duration(
         milliseconds:
@@ -751,21 +642,8 @@ class _LyricsCalibrationScreenState
         ),
       ),
     );
-
-    _syncAutoLineToPlayer();
-
-    //
-    // _syncAutoLineToPlayer puede calcular
-    // otra línea automática,
-    // pero EDIT LOCK sigue mostrando target.
-    //
   }
 
-  //
-  // =============================
-  // NEXT
-  // =============================
-  //
   Future<void> _nextLine() async {
     final current =
         _displayedLineIndex;
@@ -781,9 +659,6 @@ class _LyricsCalibrationScreenState
     setState(() {
       _editingLineIndex =
           target;
-
-      _lastSavedMessage =
-          null;
     });
 
     await _player.seek(
@@ -794,47 +669,25 @@ class _LyricsCalibrationScreenState
         ),
       ),
     );
-
-    _syncAutoLineToPlayer();
   }
 
-  //
-  // =============================
-  // REPLAY
-  // =============================
-  //
   Future<void> _replayLine() async {
-    final targetIndex =
+    final index =
         _displayedLineIndex;
 
-    //
-    // Replay también entra en EDIT LOCK.
-    //
     setState(() {
       _editingLineIndex =
-          targetIndex;
+          index;
     });
-
-    //
-    // SIN 2.5 segundos.
-    //
-    // Va EXACTAMENTE al start actual.
-    //
-    final targetTime =
-        _effectiveStart(
-      targetIndex,
-    );
 
     await _player.seek(
       Duration(
         milliseconds:
-            _clamp(
-          targetTime,
+            _effectiveStart(
+          index,
         ),
       ),
     );
-
-    _syncAutoLineToPlayer();
 
     if (!_player.playing) {
       await _player.play();
@@ -858,17 +711,15 @@ class _LyricsCalibrationScreenState
     }
 
     await File(
-      _syncJsonPath,
+      widget.jsonPath,
     ).writeAsString(
       const JsonEncoder.withIndent(
         '  ',
       ).convert(
         json,
       ),
-      encoding:
-          utf8,
-      flush:
-          true,
+      encoding: utf8,
+      flush: true,
     );
   }
 
@@ -878,8 +729,7 @@ class _LyricsCalibrationScreenState
     }
 
     setState(() {
-      _saving =
-          true;
+      _saving = true;
     });
 
     try {
@@ -898,20 +748,94 @@ class _LyricsCalibrationScreenState
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving =
-              false;
-        });
+
+      setState(() {
+        _saving = false;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
       }
+
+      setState(() {
+        _saving = false;
+        _error = e.toString();
+      });
     }
+  }
+
+  String _formatTime(
+    int milliseconds,
+  ) {
+    var value =
+        milliseconds;
+
+    if (value < 0) {
+      value = 0;
+    }
+
+    final minutes =
+        value ~/ 60000;
+
+    final seconds =
+        (value % 60000) ~/ 1000;
+
+    final millis =
+        value % 1000;
+
+    return '$minutes:'
+        '${seconds.toString().padLeft(2, '0')}.'
+        '${millis.toString().padLeft(3, '0')}';
+  }
+
+  KeyEventResult _handleKey(
+    FocusNode node,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent &&
+        event is! KeyRepeatEvent) {
+      return KeyEventResult
+          .ignored;
+    }
+
+    if (event.logicalKey ==
+        LogicalKeyboardKey.space) {
+      _togglePlay();
+
+      return KeyEventResult
+          .handled;
+    }
+
+    if (event.logicalKey ==
+        LogicalKeyboardKey.arrowLeft) {
+      _seekBy(
+        -1000,
+      );
+
+      return KeyEventResult
+          .handled;
+    }
+
+    if (event.logicalKey ==
+        LogicalKeyboardKey.arrowRight) {
+      _seekBy(
+        1000,
+      );
+
+      return KeyEventResult
+          .handled;
+    }
+
+    return KeyEventResult
+        .ignored;
   }
 
   @override
   void dispose() {
     _positionSub?.cancel();
     _stateSub?.cancel();
+
+    _keyboardFocus.dispose();
 
     _player.dispose();
 
@@ -941,272 +865,131 @@ class _LyricsCalibrationScreenState
             const Color(
           0xFF080808,
         ),
+        appBar: AppBar(
+          backgroundColor:
+              const Color(
+            0xFF080808,
+          ),
+        ),
         body: Center(
-          child: Padding(
-            padding:
-                const EdgeInsets.all(
-              30,
-            ),
-            child: Text(
-              _error!,
-              textAlign:
-                  TextAlign.center,
-              style:
-                  const TextStyle(
-                color:
-                    Colors.redAccent,
-              ),
+          child:
+              SelectableText(
+            _error!,
+            style:
+                const TextStyle(
+              color:
+                  Colors.redAccent,
             ),
           ),
         ),
       );
     }
 
-    final displayedIndex =
+    final index =
         _displayedLineIndex;
 
-    final current =
-        _lines[
-            displayedIndex];
+    final line =
+        _lines[index];
 
-    final previousText =
-        displayedIndex > 0
-            ? _lines[
-                    displayedIndex -
-                        1]
-                ['text']
-                .toString()
-            : '';
+    final text =
+        line['text']
+                ?.toString() ??
+            '';
 
-    final nextText =
-        displayedIndex <
-                _lines.length - 1
-            ? _lines[
-                    displayedIndex +
-                        1]
-                ['text']
-                .toString()
-            : '';
+    final currentStart =
+        _effectiveStart(
+      index,
+    );
 
-    final maxSlider =
-        _durationMs > 0
-            ? _durationMs
-                .toDouble()
-            : 1.0;
+    final originalStart =
+        _originalStart(
+      index,
+    );
 
-    final sliderValue =
-        _clamp(
-          _positionMs,
-        )
-            .toDouble()
-            .clamp(
-              0.0,
-              maxSlider,
-            );
+    final delta =
+        currentStart -
+            originalStart;
 
     return Scaffold(
       backgroundColor:
           const Color(
         0xFF080808,
       ),
-
       body: SafeArea(
         child: Focus(
-          autofocus:
-              true,
-
-          onKeyEvent: (
-            node,
-            event,
-          ) {
-            if (event
-                    is KeyRepeatEvent &&
-                event.logicalKey ==
-                    LogicalKeyboardKey
-                        .space) {
-              return KeyEventResult
-                  .handled;
-            }
-
-            if (event
-                    is KeyDownEvent &&
-                event.logicalKey ==
-                    LogicalKeyboardKey
-                        .space) {
-              _markNow();
-
-              return KeyEventResult
-                  .handled;
-            }
-
-            return KeyEventResult
-                .ignored;
-          },
-
+          focusNode:
+              _keyboardFocus,
+          autofocus: true,
+          onKeyEvent:
+              _handleKey,
           child: Column(
             children: [
-              //
-              // HEADER
-              //
               Padding(
                 padding:
                     const EdgeInsets
                         .fromLTRB(
                   22,
-                  14,
-                  26,
-                  14,
+                  16,
+                  22,
+                  8,
                 ),
-
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () {
+                      onPressed:
+                          () {
                         Navigator.pop(
                           context,
                         );
                       },
-
                       icon:
                           const Icon(
                         Icons
                             .arrow_back_rounded,
                       ),
                     ),
-
                     const SizedBox(
-                      width:
-                          10,
+                      width: 8,
                     ),
-
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment:
                             CrossAxisAlignment
                                 .start,
-
                         children: [
                           Text(
-                            'Nobody Sync Calibration',
-
+                            _title,
                             style:
-                                TextStyle(
-                              color:
-                                  Colors.white,
+                                const TextStyle(
                               fontSize:
-                                  21,
+                                  22,
                               fontWeight:
                                   FontWeight
                                       .w700,
                             ),
                           ),
-
                           Text(
-                            'Avenged Sevenfold',
-
+                            _artist,
                             style:
-                                TextStyle(
+                                const TextStyle(
                               color:
-                                  Colors.white38,
+                                  Colors
+                                      .white54,
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    //
-                    // MODE INDICATOR
-                    //
-                    Container(
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
-                        horizontal:
-                            12,
-                        vertical:
-                            7,
-                      ),
-
-                      decoration:
-                          BoxDecoration(
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                          20,
-                        ),
-
-                        border:
-                            Border.all(
-                          color:
-                              _isEditLocked
-                                  ? Colors
-                                      .orangeAccent
-                                  : Colors
-                                      .greenAccent,
-                        ),
-                      ),
-
-                      child: Text(
-                        _isEditLocked
-                            ? 'EDIT LOCK'
-                            : 'AUTO FOLLOW',
-
-                        style:
-                            TextStyle(
-                          color:
-                              _isEditLocked
-                                  ? Colors
-                                      .orangeAccent
-                                  : Colors
-                                      .greenAccent,
-
-                          fontSize:
-                              12,
-
-                          fontWeight:
-                              FontWeight
-                                  .w700,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      width:
-                          16,
-                    ),
-
-                    Text(
-                      '${displayedIndex + 1} / ${_lines.length}',
-
-                      style:
-                          const TextStyle(
-                        color:
-                            Colors.white54,
-
-                        fontFeatures: [
-                          FontFeature
-                              .tabularFigures(),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(
-                      width:
-                          20,
-                    ),
-
                     FilledButton.icon(
                       onPressed:
                           _saving
                               ? null
                               : _saveFinal,
-
                       icon:
                           const Icon(
                         Icons
                             .save_rounded,
                       ),
-
                       label:
                           const Text(
                         'SAVE',
@@ -1216,737 +999,483 @@ class _LyricsCalibrationScreenState
                 ),
               ),
 
-              const Divider(
-                height:
-                    1,
-                color:
-                    Colors.white12,
+              Padding(
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+                  horizontal:
+                      28,
+                  vertical:
+                      8,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal:
+                            12,
+                        vertical:
+                            6,
+                      ),
+                      decoration:
+                          BoxDecoration(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          18,
+                        ),
+                        color:
+                            _isEditLocked
+                                ? Colors
+                                    .orange
+                                    .withValues(
+                                      alpha:
+                                          0.12,
+                                    )
+                                : Colors
+                                    .greenAccent
+                                    .withValues(
+                                      alpha:
+                                          0.10,
+                                    ),
+                      ),
+                      child: Text(
+                        _isEditLocked
+                            ? 'EDIT LOCK'
+                            : 'AUTO FOLLOW',
+                        style:
+                            TextStyle(
+                          color:
+                              _isEditLocked
+                                  ? Colors
+                                      .orangeAccent
+                                  : Colors
+                                      .greenAccent,
+                          fontSize:
+                              11,
+                          fontWeight:
+                              FontWeight
+                                  .w700,
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    Text(
+                      'Line ${index + 1} / ${_lines.length}',
+                      style:
+                          const TextStyle(
+                        color:
+                            Colors.white38,
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               Expanded(
                 child: Center(
-                  child:
-                      SingleChildScrollView(
+                  child: Padding(
                     padding:
                         const EdgeInsets
-                            .fromLTRB(
-                      40,
-                      20,
-                      40,
-                      28,
+                            .symmetric(
+                      horizontal:
+                          60,
                     ),
-
-                    child:
-                        ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(
-                        maxWidth:
-                            1100,
-                      ),
-
-                      child: Column(
-                        mainAxisSize:
-                            MainAxisSize.min,
-
-                        children: [
-                          //
-                          // FIXED LYRIC PANEL
-                          //
-                          SizedBox(
+                    child: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment
+                              .center,
+                      children: [
+                        Text(
+                          text,
+                          textAlign:
+                              TextAlign
+                                  .center,
+                          maxLines: 2,
+                          overflow:
+                              TextOverflow
+                                  .ellipsis,
+                          style:
+                              const TextStyle(
+                            fontSize:
+                                38,
+                            fontWeight:
+                                FontWeight
+                                    .w700,
                             height:
-                                245,
-
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height:
-                                      42,
-
-                                  child: Center(
-                                    child: Text(
-                                      previousText,
-
-                                      maxLines:
-                                          1,
-
-                                      overflow:
-                                          TextOverflow
-                                              .ellipsis,
-
-                                      textAlign:
-                                          TextAlign
-                                              .center,
-
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            Colors.white24,
-
-                                        fontSize:
-                                            18,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(
-                                  height:
-                                      6,
-                                ),
-
-                                SizedBox(
-                                  height:
-                                      108,
-
-                                  child: Center(
-                                    child:
-                                        AnimatedSwitcher(
-                                      duration:
-                                          const Duration(
-                                        milliseconds:
-                                            160,
-                                      ),
-
-                                      child:
-                                          Text(
-                                        current['text']
-                                            .toString(),
-
-                                        key:
-                                            ValueKey(
-                                          displayedIndex,
-                                        ),
-
-                                        maxLines:
-                                            2,
-
-                                        overflow:
-                                            TextOverflow
-                                                .ellipsis,
-
-                                        textAlign:
-                                            TextAlign
-                                                .center,
-
-                                        style:
-                                            const TextStyle(
-                                          color:
-                                              Colors.white,
-
-                                          fontSize:
-                                              38,
-
-                                          height:
-                                              1.18,
-
-                                          fontWeight:
-                                              FontWeight
-                                                  .w700,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                SizedBox(
-                                  height:
-                                      36,
-
-                                  child: Center(
-                                    child: Text(
-                                      'Start: '
-                                      '${_formatTime(_effectiveStart(displayedIndex))}'
-                                      '   •   '
-                                      'CTC: '
-                                      '${_formatTime(_originalStart(displayedIndex))}',
-
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            Colors.white38,
-
-                                        fontFeatures: [
-                                          FontFeature
-                                              .tabularFigures(),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                SizedBox(
-                                  height:
-                                      45,
-
-                                  child: Center(
-                                    child: Text(
-                                      nextText,
-
-                                      maxLines:
-                                          1,
-
-                                      overflow:
-                                          TextOverflow
-                                              .ellipsis,
-
-                                      textAlign:
-                                          TextAlign
-                                              .center,
-
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            Colors.white24,
-
-                                        fontSize:
-                                            18,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                                1.25,
                           ),
+                        ),
 
-                          SizedBox(
-                            height:
-                                28,
+                        const SizedBox(
+                          height: 30,
+                        ),
 
-                            child: Center(
-                              child:
-                                  _lastSavedMessage ==
-                                          null
-                                      ? const SizedBox()
-                                      : Text(
-                                          _lastSavedMessage!,
-
-                                          style:
-                                              const TextStyle(
-                                            color:
-                                                Colors.white54,
-
-                                            fontSize:
-                                                12,
-
-                                            fontFeatures: [
-                                              FontFeature
-                                                  .tabularFigures(),
-                                            ],
-                                          ),
-                                        ),
-                            ),
+                        Text(
+                          'CTC  ${_formatTime(originalStart)}',
+                          style:
+                              const TextStyle(
+                            color:
+                                Colors
+                                    .white38,
                           ),
+                        ),
 
-                          const SizedBox(
-                            height:
-                                12,
+                        const SizedBox(
+                          height: 5,
+                        ),
+
+                        Text(
+                          'CURRENT  ${_formatTime(currentStart)}',
+                          style:
+                              const TextStyle(
+                            color:
+                                Colors
+                                    .white70,
                           ),
+                        ),
 
-                          //
-                          // TIMELINE
-                          //
-                          Slider(
-                            min:
-                                0,
+                        const SizedBox(
+                          height: 5,
+                        ),
 
-                            max:
-                                maxSlider,
-
-                            value:
-                                sliderValue,
-
-                            onChanged: (
-                              value,
-                            ) async {
-                              await _player
-                                  .seek(
-                                Duration(
-                                  milliseconds:
-                                      value.round(),
-                                ),
-                              );
-
-                              _syncAutoLineToPlayer();
-                            },
+                        Text(
+                          'Δ ${delta >= 0 ? '+' : ''}${delta} ms',
+                          style:
+                              TextStyle(
+                            color:
+                                delta == 0
+                                    ? Colors
+                                        .white30
+                                    : Colors
+                                        .orangeAccent,
                           ),
-
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment
-                                    .spaceBetween,
-
-                            children: [
-                              Text(
-                                _formatTime(
-                                  _positionMs,
-                                ),
-
-                                style:
-                                    const TextStyle(
-                                  color:
-                                      Colors.white,
-
-                                  fontSize:
-                                      21,
-
-                                  fontWeight:
-                                      FontWeight
-                                          .w600,
-
-                                  fontFeatures: [
-                                    FontFeature
-                                        .tabularFigures(),
-                                  ],
-                                ),
-                              ),
-
-                              Text(
-                                _formatTime(
-                                  _durationMs,
-                                ),
-
-                                style:
-                                    const TextStyle(
-                                  color:
-                                      Colors.white30,
-
-                                  fontSize:
-                                      15,
-
-                                  fontFeatures: [
-                                    FontFeature
-                                        .tabularFigures(),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(
-                            height:
-                                18,
-                          ),
-
-                          //
-                          // PLAYER
-                          //
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment
-                                    .center,
-
-                            children: [
-                              OutlinedButton(
-                                onPressed: () {
-                                  _seekBy(
-                                    -5000,
-                                  );
-                                },
-
-                                child:
-                                    const Padding(
-                                  padding:
-                                      EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        10,
-                                    vertical:
-                                        11,
-                                  ),
-
-                                  child:
-                                      Text(
-                                    '-5 s',
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    12,
-                              ),
-
-                              OutlinedButton(
-                                onPressed: () {
-                                  _seekBy(
-                                    -1000,
-                                  );
-                                },
-
-                                child:
-                                    const Padding(
-                                  padding:
-                                      EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        10,
-                                    vertical:
-                                        11,
-                                  ),
-
-                                  child:
-                                      Text(
-                                    '-1 s',
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    20,
-                              ),
-
-                              FilledButton(
-                                style:
-                                    FilledButton
-                                        .styleFrom(
-                                  shape:
-                                      const CircleBorder(),
-
-                                  padding:
-                                      const EdgeInsets.all(
-                                    25,
-                                  ),
-                                ),
-
-                                onPressed:
-                                    _togglePlay,
-
-                                child:
-                                    Icon(
-                                  _playing
-                                      ? Icons
-                                          .pause_rounded
-                                      : Icons
-                                          .play_arrow_rounded,
-
-                                  size:
-                                      44,
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    20,
-                              ),
-
-                              OutlinedButton(
-                                onPressed: () {
-                                  _seekBy(
-                                    1000,
-                                  );
-                                },
-
-                                child:
-                                    const Padding(
-                                  padding:
-                                      EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        10,
-                                    vertical:
-                                        11,
-                                  ),
-
-                                  child:
-                                      Text(
-                                    '+1 s',
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    12,
-                              ),
-
-                              OutlinedButton(
-                                onPressed: () {
-                                  _seekBy(
-                                    5000,
-                                  );
-                                },
-
-                                child:
-                                    const Padding(
-                                  padding:
-                                      EdgeInsets
-                                          .symmetric(
-                                    horizontal:
-                                        10,
-                                    vertical:
-                                        11,
-                                  ),
-
-                                  child:
-                                      Text(
-                                    '+5 s',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(
-                            height:
-                                18,
-                          ),
-
-                          //
-                          // VOLUME
-                          //
-                          Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment
-                                    .center,
-
-                            children: [
-                              Icon(
-                                _volume == 0
-                                    ? Icons
-                                        .volume_off_rounded
-                                    : _volume <
-                                            0.5
-                                        ? Icons
-                                            .volume_down_rounded
-                                        : Icons
-                                            .volume_up_rounded,
-
-                                color:
-                                    Colors.white54,
-
-                                size:
-                                    22,
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    8,
-                              ),
-
-                              SizedBox(
-                                width:
-                                    260,
-
-                                child:
-                                    Slider(
-                                  min:
-                                      0,
-
-                                  max:
-                                      1,
-
-                                  divisions:
-                                      20,
-
-                                  value:
-                                      _volume,
-
-                                  onChanged:
-                                      _setVolume,
-                                ),
-                              ),
-
-                              const SizedBox(
-                                width:
-                                    8,
-                              ),
-
-                              SizedBox(
-                                width:
-                                    46,
-
-                                child: Text(
-                                  '${(_volume * 100).round()}%',
-
-                                  textAlign:
-                                      TextAlign
-                                          .right,
-
-                                  style:
-                                      const TextStyle(
-                                    color:
-                                        Colors.white54,
-
-                                    fontFeatures: [
-                                      FontFeature
-                                          .tabularFigures(),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(
-                            height:
-                                16,
-                          ),
-
-                          //
-                          // MARK
-                          //
-                          FilledButton.icon(
-                            onPressed:
-                                _marking
-                                    ? null
-                                    : _markNow,
-
-                            icon:
-                                const Icon(
-                              Icons
-                                  .my_location_rounded,
-                            ),
-
-                            label:
-                                Padding(
-                              padding:
-                                  const EdgeInsets
-                                      .symmetric(
-                                horizontal:
-                                    28,
-                                vertical:
-                                    15,
-                              ),
-
-                              child: Text(
-                                _marking
-                                    ? 'SAVING...'
-                                    : _isEditLocked
-                                        ? 'MARK EDIT LINE  •  SPACE'
-                                        : 'MARK CURRENT LINE  •  SPACE',
-
-                                style:
-                                    const TextStyle(
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
-
-                                  fontSize:
-                                      15,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(
-                            height:
-                                20,
-                          ),
-
-                          //
-                          // NAVIGATION
-                          //
-                          Wrap(
-                            alignment:
-                                WrapAlignment
-                                    .center,
-
-                            spacing:
-                                12,
-
-                            runSpacing:
-                                10,
-
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed:
-                                    displayedIndex >
-                                            0
-                                        ? _previousLine
-                                        : null,
-
-                                icon:
-                                    const Icon(
-                                  Icons
-                                      .chevron_left,
-                                ),
-
-                                label:
-                                    const Text(
-                                  'PREVIOUS',
-                                ),
-                              ),
-
-                              OutlinedButton.icon(
-                                onPressed:
-                                    _replayLine,
-
-                                icon:
-                                    const Icon(
-                                  Icons
-                                      .restart_alt,
-                                ),
-
-                                label:
-                                    const Text(
-                                  'REPLAY LINE',
-                                ),
-                              ),
-
-                              OutlinedButton.icon(
-                                onPressed:
-                                    _resetCurrentLineToCtc,
-
-                                icon:
-                                    const Icon(
-                                  Icons
-                                      .restore_rounded,
-                                ),
-
-                                label:
-                                    const Text(
-                                  'RESET TO CTC',
-                                ),
-                              ),
-
-                              OutlinedButton.icon(
-                                onPressed:
-                                    displayedIndex <
-                                            _lines.length -
-                                                1
-                                        ? _nextLine
-                                        : null,
-
-                                icon:
-                                    const Icon(
-                                  Icons
-                                      .chevron_right,
-                                ),
-
-                                label:
-                                    const Text(
-                                  'NEXT',
-                                ),
-                              ),
-
-                              //
-                              // Salir explícitamente de EDIT LOCK.
-                              //
-                              FilledButton.icon(
-                                onPressed:
-                                    _isEditLocked
-                                        ? _returnToAutoFollow
-                                        : null,
-
-                                icon:
-                                    const Icon(
-                                  Icons
-                                      .sync_rounded,
-                                ),
-
-                                label:
-                                    const Text(
-                                  'AUTO FOLLOW',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
+              ),
+
+              Padding(
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+                  horizontal:
+                      30,
+                ),
+                child: Slider(
+                  value:
+                      _positionMs
+                          .toDouble()
+                          .clamp(
+                            0,
+                            _durationMs
+                                .toDouble(),
+                          ),
+                  min: 0,
+                  max:
+                      _durationMs > 0
+                          ? _durationMs
+                              .toDouble()
+                          : 1,
+                  onChanged:
+                      (value) {
+                    _player.seek(
+                      Duration(
+                        milliseconds:
+                            value
+                                .round(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              Padding(
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+                  horizontal:
+                      34,
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      _formatTime(
+                        _positionMs,
+                      ),
+                      style:
+                          const TextStyle(
+                        color:
+                            Colors.white54,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _formatTime(
+                        _durationMs,
+                      ),
+                      style:
+                          const TextStyle(
+                        color:
+                            Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(
+                height: 12,
+              ),
+
+              Wrap(
+                alignment:
+                    WrapAlignment
+                        .center,
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  OutlinedButton(
+                    onPressed:
+                        () =>
+                            _seekBy(
+                      -5000,
+                    ),
+                    child:
+                        const Text(
+                      '-5s',
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed:
+                        () =>
+                            _seekBy(
+                      -1000,
+                    ),
+                    child:
+                        const Text(
+                      '-1s',
+                    ),
+                  ),
+                  IconButton.filled(
+                    onPressed:
+                        _togglePlay,
+                    icon: Icon(
+                      _playing
+                          ? Icons
+                              .pause_rounded
+                          : Icons
+                              .play_arrow_rounded,
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed:
+                        () =>
+                            _seekBy(
+                      1000,
+                    ),
+                    child:
+                        const Text(
+                      '+1s',
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed:
+                        () =>
+                            _seekBy(
+                      5000,
+                    ),
+                    child:
+                        const Text(
+                      '+5s',
+                    ),
+                  ),
+                ],
+              ),
+
+              Padding(
+                padding:
+                    const EdgeInsets
+                        .fromLTRB(
+                  34,
+                  14,
+                  34,
+                  4,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons
+                          .volume_down_rounded,
+                      size: 20,
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value:
+                            _volume,
+                        min: 0,
+                        max: 1,
+                        onChanged:
+                            _setVolume,
+                      ),
+                    ),
+                    const Icon(
+                      Icons
+                          .volume_up_rounded,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding:
+                    const EdgeInsets
+                        .fromLTRB(
+                  24,
+                  8,
+                  24,
+                  14,
+                ),
+                child:
+                    FilledButton.icon(
+                  onPressed:
+                      _marking
+                          ? null
+                          : _markNow,
+                  icon:
+                      const Icon(
+                    Icons
+                        .location_on_rounded,
+                  ),
+                  label:
+                      const Padding(
+                    padding:
+                        EdgeInsets
+                            .symmetric(
+                      vertical:
+                          13,
+                      horizontal:
+                          18,
+                    ),
+                    child:
+                        Text(
+                      'MARK CURRENT LINE',
+                    ),
+                  ),
+                ),
+              ),
+
+              Wrap(
+                alignment:
+                    WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed:
+                        index > 0
+                            ? _previousLine
+                            : null,
+                    icon:
+                        const Icon(
+                      Icons
+                          .skip_previous_rounded,
+                    ),
+                    label:
+                        const Text(
+                      'PREVIOUS',
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed:
+                        _replayLine,
+                    icon:
+                        const Icon(
+                      Icons
+                          .replay_rounded,
+                    ),
+                    label:
+                        const Text(
+                      'REPLAY',
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed:
+                        _resetCurrentLineToCtc,
+                    icon:
+                        const Icon(
+                      Icons
+                          .restart_alt_rounded,
+                    ),
+                    label:
+                        const Text(
+                      'RESET TO CTC',
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed:
+                        index <
+                                _lines.length -
+                                    1
+                            ? _nextLine
+                            : null,
+                    icon:
+                        const Icon(
+                      Icons
+                          .skip_next_rounded,
+                    ),
+                    label:
+                        const Text(
+                      'NEXT',
+                    ),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed:
+                        _isEditLocked
+                            ? _returnToAutoFollow
+                            : null,
+                    icon:
+                        const Icon(
+                      Icons
+                          .sync_rounded,
+                    ),
+                    label:
+                        const Text(
+                      'AUTO FOLLOW',
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_lastSavedMessage !=
+                  null)
+                Padding(
+                  padding:
+                      const EdgeInsets
+                          .only(
+                    top: 12,
+                  ),
+                  child: Text(
+                    _lastSavedMessage!,
+                    style:
+                        const TextStyle(
+                      color:
+                          Colors
+                              .greenAccent,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(
+                height: 24,
               ),
             ],
           ),

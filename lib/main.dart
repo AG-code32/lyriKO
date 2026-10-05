@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
-import 'screens/fingerprint_match_test_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding
+      .ensureInitialized();
 
   runApp(
     const LyricsApp(),
   );
 }
 
-class LyricsApp extends StatelessWidget {
+class LyricsApp
+    extends StatelessWidget {
   const LyricsApp({
     super.key,
   });
@@ -20,16 +22,20 @@ class LyricsApp extends StatelessWidget {
     BuildContext context,
   ) {
     return MaterialApp(
-      title: 'Lyrics',
+      title: 'Lyriko',
       debugShowCheckedModeBanner:
           false,
       theme: ThemeData(
         brightness:
             Brightness.dark,
         useMaterial3: true,
+        scaffoldBackgroundColor:
+            const Color(
+          0xFF080808,
+        ),
       ),
       home:
-          const FingerprintMatchTestScreen(),
+          const HomeScreen(),
     );
   }
 }
