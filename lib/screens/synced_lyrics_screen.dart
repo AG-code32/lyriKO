@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../services/fingerprint_match_service.dart';
 import '../services/synced_lyrics_service.dart';
@@ -56,6 +57,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
 
   bool _clockRunning = false;
   bool _openingEditor = false;
+  bool _overlayModeActive = false;
   bool _mediaPollBusy = false;
   bool _fallbackBusy = false;
   bool _fallbackStarted = false;
@@ -70,6 +72,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
 
   String _trackingLabel = 'STARTING';
   Color _trackingColor = Colors.white54;
+  double _backgroundOpacityPercent = 20.0;
   String? _error;
 
   static const Duration _mediaPollInterval = Duration(milliseconds: 500);
@@ -91,7 +94,60 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
     _anchorPositionMs = widget.initialPositionMs;
     _currentPositionMs = widget.initialPositionMs;
 
+    _enterLyricsOverlayMode();
     _load();
+  }
+
+  Future<void> _enterLyricsOverlayMode() async {
+    try {
+      await windowManager.setBackgroundColor(
+        Colors.transparent,
+      );
+
+      await windowManager.setAsFrameless();
+
+      await windowManager.setResizable(true);
+      await windowManager.setMinimumSize(const Size(360, 240));
+
+      await windowManager.setAlwaysOnTop(
+        true,
+      );
+
+      _overlayModeActive = true;
+    } catch (e) {
+      debugPrint(
+        'Could not enable lyrics overlay mode: $e',
+      );
+    }
+  }
+
+  Future<void> _restoreNormalWindowMode() async {
+    if (!_overlayModeActive) {
+      return;
+    }
+
+    _overlayModeActive = false;
+
+    try {
+      await windowManager.setAlwaysOnTop(
+        false,
+      );
+
+      await windowManager.setTitleBarStyle(
+        TitleBarStyle.normal,
+        windowButtonVisibility: true,
+      );
+
+      await windowManager.setBackgroundColor(
+        const Color(
+          0xFF080808,
+        ),
+      );
+    } catch (e) {
+      debugPrint(
+        'Could not restore normal window mode: $e',
+      );
+    }
   }
 
   Future<void> _load() async {
@@ -722,115 +778,365 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
     _captureService.stopContinuousCapture();
     _fingerprintService.dispose();
 
+    unawaited(
+      _restoreNormalWindowMode(),
+    );
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final song = _song;
+    final backgroundOpacity =
+        (_backgroundOpacityPercent / 100.0).clamp(0.0, 1.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF080808),
-      body: SafeArea(
-        child: _error != null
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-                ),
-              )
-            : song == null
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    children: [
-                      _buildHeader(song),
-                      Expanded(child: _buildLyrics(song)),
-                    ],
-                  ),
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black.withValues(alpha: backgroundOpacity),
+            ),
+          ),
+          SafeArea(
+            child: _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  )
+                : song == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: [
+                          _buildHeader(song),
+                          Expanded(child: _buildLyrics(song)),
+                        ],
+                      ),
+          ),
+          ..._buildResizeHandles(),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(SyncedLyricsSong song) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
-      child: Row(
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Column(
         children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  song.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (song.artist.isNotEmpty)
-                  Text(
-                    song.artist,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 14,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          OutlinedButton.icon(
-            onPressed: _openingEditor ? null : _openEditor,
-            icon: const Icon(Icons.tune_rounded, size: 17),
-            label: const Text('CALIBRATE'),
-          ),
-          const SizedBox(width: 18),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                _formatTime(_currentPositionMs),
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  fontFeatures: [FontFeature.tabularFigures()],
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.38),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  tooltip: 'Back',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-              const SizedBox(height: 2),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _trackingColor,
+              const SizedBox(width: 10),
+              Expanded(
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.grab,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: (_) {
+                      windowManager.startDragging();
+                    },
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minHeight: 50,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      color: Colors.transparent,
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.open_with_rounded,
+                            color: Colors.white54,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  song.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                if (song.artist.isNotEmpty)
+                                  Text(
+                                    song.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _trackingLabel,
-                    style: TextStyle(
-                      color: _trackingColor.withValues(alpha: 0.75),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: _openingEditor ? null : _openEditor,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.black.withValues(alpha: 0.30),
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.18),
                   ),
-                ],
+                ),
+                icon: const Icon(Icons.tune_rounded, size: 17),
+                label: const Text('CALIBRATE'),
+              ),
+              const SizedBox(width: 14),
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatTime(_currentPositionMs),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _trackingColor,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _trackingLabel,
+                          style: TextStyle(
+                            color: _trackingColor.withValues(alpha: 0.82),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.opacity_rounded,
+                size: 17,
+                color: Colors.white60,
+              ),
+              const SizedBox(width: 7),
+              const Text(
+                'BACKGROUND',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 13,
+                    ),
+                  ),
+                  child: Slider(
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    value: _backgroundOpacityPercent,
+                    onChanged: (value) {
+                      setState(() {
+                        _backgroundOpacityPercent = value;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 46,
+                child: Text(
+                  '${_backgroundOpacityPercent.round()}%',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _buildResizeHandles() {
+    const edge = 6.0;
+    const corner = 14.0;
+
+    return [
+      _resizeHandle(
+        left: 0,
+        top: corner,
+        bottom: corner,
+        width: edge,
+        resizeEdge: ResizeEdge.left,
+        cursor: SystemMouseCursors.resizeLeftRight,
+      ),
+      _resizeHandle(
+        right: 0,
+        top: corner,
+        bottom: corner,
+        width: edge,
+        resizeEdge: ResizeEdge.right,
+        cursor: SystemMouseCursors.resizeLeftRight,
+      ),
+      _resizeHandle(
+        left: corner,
+        right: corner,
+        top: 0,
+        height: edge,
+        resizeEdge: ResizeEdge.top,
+        cursor: SystemMouseCursors.resizeUpDown,
+      ),
+      _resizeHandle(
+        left: corner,
+        right: corner,
+        bottom: 0,
+        height: edge,
+        resizeEdge: ResizeEdge.bottom,
+        cursor: SystemMouseCursors.resizeUpDown,
+      ),
+      _resizeHandle(
+        left: 0,
+        top: 0,
+        width: corner,
+        height: corner,
+        resizeEdge: ResizeEdge.topLeft,
+        cursor: SystemMouseCursors.resizeUpLeftDownRight,
+      ),
+      _resizeHandle(
+        right: 0,
+        top: 0,
+        width: corner,
+        height: corner,
+        resizeEdge: ResizeEdge.topRight,
+        cursor: SystemMouseCursors.resizeUpRightDownLeft,
+      ),
+      _resizeHandle(
+        left: 0,
+        bottom: 0,
+        width: corner,
+        height: corner,
+        resizeEdge: ResizeEdge.bottomLeft,
+        cursor: SystemMouseCursors.resizeUpRightDownLeft,
+      ),
+      _resizeHandle(
+        right: 0,
+        bottom: 0,
+        width: corner,
+        height: corner,
+        resizeEdge: ResizeEdge.bottomRight,
+        cursor: SystemMouseCursors.resizeUpLeftDownRight,
+      ),
+    ];
+  }
+
+  Widget _resizeHandle({
+    double? left,
+    double? top,
+    double? right,
+    double? bottom,
+    double? width,
+    double? height,
+    required ResizeEdge resizeEdge,
+    required MouseCursor cursor,
+  }) {
+    return Positioned(
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+      width: width,
+      height: height,
+      child: MouseRegion(
+        cursor: cursor,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onPanStart: (_) {
+            windowManager.startResizing(resizeEdge);
+          },
+          child: const SizedBox.expand(),
+        ),
       ),
     );
   }

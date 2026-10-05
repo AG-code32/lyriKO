@@ -1,0 +1,2053 @@
+{
+  "songId": "avenged-sevenfold-beautiful-morning",
+  "title": "Beautiful Morning",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\06. Beautiful Morning.mp3",
+  "durationMs": 315660,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.452,
+      "medianScore": -0.3658,
+      "goodScoreRatio": 0.9935,
+      "veryBadScoreRatio": 0.0,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 310,
+    "matchedWords": 310,
+    "wordCoverage": 1.0,
+    "totalLines": 53,
+    "matchedLines": 53,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "I sit stoic",
+      "originalStartMs": 15700,
+      "originalEndMs": 21120,
+      "startMs": 15700,
+      "endMs": 21120,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 15700,
+          "endMs": 16720
+        },
+        {
+          "text": "sit",
+          "startMs": 16720,
+          "endMs": 18020
+        },
+        {
+          "text": "stoic",
+          "startMs": 18020,
+          "endMs": 21120
+        }
+      ]
+    },
+    {
+      "text": "Touch of the divine upon my neck",
+      "originalStartMs": 21120,
+      "originalEndMs": 25500,
+      "startMs": 21120,
+      "endMs": 25500,
+      "words": [
+        {
+          "text": "Touch",
+          "startMs": 21120,
+          "endMs": 21420
+        },
+        {
+          "text": "of",
+          "startMs": 21420,
+          "endMs": 21600
+        },
+        {
+          "text": "the",
+          "startMs": 21600,
+          "endMs": 21860
+        },
+        {
+          "text": "divine",
+          "startMs": 21860,
+          "endMs": 22900
+        },
+        {
+          "text": "upon",
+          "startMs": 22900,
+          "endMs": 23520
+        },
+        {
+          "text": "my",
+          "startMs": 23520,
+          "endMs": 23720
+        },
+        {
+          "text": "neck",
+          "startMs": 23720,
+          "endMs": 25500
+        }
+      ]
+    },
+    {
+      "text": "Lay me gently",
+      "originalStartMs": 25500,
+      "originalEndMs": 30840,
+      "startMs": 25500,
+      "endMs": 30840,
+      "words": [
+        {
+          "text": "Lay",
+          "startMs": 25500,
+          "endMs": 28540
+        },
+        {
+          "text": "me",
+          "startMs": 28540,
+          "endMs": 28860
+        },
+        {
+          "text": "gently",
+          "startMs": 28860,
+          "endMs": 30840
+        }
+      ]
+    },
+    {
+      "text": "Take my body down, let me ascend",
+      "originalStartMs": 30840,
+      "originalEndMs": 37420,
+      "startMs": 30840,
+      "endMs": 37420,
+      "words": [
+        {
+          "text": "Take",
+          "startMs": 30840,
+          "endMs": 32240
+        },
+        {
+          "text": "my",
+          "startMs": 32240,
+          "endMs": 32480
+        },
+        {
+          "text": "body",
+          "startMs": 32480,
+          "endMs": 33080
+        },
+        {
+          "text": "down",
+          "startMs": 33080,
+          "endMs": 33560
+        },
+        {
+          "text": "let",
+          "startMs": 33560,
+          "endMs": 33920
+        },
+        {
+          "text": "me",
+          "startMs": 33920,
+          "endMs": 34400
+        },
+        {
+          "text": "ascend",
+          "startMs": 34400,
+          "endMs": 37420
+        }
+      ]
+    },
+    {
+      "text": "Help me to hear, and hear me to save",
+      "originalStartMs": 37420,
+      "originalEndMs": 40720,
+      "startMs": 37420,
+      "endMs": 40720,
+      "words": [
+        {
+          "text": "Help",
+          "startMs": 37420,
+          "endMs": 37640
+        },
+        {
+          "text": "me",
+          "startMs": 37640,
+          "endMs": 37860
+        },
+        {
+          "text": "to",
+          "startMs": 37860,
+          "endMs": 38120
+        },
+        {
+          "text": "hear",
+          "startMs": 38120,
+          "endMs": 39040
+        },
+        {
+          "text": "and",
+          "startMs": 39040,
+          "endMs": 39280
+        },
+        {
+          "text": "hear",
+          "startMs": 39280,
+          "endMs": 39480
+        },
+        {
+          "text": "me",
+          "startMs": 39480,
+          "endMs": 39660
+        },
+        {
+          "text": "to",
+          "startMs": 39660,
+          "endMs": 39840
+        },
+        {
+          "text": "save",
+          "startMs": 39840,
+          "endMs": 40720
+        }
+      ]
+    },
+    {
+      "text": "And save me before I've gone too far",
+      "originalStartMs": 40720,
+      "originalEndMs": 44000,
+      "startMs": 40720,
+      "endMs": 44000,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 40720,
+          "endMs": 40860
+        },
+        {
+          "text": "save",
+          "startMs": 40860,
+          "endMs": 41260
+        },
+        {
+          "text": "me",
+          "startMs": 41260,
+          "endMs": 41480
+        },
+        {
+          "text": "before",
+          "startMs": 41480,
+          "endMs": 42420
+        },
+        {
+          "text": "I've",
+          "startMs": 42420,
+          "endMs": 42660
+        },
+        {
+          "text": "gone",
+          "startMs": 42660,
+          "endMs": 43140
+        },
+        {
+          "text": "too",
+          "startMs": 43140,
+          "endMs": 43480
+        },
+        {
+          "text": "far",
+          "startMs": 43480,
+          "endMs": 44000
+        }
+      ]
+    },
+    {
+      "text": "Let me inhale my passage to hell",
+      "originalStartMs": 44000,
+      "originalEndMs": 47840,
+      "startMs": 44000,
+      "endMs": 47840,
+      "words": [
+        {
+          "text": "Let",
+          "startMs": 44000,
+          "endMs": 44860
+        },
+        {
+          "text": "me",
+          "startMs": 44860,
+          "endMs": 45140
+        },
+        {
+          "text": "inhale",
+          "startMs": 45140,
+          "endMs": 45980
+        },
+        {
+          "text": "my",
+          "startMs": 45980,
+          "endMs": 46320
+        },
+        {
+          "text": "passage",
+          "startMs": 46320,
+          "endMs": 46960
+        },
+        {
+          "text": "to",
+          "startMs": 46960,
+          "endMs": 47180
+        },
+        {
+          "text": "hell",
+          "startMs": 47180,
+          "endMs": 47840
+        }
+      ]
+    },
+    {
+      "text": "While slowly exhaling the scar",
+      "originalStartMs": 47840,
+      "originalEndMs": 51480,
+      "startMs": 47840,
+      "endMs": 51480,
+      "words": [
+        {
+          "text": "While",
+          "startMs": 47840,
+          "endMs": 48240
+        },
+        {
+          "text": "slowly",
+          "startMs": 48240,
+          "endMs": 48860
+        },
+        {
+          "text": "exhaling",
+          "startMs": 48860,
+          "endMs": 49860
+        },
+        {
+          "text": "the",
+          "startMs": 49860,
+          "endMs": 50060
+        },
+        {
+          "text": "scar",
+          "startMs": 50060,
+          "endMs": 51480
+        }
+      ]
+    },
+    {
+      "text": "You walk on water",
+      "originalStartMs": 51480,
+      "originalEndMs": 58360,
+      "startMs": 51480,
+      "endMs": 58360,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 51480,
+          "endMs": 54540
+        },
+        {
+          "text": "walk",
+          "startMs": 54540,
+          "endMs": 55260
+        },
+        {
+          "text": "on",
+          "startMs": 55260,
+          "endMs": 55640
+        },
+        {
+          "text": "water",
+          "startMs": 55640,
+          "endMs": 58360
+        }
+      ]
+    },
+    {
+      "text": "But the water swallows you",
+      "originalStartMs": 58360,
+      "originalEndMs": 64900,
+      "startMs": 58360,
+      "endMs": 64900,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 58360,
+          "endMs": 58760
+        },
+        {
+          "text": "the",
+          "startMs": 58760,
+          "endMs": 59000
+        },
+        {
+          "text": "water",
+          "startMs": 59000,
+          "endMs": 60560
+        },
+        {
+          "text": "swallows",
+          "startMs": 60560,
+          "endMs": 62780
+        },
+        {
+          "text": "you",
+          "startMs": 62780,
+          "endMs": 64900
+        }
+      ]
+    },
+    {
+      "text": "I lay quiet",
+      "originalStartMs": 64900,
+      "originalEndMs": 71780,
+      "startMs": 64900,
+      "endMs": 71780,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 64900,
+          "endMs": 67600
+        },
+        {
+          "text": "lay",
+          "startMs": 67600,
+          "endMs": 68900
+        },
+        {
+          "text": "quiet",
+          "startMs": 68900,
+          "endMs": 71780
+        }
+      ]
+    },
+    {
+      "text": "Floating in the stillness of this tomb",
+      "originalStartMs": 71780,
+      "originalEndMs": 75060,
+      "startMs": 71780,
+      "endMs": 75060,
+      "words": [
+        {
+          "text": "Floating",
+          "startMs": 71780,
+          "endMs": 72600
+        },
+        {
+          "text": "in",
+          "startMs": 72600,
+          "endMs": 72780
+        },
+        {
+          "text": "the",
+          "startMs": 72780,
+          "endMs": 73000
+        },
+        {
+          "text": "stillness",
+          "startMs": 73000,
+          "endMs": 74020
+        },
+        {
+          "text": "of",
+          "startMs": 74020,
+          "endMs": 74420
+        },
+        {
+          "text": "this",
+          "startMs": 74420,
+          "endMs": 74680
+        },
+        {
+          "text": "tomb",
+          "startMs": 74680,
+          "endMs": 75060
+        }
+      ]
+    },
+    {
+      "text": "Headstone empty",
+      "originalStartMs": 75060,
+      "originalEndMs": 81740,
+      "startMs": 75060,
+      "endMs": 81740,
+      "words": [
+        {
+          "text": "Headstone",
+          "startMs": 75060,
+          "endMs": 80160
+        },
+        {
+          "text": "empty",
+          "startMs": 80160,
+          "endMs": 81740
+        }
+      ]
+    },
+    {
+      "text": "Choking on the flowers as they bloom",
+      "originalStartMs": 81740,
+      "originalEndMs": 88440,
+      "startMs": 81740,
+      "endMs": 88440,
+      "words": [
+        {
+          "text": "Choking",
+          "startMs": 81740,
+          "endMs": 83560
+        },
+        {
+          "text": "on",
+          "startMs": 83560,
+          "endMs": 83800
+        },
+        {
+          "text": "the",
+          "startMs": 83800,
+          "endMs": 83960
+        },
+        {
+          "text": "flowers",
+          "startMs": 83960,
+          "endMs": 84920
+        },
+        {
+          "text": "as",
+          "startMs": 84920,
+          "endMs": 85400
+        },
+        {
+          "text": "they",
+          "startMs": 85400,
+          "endMs": 85940
+        },
+        {
+          "text": "bloom",
+          "startMs": 85940,
+          "endMs": 88440
+        }
+      ]
+    },
+    {
+      "text": "No one to know and nowhere to hide",
+      "originalStartMs": 88440,
+      "originalEndMs": 91840,
+      "startMs": 88440,
+      "endMs": 91840,
+      "words": [
+        {
+          "text": "No",
+          "startMs": 88440,
+          "endMs": 88620
+        },
+        {
+          "text": "one",
+          "startMs": 88620,
+          "endMs": 88960
+        },
+        {
+          "text": "to",
+          "startMs": 88960,
+          "endMs": 89720
+        },
+        {
+          "text": "know",
+          "startMs": 89720,
+          "endMs": 89960
+        },
+        {
+          "text": "and",
+          "startMs": 89960,
+          "endMs": 90120
+        },
+        {
+          "text": "nowhere",
+          "startMs": 90120,
+          "endMs": 91000
+        },
+        {
+          "text": "to",
+          "startMs": 91000,
+          "endMs": 91420
+        },
+        {
+          "text": "hide",
+          "startMs": 91420,
+          "endMs": 91840
+        }
+      ]
+    },
+    {
+      "text": "And nothing of me I've left behind",
+      "originalStartMs": 91840,
+      "originalEndMs": 95440,
+      "startMs": 91840,
+      "endMs": 95440,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 91840,
+          "endMs": 92000
+        },
+        {
+          "text": "nothing",
+          "startMs": 92000,
+          "endMs": 92500
+        },
+        {
+          "text": "of",
+          "startMs": 92500,
+          "endMs": 92880
+        },
+        {
+          "text": "me",
+          "startMs": 92880,
+          "endMs": 93140
+        },
+        {
+          "text": "I've",
+          "startMs": 93140,
+          "endMs": 93620
+        },
+        {
+          "text": "left",
+          "startMs": 93620,
+          "endMs": 94080
+        },
+        {
+          "text": "behind",
+          "startMs": 94080,
+          "endMs": 95440
+        }
+      ]
+    },
+    {
+      "text": "Silence of one, the meaning of none",
+      "originalStartMs": 95440,
+      "originalEndMs": 99100,
+      "startMs": 95440,
+      "endMs": 99100,
+      "words": [
+        {
+          "text": "Silence",
+          "startMs": 95440,
+          "endMs": 96220
+        },
+        {
+          "text": "of",
+          "startMs": 96220,
+          "endMs": 96540
+        },
+        {
+          "text": "one",
+          "startMs": 96540,
+          "endMs": 96960
+        },
+        {
+          "text": "the",
+          "startMs": 96960,
+          "endMs": 97080
+        },
+        {
+          "text": "meaning",
+          "startMs": 97080,
+          "endMs": 97920
+        },
+        {
+          "text": "of",
+          "startMs": 97920,
+          "endMs": 98160
+        },
+        {
+          "text": "none",
+          "startMs": 98160,
+          "endMs": 99100
+        }
+      ]
+    },
+    {
+      "text": "And letting it all go to me",
+      "originalStartMs": 99100,
+      "originalEndMs": 105000,
+      "startMs": 99100,
+      "endMs": 105000,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 99100,
+          "endMs": 99400
+        },
+        {
+          "text": "letting",
+          "startMs": 99400,
+          "endMs": 100460
+        },
+        {
+          "text": "it",
+          "startMs": 100460,
+          "endMs": 100840
+        },
+        {
+          "text": "all",
+          "startMs": 100840,
+          "endMs": 102280
+        },
+        {
+          "text": "go",
+          "startMs": 102280,
+          "endMs": 102780
+        },
+        {
+          "text": "to",
+          "startMs": 102780,
+          "endMs": 103220
+        },
+        {
+          "text": "me",
+          "startMs": 103220,
+          "endMs": 105000
+        }
+      ]
+    },
+    {
+      "text": "You walk on water",
+      "originalStartMs": 105000,
+      "originalEndMs": 108340,
+      "startMs": 105000,
+      "endMs": 108340,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 105000,
+          "endMs": 105500
+        },
+        {
+          "text": "walk",
+          "startMs": 105500,
+          "endMs": 106160
+        },
+        {
+          "text": "on",
+          "startMs": 106160,
+          "endMs": 106520
+        },
+        {
+          "text": "water",
+          "startMs": 106520,
+          "endMs": 108340
+        }
+      ]
+    },
+    {
+      "text": "But the water swallows you",
+      "originalStartMs": 108340,
+      "originalEndMs": 116720,
+      "startMs": 108340,
+      "endMs": 116720,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 108340,
+          "endMs": 109680
+        },
+        {
+          "text": "the",
+          "startMs": 109680,
+          "endMs": 109980
+        },
+        {
+          "text": "water",
+          "startMs": 109980,
+          "endMs": 111800
+        },
+        {
+          "text": "swallows",
+          "startMs": 111800,
+          "endMs": 113720
+        },
+        {
+          "text": "you",
+          "startMs": 113720,
+          "endMs": 116720
+        }
+      ]
+    },
+    {
+      "text": "You're like no other",
+      "originalStartMs": 116720,
+      "originalEndMs": 122880,
+      "startMs": 116720,
+      "endMs": 122880,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 116720,
+          "endMs": 120120
+        },
+        {
+          "text": "like",
+          "startMs": 120120,
+          "endMs": 120660
+        },
+        {
+          "text": "no",
+          "startMs": 120660,
+          "endMs": 121000
+        },
+        {
+          "text": "other",
+          "startMs": 121000,
+          "endMs": 122880
+        }
+      ]
+    },
+    {
+      "text": "You're the other one in view",
+      "originalStartMs": 122880,
+      "originalEndMs": 128920,
+      "startMs": 122880,
+      "endMs": 128920,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 122880,
+          "endMs": 124560
+        },
+        {
+          "text": "the",
+          "startMs": 124560,
+          "endMs": 124940
+        },
+        {
+          "text": "other",
+          "startMs": 124940,
+          "endMs": 126120
+        },
+        {
+          "text": "one",
+          "startMs": 126120,
+          "endMs": 127700
+        },
+        {
+          "text": "in",
+          "startMs": 127700,
+          "endMs": 128260
+        },
+        {
+          "text": "view",
+          "startMs": 128260,
+          "endMs": 128920
+        }
+      ]
+    },
+    {
+      "text": "Don't let it be",
+      "originalStartMs": 128920,
+      "originalEndMs": 131080,
+      "startMs": 128920,
+      "endMs": 131080,
+      "words": [
+        {
+          "text": "Don't",
+          "startMs": 128920,
+          "endMs": 129520
+        },
+        {
+          "text": "let",
+          "startMs": 129520,
+          "endMs": 129920
+        },
+        {
+          "text": "it",
+          "startMs": 129920,
+          "endMs": 130560
+        },
+        {
+          "text": "be",
+          "startMs": 130560,
+          "endMs": 131080
+        }
+      ]
+    },
+    {
+      "text": "Don't let it be",
+      "originalStartMs": 131080,
+      "originalEndMs": 134840,
+      "startMs": 131080,
+      "endMs": 134840,
+      "words": [
+        {
+          "text": "Don't",
+          "startMs": 131080,
+          "endMs": 132580
+        },
+        {
+          "text": "let",
+          "startMs": 132580,
+          "endMs": 133220
+        },
+        {
+          "text": "it",
+          "startMs": 133220,
+          "endMs": 133500
+        },
+        {
+          "text": "be",
+          "startMs": 133500,
+          "endMs": 134840
+        }
+      ]
+    },
+    {
+      "text": "Don't let it",
+      "originalStartMs": 134840,
+      "originalEndMs": 137320,
+      "startMs": 134840,
+      "endMs": 137320,
+      "words": [
+        {
+          "text": "Don't",
+          "startMs": 134840,
+          "endMs": 136440
+        },
+        {
+          "text": "let",
+          "startMs": 136440,
+          "endMs": 136860
+        },
+        {
+          "text": "it",
+          "startMs": 136860,
+          "endMs": 137320
+        }
+      ]
+    },
+    {
+      "text": "It's a beautiful morning",
+      "originalStartMs": 137320,
+      "originalEndMs": 151940,
+      "startMs": 137320,
+      "endMs": 151940,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 137320,
+          "endMs": 137580
+        },
+        {
+          "text": "a",
+          "startMs": 137580,
+          "endMs": 137660
+        },
+        {
+          "text": "beautiful",
+          "startMs": 137660,
+          "endMs": 148460
+        },
+        {
+          "text": "morning",
+          "startMs": 148460,
+          "endMs": 151940
+        }
+      ]
+    },
+    {
+      "text": "It's a beautiful day",
+      "originalStartMs": 151940,
+      "originalEndMs": 161900,
+      "startMs": 151940,
+      "endMs": 161900,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 151940,
+          "endMs": 154680
+        },
+        {
+          "text": "a",
+          "startMs": 154680,
+          "endMs": 154740
+        },
+        {
+          "text": "beautiful",
+          "startMs": 154740,
+          "endMs": 155800
+        },
+        {
+          "text": "day",
+          "startMs": 155800,
+          "endMs": 161900
+        }
+      ]
+    },
+    {
+      "text": "Everybody is smiling",
+      "originalStartMs": 161900,
+      "originalEndMs": 163520,
+      "startMs": 161900,
+      "endMs": 163520,
+      "words": [
+        {
+          "text": "Everybody",
+          "startMs": 161900,
+          "endMs": 162780
+        },
+        {
+          "text": "is",
+          "startMs": 162780,
+          "endMs": 162960
+        },
+        {
+          "text": "smiling",
+          "startMs": 162960,
+          "endMs": 163520
+        }
+      ]
+    },
+    {
+      "text": "In a beautiful way",
+      "originalStartMs": 163520,
+      "originalEndMs": 173180,
+      "startMs": 163520,
+      "endMs": 173180,
+      "words": [
+        {
+          "text": "In",
+          "startMs": 163520,
+          "endMs": 169080
+        },
+        {
+          "text": "a",
+          "startMs": 169080,
+          "endMs": 169200
+        },
+        {
+          "text": "beautiful",
+          "startMs": 169200,
+          "endMs": 170280
+        },
+        {
+          "text": "way",
+          "startMs": 170280,
+          "endMs": 173180
+        }
+      ]
+    },
+    {
+      "text": "I took a walk to paint the flowers and the trees",
+      "originalStartMs": 173180,
+      "originalEndMs": 180880,
+      "startMs": 173180,
+      "endMs": 180880,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 173180,
+          "endMs": 174580
+        },
+        {
+          "text": "took",
+          "startMs": 174580,
+          "endMs": 175260
+        },
+        {
+          "text": "a",
+          "startMs": 175260,
+          "endMs": 175380
+        },
+        {
+          "text": "walk",
+          "startMs": 175380,
+          "endMs": 175920
+        },
+        {
+          "text": "to",
+          "startMs": 175920,
+          "endMs": 176280
+        },
+        {
+          "text": "paint",
+          "startMs": 176280,
+          "endMs": 176940
+        },
+        {
+          "text": "the",
+          "startMs": 176940,
+          "endMs": 177160
+        },
+        {
+          "text": "flowers",
+          "startMs": 177160,
+          "endMs": 178240
+        },
+        {
+          "text": "and",
+          "startMs": 178240,
+          "endMs": 178600
+        },
+        {
+          "text": "the",
+          "startMs": 178600,
+          "endMs": 179000
+        },
+        {
+          "text": "trees",
+          "startMs": 179000,
+          "endMs": 180880
+        }
+      ]
+    },
+    {
+      "text": "The sun reflected, gazing fondly on me",
+      "originalStartMs": 180880,
+      "originalEndMs": 185960,
+      "startMs": 180880,
+      "endMs": 185960,
+      "words": [
+        {
+          "text": "The",
+          "startMs": 180880,
+          "endMs": 181820
+        },
+        {
+          "text": "sun",
+          "startMs": 181820,
+          "endMs": 182380
+        },
+        {
+          "text": "reflected",
+          "startMs": 182380,
+          "endMs": 183520
+        },
+        {
+          "text": "gazing",
+          "startMs": 183520,
+          "endMs": 184560
+        },
+        {
+          "text": "fondly",
+          "startMs": 184560,
+          "endMs": 185360
+        },
+        {
+          "text": "on",
+          "startMs": 185360,
+          "endMs": 185620
+        },
+        {
+          "text": "me",
+          "startMs": 185620,
+          "endMs": 185960
+        }
+      ]
+    },
+    {
+      "text": "I made a picture and I put it in the rays outside",
+      "originalStartMs": 185960,
+      "originalEndMs": 194800,
+      "startMs": 185960,
+      "endMs": 194800,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 185960,
+          "endMs": 186320
+        },
+        {
+          "text": "made",
+          "startMs": 186320,
+          "endMs": 188700
+        },
+        {
+          "text": "a",
+          "startMs": 188700,
+          "endMs": 188980
+        },
+        {
+          "text": "picture",
+          "startMs": 188980,
+          "endMs": 190080
+        },
+        {
+          "text": "and",
+          "startMs": 190080,
+          "endMs": 190540
+        },
+        {
+          "text": "I",
+          "startMs": 190540,
+          "endMs": 190740
+        },
+        {
+          "text": "put",
+          "startMs": 190740,
+          "endMs": 191220
+        },
+        {
+          "text": "it",
+          "startMs": 191220,
+          "endMs": 191420
+        },
+        {
+          "text": "in",
+          "startMs": 191420,
+          "endMs": 191560
+        },
+        {
+          "text": "the",
+          "startMs": 191560,
+          "endMs": 191780
+        },
+        {
+          "text": "rays",
+          "startMs": 191780,
+          "endMs": 193240
+        },
+        {
+          "text": "outside",
+          "startMs": 193240,
+          "endMs": 194800
+        }
+      ]
+    },
+    {
+      "text": "It washed the paint away and carried me home",
+      "originalStartMs": 194800,
+      "originalEndMs": 199680,
+      "startMs": 194800,
+      "endMs": 199680,
+      "words": [
+        {
+          "text": "It",
+          "startMs": 194800,
+          "endMs": 195560
+        },
+        {
+          "text": "washed",
+          "startMs": 195560,
+          "endMs": 196100
+        },
+        {
+          "text": "the",
+          "startMs": 196100,
+          "endMs": 196260
+        },
+        {
+          "text": "paint",
+          "startMs": 196260,
+          "endMs": 197100
+        },
+        {
+          "text": "away",
+          "startMs": 197100,
+          "endMs": 197820
+        },
+        {
+          "text": "and",
+          "startMs": 197820,
+          "endMs": 198260
+        },
+        {
+          "text": "carried",
+          "startMs": 198260,
+          "endMs": 199000
+        },
+        {
+          "text": "me",
+          "startMs": 199000,
+          "endMs": 199240
+        },
+        {
+          "text": "home",
+          "startMs": 199240,
+          "endMs": 199680
+        }
+      ]
+    },
+    {
+      "text": "I have finally arrived",
+      "originalStartMs": 199680,
+      "originalEndMs": 202360,
+      "startMs": 199680,
+      "endMs": 202360,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 199680,
+          "endMs": 199720
+        },
+        {
+          "text": "have",
+          "startMs": 199720,
+          "endMs": 200120
+        },
+        {
+          "text": "finally",
+          "startMs": 200120,
+          "endMs": 200840
+        },
+        {
+          "text": "arrived",
+          "startMs": 200840,
+          "endMs": 202360
+        }
+      ]
+    },
+    {
+      "text": "There's no one but you two",
+      "originalStartMs": 202360,
+      "originalEndMs": 223380,
+      "startMs": 202360,
+      "endMs": 223380,
+      "words": [
+        {
+          "text": "There's",
+          "startMs": 202360,
+          "endMs": 203720
+        },
+        {
+          "text": "no",
+          "startMs": 203720,
+          "endMs": 204420
+        },
+        {
+          "text": "one",
+          "startMs": 204420,
+          "endMs": 205440
+        },
+        {
+          "text": "but",
+          "startMs": 205440,
+          "endMs": 206440
+        },
+        {
+          "text": "you",
+          "startMs": 206440,
+          "endMs": 219460
+        },
+        {
+          "text": "two",
+          "startMs": 219460,
+          "endMs": 223380
+        }
+      ]
+    },
+    {
+      "text": "Dressed in armor",
+      "originalStartMs": 223380,
+      "originalEndMs": 240740,
+      "startMs": 223380,
+      "endMs": 240740,
+      "words": [
+        {
+          "text": "Dressed",
+          "startMs": 223380,
+          "endMs": 236520
+        },
+        {
+          "text": "in",
+          "startMs": 236520,
+          "endMs": 238140
+        },
+        {
+          "text": "armor",
+          "startMs": 238140,
+          "endMs": 240740
+        }
+      ]
+    },
+    {
+      "text": "Just the hollow shell I was before",
+      "originalStartMs": 240740,
+      "originalEndMs": 245780,
+      "startMs": 240740,
+      "endMs": 245780,
+      "words": [
+        {
+          "text": "Just",
+          "startMs": 240740,
+          "endMs": 241320
+        },
+        {
+          "text": "the",
+          "startMs": 241320,
+          "endMs": 241520
+        },
+        {
+          "text": "hollow",
+          "startMs": 241520,
+          "endMs": 242200
+        },
+        {
+          "text": "shell",
+          "startMs": 242200,
+          "endMs": 242740
+        },
+        {
+          "text": "I",
+          "startMs": 242740,
+          "endMs": 243040
+        },
+        {
+          "text": "was",
+          "startMs": 243040,
+          "endMs": 243720
+        },
+        {
+          "text": "before",
+          "startMs": 243720,
+          "endMs": 245780
+        }
+      ]
+    },
+    {
+      "text": "Help me to turn my attention on me",
+      "originalStartMs": 245780,
+      "originalEndMs": 249760,
+      "startMs": 245780,
+      "endMs": 249760,
+      "words": [
+        {
+          "text": "Help",
+          "startMs": 245780,
+          "endMs": 246760
+        },
+        {
+          "text": "me",
+          "startMs": 246760,
+          "endMs": 246940
+        },
+        {
+          "text": "to",
+          "startMs": 246940,
+          "endMs": 247160
+        },
+        {
+          "text": "turn",
+          "startMs": 247160,
+          "endMs": 247900
+        },
+        {
+          "text": "my",
+          "startMs": 247900,
+          "endMs": 248100
+        },
+        {
+          "text": "attention",
+          "startMs": 248100,
+          "endMs": 248860
+        },
+        {
+          "text": "on",
+          "startMs": 248860,
+          "endMs": 249040
+        },
+        {
+          "text": "me",
+          "startMs": 249040,
+          "endMs": 249760
+        }
+      ]
+    },
+    {
+      "text": "So empty, just as I was before",
+      "originalStartMs": 249760,
+      "originalEndMs": 253620,
+      "startMs": 249760,
+      "endMs": 253620,
+      "words": [
+        {
+          "text": "So",
+          "startMs": 249760,
+          "endMs": 250080
+        },
+        {
+          "text": "empty",
+          "startMs": 250080,
+          "endMs": 250540
+        },
+        {
+          "text": "just",
+          "startMs": 250540,
+          "endMs": 251140
+        },
+        {
+          "text": "as",
+          "startMs": 251140,
+          "endMs": 251540
+        },
+        {
+          "text": "I",
+          "startMs": 251540,
+          "endMs": 251700
+        },
+        {
+          "text": "was",
+          "startMs": 251700,
+          "endMs": 252200
+        },
+        {
+          "text": "before",
+          "startMs": 252200,
+          "endMs": 253620
+        }
+      ]
+    },
+    {
+      "text": "Let me exhale concession to hell",
+      "originalStartMs": 253620,
+      "originalEndMs": 256880,
+      "startMs": 253620,
+      "endMs": 256880,
+      "words": [
+        {
+          "text": "Let",
+          "startMs": 253620,
+          "endMs": 254020
+        },
+        {
+          "text": "me",
+          "startMs": 254020,
+          "endMs": 254220
+        },
+        {
+          "text": "exhale",
+          "startMs": 254220,
+          "endMs": 255300
+        },
+        {
+          "text": "concession",
+          "startMs": 255300,
+          "endMs": 256080
+        },
+        {
+          "text": "to",
+          "startMs": 256080,
+          "endMs": 256220
+        },
+        {
+          "text": "hell",
+          "startMs": 256220,
+          "endMs": 256880
+        }
+      ]
+    },
+    {
+      "text": "While slowly embracing the scar",
+      "originalStartMs": 256880,
+      "originalEndMs": 260300,
+      "startMs": 256880,
+      "endMs": 260300,
+      "words": [
+        {
+          "text": "While",
+          "startMs": 256880,
+          "endMs": 257340
+        },
+        {
+          "text": "slowly",
+          "startMs": 257340,
+          "endMs": 257920
+        },
+        {
+          "text": "embracing",
+          "startMs": 257920,
+          "endMs": 258980
+        },
+        {
+          "text": "the",
+          "startMs": 258980,
+          "endMs": 259140
+        },
+        {
+          "text": "scar",
+          "startMs": 259140,
+          "endMs": 260300
+        }
+      ]
+    },
+    {
+      "text": "You walk on water",
+      "originalStartMs": 260300,
+      "originalEndMs": 266400,
+      "startMs": 260300,
+      "endMs": 266400,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 260300,
+          "endMs": 263720
+        },
+        {
+          "text": "walk",
+          "startMs": 263720,
+          "endMs": 264320
+        },
+        {
+          "text": "on",
+          "startMs": 264320,
+          "endMs": 264660
+        },
+        {
+          "text": "water",
+          "startMs": 264660,
+          "endMs": 266400
+        }
+      ]
+    },
+    {
+      "text": "But the water swallows you",
+      "originalStartMs": 266400,
+      "originalEndMs": 273760,
+      "startMs": 266400,
+      "endMs": 273760,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 266400,
+          "endMs": 267860
+        },
+        {
+          "text": "the",
+          "startMs": 267860,
+          "endMs": 268160
+        },
+        {
+          "text": "water",
+          "startMs": 268160,
+          "endMs": 269840
+        },
+        {
+          "text": "swallows",
+          "startMs": 269840,
+          "endMs": 271860
+        },
+        {
+          "text": "you",
+          "startMs": 271860,
+          "endMs": 273760
+        }
+      ]
+    },
+    {
+      "text": "And you're like no other",
+      "originalStartMs": 273760,
+      "originalEndMs": 280880,
+      "startMs": 273760,
+      "endMs": 280880,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 273760,
+          "endMs": 275600
+        },
+        {
+          "text": "you're",
+          "startMs": 275600,
+          "endMs": 277940
+        },
+        {
+          "text": "like",
+          "startMs": 277940,
+          "endMs": 278780
+        },
+        {
+          "text": "no",
+          "startMs": 278780,
+          "endMs": 279000
+        },
+        {
+          "text": "other",
+          "startMs": 279000,
+          "endMs": 280880
+        }
+      ]
+    },
+    {
+      "text": "You're the other one in view",
+      "originalStartMs": 280880,
+      "originalEndMs": 286420,
+      "startMs": 280880,
+      "endMs": 286420,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 280880,
+          "endMs": 282960
+        },
+        {
+          "text": "the",
+          "startMs": 282960,
+          "endMs": 283680
+        },
+        {
+          "text": "other",
+          "startMs": 283680,
+          "endMs": 284680
+        },
+        {
+          "text": "one",
+          "startMs": 284680,
+          "endMs": 285260
+        },
+        {
+          "text": "in",
+          "startMs": 285260,
+          "endMs": 285520
+        },
+        {
+          "text": "view",
+          "startMs": 285520,
+          "endMs": 286420
+        }
+      ]
+    },
+    {
+      "text": "(Don't let it be!)",
+      "originalStartMs": 286420,
+      "originalEndMs": 289340,
+      "startMs": 286420,
+      "endMs": 289340,
+      "words": [
+        {
+          "text": "Don't",
+          "startMs": 286420,
+          "endMs": 287360
+        },
+        {
+          "text": "let",
+          "startMs": 287360,
+          "endMs": 287760
+        },
+        {
+          "text": "it",
+          "startMs": 287760,
+          "endMs": 288240
+        },
+        {
+          "text": "be",
+          "startMs": 288240,
+          "endMs": 289340
+        }
+      ]
+    },
+    {
+      "text": "You (don't let it be!)",
+      "originalStartMs": 289340,
+      "originalEndMs": 292260,
+      "startMs": 289340,
+      "endMs": 292260,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 289340,
+          "endMs": 290500
+        },
+        {
+          "text": "don't",
+          "startMs": 290500,
+          "endMs": 290960
+        },
+        {
+          "text": "let",
+          "startMs": 290960,
+          "endMs": 291440
+        },
+        {
+          "text": "it",
+          "startMs": 291440,
+          "endMs": 291680
+        },
+        {
+          "text": "be",
+          "startMs": 291680,
+          "endMs": 292260
+        }
+      ]
+    },
+    {
+      "text": "Walk on water (don't let it be!)",
+      "originalStartMs": 292260,
+      "originalEndMs": 295960,
+      "startMs": 292260,
+      "endMs": 295960,
+      "words": [
+        {
+          "text": "Walk",
+          "startMs": 292260,
+          "endMs": 293400
+        },
+        {
+          "text": "on",
+          "startMs": 293400,
+          "endMs": 293780
+        },
+        {
+          "text": "water",
+          "startMs": 293780,
+          "endMs": 294220
+        },
+        {
+          "text": "don't",
+          "startMs": 294220,
+          "endMs": 294640
+        },
+        {
+          "text": "let",
+          "startMs": 294640,
+          "endMs": 295060
+        },
+        {
+          "text": "it",
+          "startMs": 295060,
+          "endMs": 295280
+        },
+        {
+          "text": "be",
+          "startMs": 295280,
+          "endMs": 295960
+        }
+      ]
+    },
+    {
+      "text": "But the water swallows you (don't let it be!)",
+      "originalStartMs": 295960,
+      "originalEndMs": 301440,
+      "startMs": 295960,
+      "endMs": 301440,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 295960,
+          "endMs": 297180
+        },
+        {
+          "text": "the",
+          "startMs": 297180,
+          "endMs": 297540
+        },
+        {
+          "text": "water",
+          "startMs": 297540,
+          "endMs": 298080
+        },
+        {
+          "text": "swallows",
+          "startMs": 298080,
+          "endMs": 299200
+        },
+        {
+          "text": "you",
+          "startMs": 299200,
+          "endMs": 299720
+        },
+        {
+          "text": "don't",
+          "startMs": 299720,
+          "endMs": 300420
+        },
+        {
+          "text": "let",
+          "startMs": 300420,
+          "endMs": 300980
+        },
+        {
+          "text": "it",
+          "startMs": 300980,
+          "endMs": 301220
+        },
+        {
+          "text": "be",
+          "startMs": 301220,
+          "endMs": 301440
+        }
+      ]
+    },
+    {
+      "text": "(Don't let it, don't let it)",
+      "originalStartMs": 301440,
+      "originalEndMs": 304900,
+      "startMs": 301440,
+      "endMs": 304900,
+      "words": [
+        {
+          "text": "Don't",
+          "startMs": 301440,
+          "endMs": 302160
+        },
+        {
+          "text": "let",
+          "startMs": 302160,
+          "endMs": 302820
+        },
+        {
+          "text": "it",
+          "startMs": 302820,
+          "endMs": 303220
+        },
+        {
+          "text": "don't",
+          "startMs": 303220,
+          "endMs": 303940
+        },
+        {
+          "text": "let",
+          "startMs": 303940,
+          "endMs": 304640
+        },
+        {
+          "text": "it",
+          "startMs": 304640,
+          "endMs": 304900
+        }
+      ]
+    },
+    {
+      "text": "And you're (don't let it be!)",
+      "originalStartMs": 304900,
+      "originalEndMs": 307180,
+      "startMs": 304900,
+      "endMs": 307180,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 304900,
+          "endMs": 305140
+        },
+        {
+          "text": "you're",
+          "startMs": 305140,
+          "endMs": 305800
+        },
+        {
+          "text": "don't",
+          "startMs": 305800,
+          "endMs": 306300
+        },
+        {
+          "text": "let",
+          "startMs": 306300,
+          "endMs": 306720
+        },
+        {
+          "text": "it",
+          "startMs": 306720,
+          "endMs": 307020
+        },
+        {
+          "text": "be",
+          "startMs": 307020,
+          "endMs": 307180
+        }
+      ]
+    },
+    {
+      "text": "Like no other (don't let it be!)",
+      "originalStartMs": 307180,
+      "originalEndMs": 310020,
+      "startMs": 307180,
+      "endMs": 310020,
+      "words": [
+        {
+          "text": "Like",
+          "startMs": 307180,
+          "endMs": 307720
+        },
+        {
+          "text": "no",
+          "startMs": 307720,
+          "endMs": 308120
+        },
+        {
+          "text": "other",
+          "startMs": 308120,
+          "endMs": 308620
+        },
+        {
+          "text": "don't",
+          "startMs": 308620,
+          "endMs": 309240
+        },
+        {
+          "text": "let",
+          "startMs": 309240,
+          "endMs": 309580
+        },
+        {
+          "text": "it",
+          "startMs": 309580,
+          "endMs": 309860
+        },
+        {
+          "text": "be",
+          "startMs": 309860,
+          "endMs": 310020
+        }
+      ]
+    },
+    {
+      "text": "You're the other one in view (don't let it be!)",
+      "originalStartMs": 310020,
+      "originalEndMs": 315660,
+      "startMs": 310020,
+      "endMs": 315660,
+      "words": [
+        {
+          "text": "You're",
+          "startMs": 310020,
+          "endMs": 311440
+        },
+        {
+          "text": "the",
+          "startMs": 311440,
+          "endMs": 312120
+        },
+        {
+          "text": "other",
+          "startMs": 312120,
+          "endMs": 312660
+        },
+        {
+          "text": "one",
+          "startMs": 312660,
+          "endMs": 313040
+        },
+        {
+          "text": "in",
+          "startMs": 313040,
+          "endMs": 313140
+        },
+        {
+          "text": "view",
+          "startMs": 313140,
+          "endMs": 313560
+        },
+        {
+          "text": "don't",
+          "startMs": 313560,
+          "endMs": 314360
+        },
+        {
+          "text": "let",
+          "startMs": 314360,
+          "endMs": 315180
+        },
+        {
+          "text": "it",
+          "startMs": 315180,
+          "endMs": 315520
+        },
+        {
+          "text": "be",
+          "startMs": 315520,
+          "endMs": 315660
+        }
+      ]
+    }
+  ]
+}

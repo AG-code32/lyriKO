@@ -1,0 +1,1542 @@
+{
+  "songId": "avenged-sevenfold-mattel",
+  "title": "Mattel",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\02. Mattel.mp3",
+  "durationMs": 276900,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.465,
+      "medianScore": -0.3189,
+      "goodScoreRatio": 0.9918,
+      "veryBadScoreRatio": 0.0,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 246,
+    "matchedWords": 242,
+    "wordCoverage": 0.9837,
+    "totalLines": 34,
+    "matchedLines": 34,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "My vinyl skin provides protection",
+      "originalStartMs": 14240,
+      "originalEndMs": 19420,
+      "startMs": 14240,
+      "endMs": 19420,
+      "words": [
+        {
+          "text": "My",
+          "startMs": 14240,
+          "endMs": 14520
+        },
+        {
+          "text": "vinyl",
+          "startMs": 14520,
+          "endMs": 15280
+        },
+        {
+          "text": "skin",
+          "startMs": 15280,
+          "endMs": 15900
+        },
+        {
+          "text": "provides",
+          "startMs": 15900,
+          "endMs": 16840
+        },
+        {
+          "text": "protection",
+          "startMs": 16840,
+          "endMs": 19420
+        }
+      ]
+    },
+    {
+      "text": "It holds in place my plastic bones",
+      "originalStartMs": 19420,
+      "originalEndMs": 27640,
+      "startMs": 19420,
+      "endMs": 27640,
+      "words": [
+        {
+          "text": "It",
+          "startMs": 19420,
+          "endMs": 21360
+        },
+        {
+          "text": "holds",
+          "startMs": 21360,
+          "endMs": 21860
+        },
+        {
+          "text": "in",
+          "startMs": 21860,
+          "endMs": 22120
+        },
+        {
+          "text": "place",
+          "startMs": 22120,
+          "endMs": 22680
+        },
+        {
+          "text": "my",
+          "startMs": 22680,
+          "endMs": 22900
+        },
+        {
+          "text": "plastic",
+          "startMs": 22900,
+          "endMs": 23600
+        },
+        {
+          "text": "bones",
+          "startMs": 23600,
+          "endMs": 27640
+        }
+      ]
+    },
+    {
+      "text": "Cast button eyes reflect an image",
+      "originalStartMs": 27640,
+      "originalEndMs": 31940,
+      "startMs": 27640,
+      "endMs": 31940,
+      "words": [
+        {
+          "text": "Cast",
+          "startMs": 27640,
+          "endMs": 28180
+        },
+        {
+          "text": "button",
+          "startMs": 28180,
+          "endMs": 28780
+        },
+        {
+          "text": "eyes",
+          "startMs": 28780,
+          "endMs": 29680
+        },
+        {
+          "text": "reflect",
+          "startMs": 29680,
+          "endMs": 30440
+        },
+        {
+          "text": "an",
+          "startMs": 30440,
+          "endMs": 30680
+        },
+        {
+          "text": "image",
+          "startMs": 30680,
+          "endMs": 31940
+        }
+      ]
+    },
+    {
+      "text": "And all seems as it should, but there's nobody home",
+      "originalStartMs": 31940,
+      "originalEndMs": 42380,
+      "startMs": 31940,
+      "endMs": 42380,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 31940,
+          "endMs": 32460
+        },
+        {
+          "text": "all",
+          "startMs": 32460,
+          "endMs": 32760
+        },
+        {
+          "text": "seems",
+          "startMs": 32760,
+          "endMs": 33360
+        },
+        {
+          "text": "as",
+          "startMs": 33360,
+          "endMs": 33920
+        },
+        {
+          "text": "it",
+          "startMs": 33920,
+          "endMs": 34120
+        },
+        {
+          "text": "should",
+          "startMs": 34120,
+          "endMs": 35300
+        },
+        {
+          "text": "but",
+          "startMs": 35300,
+          "endMs": 35760
+        },
+        {
+          "text": "there's",
+          "startMs": 35760,
+          "endMs": 36220
+        },
+        {
+          "text": "nobody",
+          "startMs": 36220,
+          "endMs": 37320
+        },
+        {
+          "text": "home",
+          "startMs": 37320,
+          "endMs": 42380
+        }
+      ]
+    },
+    {
+      "text": "Cue the breeze that sway the painted trees",
+      "originalStartMs": 42380,
+      "originalEndMs": 47480,
+      "startMs": 42380,
+      "endMs": 47480,
+      "words": [
+        {
+          "text": "Cue",
+          "startMs": 42380,
+          "endMs": 42900
+        },
+        {
+          "text": "the",
+          "startMs": 42900,
+          "endMs": 43240
+        },
+        {
+          "text": "breeze",
+          "startMs": 43240,
+          "endMs": 45360
+        },
+        {
+          "text": "that",
+          "startMs": 45360,
+          "endMs": 45460
+        },
+        {
+          "text": "sway",
+          "startMs": 45460,
+          "endMs": 45700
+        },
+        {
+          "text": "the",
+          "startMs": 45700,
+          "endMs": 45880
+        },
+        {
+          "text": "painted",
+          "startMs": 45880,
+          "endMs": 46700
+        },
+        {
+          "text": "trees",
+          "startMs": 46700,
+          "endMs": 47480
+        }
+      ]
+    },
+    {
+      "text": "Toy yellow birds upon the rooftops sing",
+      "originalStartMs": 47480,
+      "originalEndMs": 50640,
+      "startMs": 47480,
+      "endMs": 50640,
+      "words": [
+        {
+          "text": "Toy",
+          "startMs": 47480,
+          "endMs": 47860
+        },
+        {
+          "text": "yellow",
+          "startMs": 47860,
+          "endMs": 48240
+        },
+        {
+          "text": "birds",
+          "startMs": 48240,
+          "endMs": 48720
+        },
+        {
+          "text": "upon",
+          "startMs": 48720,
+          "endMs": 49200
+        },
+        {
+          "text": "the",
+          "startMs": 49200,
+          "endMs": 49360
+        },
+        {
+          "text": "rooftops",
+          "startMs": 49360,
+          "endMs": 50160
+        },
+        {
+          "text": "sing",
+          "startMs": 50160,
+          "endMs": 50640
+        }
+      ]
+    },
+    {
+      "text": "In chorus with the buzzing bees",
+      "originalStartMs": 50640,
+      "originalEndMs": 55400,
+      "startMs": 50640,
+      "endMs": 55400,
+      "words": [
+        {
+          "text": "In",
+          "startMs": 50640,
+          "endMs": 50920
+        },
+        {
+          "text": "chorus",
+          "startMs": 50920,
+          "endMs": 51660
+        },
+        {
+          "text": "with",
+          "startMs": 51660,
+          "endMs": 52000
+        },
+        {
+          "text": "the",
+          "startMs": 52000,
+          "endMs": 52180
+        },
+        {
+          "text": "buzzing",
+          "startMs": 52180,
+          "endMs": 52980
+        },
+        {
+          "text": "bees",
+          "startMs": 52980,
+          "endMs": 55400
+        }
+      ]
+    },
+    {
+      "text": "Melt in sun LED beams, from the sky being held on a string",
+      "originalStartMs": 55400,
+      "originalEndMs": 62360,
+      "startMs": 55400,
+      "endMs": 62360,
+      "words": [
+        {
+          "text": "Melt",
+          "startMs": 55400,
+          "endMs": 55680
+        },
+        {
+          "text": "in",
+          "startMs": 55680,
+          "endMs": 55960
+        },
+        {
+          "text": "sun",
+          "startMs": 55960,
+          "endMs": 56640
+        },
+        {
+          "text": "LED",
+          "startMs": 56640,
+          "endMs": 57440
+        },
+        {
+          "text": "beams",
+          "startMs": 57440,
+          "endMs": 58960
+        },
+        {
+          "text": "from",
+          "startMs": 58960,
+          "endMs": 59220
+        },
+        {
+          "text": "the",
+          "startMs": 59220,
+          "endMs": 59340
+        },
+        {
+          "text": "sky",
+          "startMs": 59340,
+          "endMs": 59700
+        },
+        {
+          "text": "being",
+          "startMs": 59700,
+          "endMs": 60160
+        },
+        {
+          "text": "held",
+          "startMs": 60160,
+          "endMs": 60560
+        },
+        {
+          "text": "on",
+          "startMs": 60560,
+          "endMs": 60720
+        },
+        {
+          "text": "a",
+          "startMs": 60720,
+          "endMs": 60860
+        },
+        {
+          "text": "string",
+          "startMs": 60860,
+          "endMs": 62360
+        }
+      ]
+    },
+    {
+      "text": "While boredom tears me apart at the seams",
+      "originalStartMs": 62360,
+      "originalEndMs": 69540,
+      "startMs": 62360,
+      "endMs": 69540,
+      "words": [
+        {
+          "text": "While",
+          "startMs": 62360,
+          "endMs": 62640
+        },
+        {
+          "text": "boredom",
+          "startMs": 62640,
+          "endMs": 63380
+        },
+        {
+          "text": "tears",
+          "startMs": 63380,
+          "endMs": 64100
+        },
+        {
+          "text": "me",
+          "startMs": 64100,
+          "endMs": 64440
+        },
+        {
+          "text": "apart",
+          "startMs": 64440,
+          "endMs": 65440
+        },
+        {
+          "text": "at",
+          "startMs": 65440,
+          "endMs": 65840
+        },
+        {
+          "text": "the",
+          "startMs": 65840,
+          "endMs": 66160
+        },
+        {
+          "text": "seams",
+          "startMs": 66160,
+          "endMs": 69540
+        }
+      ]
+    },
+    {
+      "text": "Now I know this might sound crazy",
+      "originalStartMs": 69540,
+      "originalEndMs": 73700,
+      "startMs": 69540,
+      "endMs": 73700,
+      "words": [
+        {
+          "text": "Now",
+          "startMs": 69540,
+          "endMs": 70200
+        },
+        {
+          "text": "I",
+          "startMs": 70200,
+          "endMs": 70260
+        },
+        {
+          "text": "know",
+          "startMs": 70260,
+          "endMs": 71040
+        },
+        {
+          "text": "this",
+          "startMs": 71040,
+          "endMs": 71420
+        },
+        {
+          "text": "might",
+          "startMs": 71420,
+          "endMs": 71940
+        },
+        {
+          "text": "sound",
+          "startMs": 71940,
+          "endMs": 72480
+        },
+        {
+          "text": "crazy",
+          "startMs": 72480,
+          "endMs": 73700
+        }
+      ]
+    },
+    {
+      "text": "But I've smelled the plastic daisies",
+      "originalStartMs": 73700,
+      "originalEndMs": 78700,
+      "startMs": 73700,
+      "endMs": 78700,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 73700,
+          "endMs": 74500
+        },
+        {
+          "text": "I've",
+          "startMs": 74500,
+          "endMs": 74720
+        },
+        {
+          "text": "smelled",
+          "startMs": 74720,
+          "endMs": 75580
+        },
+        {
+          "text": "the",
+          "startMs": 75580,
+          "endMs": 75760
+        },
+        {
+          "text": "plastic",
+          "startMs": 75760,
+          "endMs": 76900
+        },
+        {
+          "text": "daisies",
+          "startMs": 76900,
+          "endMs": 78700
+        }
+      ]
+    },
+    {
+      "text": "And it seems we've found ourselves in hell",
+      "originalStartMs": 78700,
+      "originalEndMs": 100700,
+      "startMs": 78700,
+      "endMs": 100700,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 78700,
+          "endMs": 78900
+        },
+        {
+          "text": "it",
+          "startMs": 78900,
+          "endMs": 79040
+        },
+        {
+          "text": "seems",
+          "startMs": 79040,
+          "endMs": 80040
+        },
+        {
+          "text": "we've",
+          "startMs": 80040,
+          "endMs": 81020
+        },
+        {
+          "text": "found",
+          "startMs": 81020,
+          "endMs": 82080
+        },
+        {
+          "text": "ourselves",
+          "startMs": 82080,
+          "endMs": 84560
+        },
+        {
+          "text": "in",
+          "startMs": 84560,
+          "endMs": 93540
+        },
+        {
+          "text": "hell",
+          "startMs": 93540,
+          "endMs": 100700
+        }
+      ]
+    },
+    {
+      "text": "Round head consumed with major nothings",
+      "originalStartMs": 100700,
+      "originalEndMs": 106300,
+      "startMs": 100700,
+      "endMs": 106300,
+      "words": [
+        {
+          "text": "Round",
+          "startMs": 100700,
+          "endMs": 101160
+        },
+        {
+          "text": "head",
+          "startMs": 101160,
+          "endMs": 101520
+        },
+        {
+          "text": "consumed",
+          "startMs": 101520,
+          "endMs": 102520
+        },
+        {
+          "text": "with",
+          "startMs": 102520,
+          "endMs": 102720
+        },
+        {
+          "text": "major",
+          "startMs": 102720,
+          "endMs": 103660
+        },
+        {
+          "text": "nothings",
+          "startMs": 103660,
+          "endMs": 106300
+        }
+      ]
+    },
+    {
+      "text": "Ears made of wax unfit to hear",
+      "originalStartMs": 106300,
+      "originalEndMs": 114540,
+      "startMs": 106300,
+      "endMs": 114540,
+      "words": [
+        {
+          "text": "Ears",
+          "startMs": 106300,
+          "endMs": 107960
+        },
+        {
+          "text": "made",
+          "startMs": 107960,
+          "endMs": 108460
+        },
+        {
+          "text": "of",
+          "startMs": 108460,
+          "endMs": 108740
+        },
+        {
+          "text": "wax",
+          "startMs": 108740,
+          "endMs": 109200
+        },
+        {
+          "text": "unfit",
+          "startMs": 109200,
+          "endMs": 109800
+        },
+        {
+          "text": "to",
+          "startMs": 109800,
+          "endMs": 110140
+        },
+        {
+          "text": "hear",
+          "startMs": 110140,
+          "endMs": 114540
+        }
+      ]
+    },
+    {
+      "text": "Day after day, it all plays over",
+      "originalStartMs": 114540,
+      "originalEndMs": 118440,
+      "startMs": 114540,
+      "endMs": 118440,
+      "words": [
+        {
+          "text": "Day",
+          "startMs": 114540,
+          "endMs": 114900
+        },
+        {
+          "text": "after",
+          "startMs": 114900,
+          "endMs": 115240
+        },
+        {
+          "text": "day",
+          "startMs": 115240,
+          "endMs": 116120
+        },
+        {
+          "text": "it",
+          "startMs": 116120,
+          "endMs": 116440
+        },
+        {
+          "text": "all",
+          "startMs": 116440,
+          "endMs": 116780
+        },
+        {
+          "text": "plays",
+          "startMs": 116780,
+          "endMs": 117260
+        },
+        {
+          "text": "over",
+          "startMs": 117260,
+          "endMs": 118440
+        }
+      ]
+    },
+    {
+      "text": "Dedicated loop, same year after year",
+      "originalStartMs": 118440,
+      "originalEndMs": 128100,
+      "startMs": 118440,
+      "endMs": 128100,
+      "words": [
+        {
+          "text": "Dedicated",
+          "startMs": 118440,
+          "endMs": 120520
+        },
+        {
+          "text": "loop",
+          "startMs": 120520,
+          "endMs": 121820
+        },
+        {
+          "text": "same",
+          "startMs": 121820,
+          "endMs": 122880
+        },
+        {
+          "text": "year",
+          "startMs": 122880,
+          "endMs": 123200
+        },
+        {
+          "text": "after",
+          "startMs": 123200,
+          "endMs": 124000
+        },
+        {
+          "text": "year",
+          "startMs": 124000,
+          "endMs": 128100
+        }
+      ]
+    },
+    {
+      "text": "Please attend, all model citizens",
+      "originalStartMs": 128100,
+      "originalEndMs": 134200,
+      "startMs": 128100,
+      "endMs": 134200,
+      "words": [
+        {
+          "text": "Please",
+          "startMs": 128100,
+          "endMs": 129660
+        },
+        {
+          "text": "attend",
+          "startMs": 129660,
+          "endMs": 131200
+        },
+        {
+          "text": "all",
+          "startMs": 131200,
+          "endMs": 132000
+        },
+        {
+          "text": "model",
+          "startMs": 132000,
+          "endMs": 132420
+        },
+        {
+          "text": "citizens",
+          "startMs": 132420,
+          "endMs": 134200
+        }
+      ]
+    },
+    {
+      "text": "R.S.V.P if we can count you in, empty as we play pretend",
+      "originalStartMs": 134860,
+      "originalEndMs": 140440,
+      "startMs": 134860,
+      "endMs": 140440,
+      "words": [
+        {
+          "text": "if",
+          "startMs": 134860,
+          "endMs": 135360
+        },
+        {
+          "text": "we",
+          "startMs": 135360,
+          "endMs": 135520
+        },
+        {
+          "text": "can",
+          "startMs": 135520,
+          "endMs": 135780
+        },
+        {
+          "text": "count",
+          "startMs": 135780,
+          "endMs": 136280
+        },
+        {
+          "text": "you",
+          "startMs": 136280,
+          "endMs": 136780
+        },
+        {
+          "text": "in",
+          "startMs": 136780,
+          "endMs": 137400
+        },
+        {
+          "text": "empty",
+          "startMs": 137400,
+          "endMs": 138200
+        },
+        {
+          "text": "as",
+          "startMs": 138200,
+          "endMs": 138500
+        },
+        {
+          "text": "we",
+          "startMs": 138500,
+          "endMs": 138640
+        },
+        {
+          "text": "play",
+          "startMs": 138640,
+          "endMs": 139040
+        },
+        {
+          "text": "pretend",
+          "startMs": 139040,
+          "endMs": 140440
+        }
+      ]
+    },
+    {
+      "text": "Send our thoughts with you and to your kin",
+      "originalStartMs": 140440,
+      "originalEndMs": 144500,
+      "startMs": 140440,
+      "endMs": 144500,
+      "words": [
+        {
+          "text": "Send",
+          "startMs": 140440,
+          "endMs": 142200
+        },
+        {
+          "text": "our",
+          "startMs": 142200,
+          "endMs": 142540
+        },
+        {
+          "text": "thoughts",
+          "startMs": 142540,
+          "endMs": 143020
+        },
+        {
+          "text": "with",
+          "startMs": 143020,
+          "endMs": 143200
+        },
+        {
+          "text": "you",
+          "startMs": 143200,
+          "endMs": 143460
+        },
+        {
+          "text": "and",
+          "startMs": 143460,
+          "endMs": 143620
+        },
+        {
+          "text": "to",
+          "startMs": 143620,
+          "endMs": 143820
+        },
+        {
+          "text": "your",
+          "startMs": 143820,
+          "endMs": 144060
+        },
+        {
+          "text": "kin",
+          "startMs": 144060,
+          "endMs": 144500
+        }
+      ]
+    },
+    {
+      "text": "And in case we don't see you again",
+      "originalStartMs": 144500,
+      "originalEndMs": 148860,
+      "startMs": 144500,
+      "endMs": 148860,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 144500,
+          "endMs": 145540
+        },
+        {
+          "text": "in",
+          "startMs": 145540,
+          "endMs": 145840
+        },
+        {
+          "text": "case",
+          "startMs": 145840,
+          "endMs": 146220
+        },
+        {
+          "text": "we",
+          "startMs": 146220,
+          "endMs": 146320
+        },
+        {
+          "text": "don't",
+          "startMs": 146320,
+          "endMs": 146720
+        },
+        {
+          "text": "see",
+          "startMs": 146720,
+          "endMs": 147100
+        },
+        {
+          "text": "you",
+          "startMs": 147100,
+          "endMs": 147240
+        },
+        {
+          "text": "again",
+          "startMs": 147240,
+          "endMs": 148860
+        }
+      ]
+    },
+    {
+      "text": "Good afternoon, good evening, and goodnight",
+      "originalStartMs": 148860,
+      "originalEndMs": 155680,
+      "startMs": 148860,
+      "endMs": 155680,
+      "words": [
+        {
+          "text": "Good",
+          "startMs": 148860,
+          "endMs": 149220
+        },
+        {
+          "text": "afternoon",
+          "startMs": 149220,
+          "endMs": 150500
+        },
+        {
+          "text": "good",
+          "startMs": 150500,
+          "endMs": 150940
+        },
+        {
+          "text": "evening",
+          "startMs": 150940,
+          "endMs": 151880
+        },
+        {
+          "text": "and",
+          "startMs": 151880,
+          "endMs": 152260
+        },
+        {
+          "text": "goodnight",
+          "startMs": 152260,
+          "endMs": 155680
+        }
+      ]
+    },
+    {
+      "text": "Now I know this might sound crazy",
+      "originalStartMs": 155680,
+      "originalEndMs": 159800,
+      "startMs": 155680,
+      "endMs": 159800,
+      "words": [
+        {
+          "text": "Now",
+          "startMs": 155680,
+          "endMs": 156300
+        },
+        {
+          "text": "I",
+          "startMs": 156300,
+          "endMs": 156420
+        },
+        {
+          "text": "know",
+          "startMs": 156420,
+          "endMs": 157120
+        },
+        {
+          "text": "this",
+          "startMs": 157120,
+          "endMs": 157540
+        },
+        {
+          "text": "might",
+          "startMs": 157540,
+          "endMs": 158080
+        },
+        {
+          "text": "sound",
+          "startMs": 158080,
+          "endMs": 158640
+        },
+        {
+          "text": "crazy",
+          "startMs": 158640,
+          "endMs": 159800
+        }
+      ]
+    },
+    {
+      "text": "But I've smelled the plastic daisies",
+      "originalStartMs": 159800,
+      "originalEndMs": 164700,
+      "startMs": 159800,
+      "endMs": 164700,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 159800,
+          "endMs": 160480
+        },
+        {
+          "text": "I've",
+          "startMs": 160480,
+          "endMs": 160700
+        },
+        {
+          "text": "smelled",
+          "startMs": 160700,
+          "endMs": 161560
+        },
+        {
+          "text": "the",
+          "startMs": 161560,
+          "endMs": 161740
+        },
+        {
+          "text": "plastic",
+          "startMs": 161740,
+          "endMs": 162840
+        },
+        {
+          "text": "daisies",
+          "startMs": 162840,
+          "endMs": 164700
+        }
+      ]
+    },
+    {
+      "text": "And it seems we've found ourselves in hell",
+      "originalStartMs": 164700,
+      "originalEndMs": 182800,
+      "startMs": 164700,
+      "endMs": 182800,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 164700,
+          "endMs": 164900
+        },
+        {
+          "text": "it",
+          "startMs": 164900,
+          "endMs": 165060
+        },
+        {
+          "text": "seems",
+          "startMs": 165060,
+          "endMs": 166040
+        },
+        {
+          "text": "we've",
+          "startMs": 166040,
+          "endMs": 166980
+        },
+        {
+          "text": "found",
+          "startMs": 166980,
+          "endMs": 168060
+        },
+        {
+          "text": "ourselves",
+          "startMs": 168060,
+          "endMs": 170520
+        },
+        {
+          "text": "in",
+          "startMs": 170520,
+          "endMs": 176300
+        },
+        {
+          "text": "hell",
+          "startMs": 176300,
+          "endMs": 182800
+        }
+      ]
+    },
+    {
+      "text": "Living feign in porcelain",
+      "originalStartMs": 182800,
+      "originalEndMs": 189240,
+      "startMs": 182800,
+      "endMs": 189240,
+      "words": [
+        {
+          "text": "Living",
+          "startMs": 182800,
+          "endMs": 183500
+        },
+        {
+          "text": "feign",
+          "startMs": 183500,
+          "endMs": 184740
+        },
+        {
+          "text": "in",
+          "startMs": 184740,
+          "endMs": 186420
+        },
+        {
+          "text": "porcelain",
+          "startMs": 186420,
+          "endMs": 189240
+        }
+      ]
+    },
+    {
+      "text": "And just smart enough to know nothing at all",
+      "originalStartMs": 189240,
+      "originalEndMs": 212400,
+      "startMs": 189240,
+      "endMs": 212400,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 189240,
+          "endMs": 190960
+        },
+        {
+          "text": "just",
+          "startMs": 190960,
+          "endMs": 194120
+        },
+        {
+          "text": "smart",
+          "startMs": 194120,
+          "endMs": 199000
+        },
+        {
+          "text": "enough",
+          "startMs": 199000,
+          "endMs": 201600
+        },
+        {
+          "text": "to",
+          "startMs": 201600,
+          "endMs": 201980
+        },
+        {
+          "text": "know",
+          "startMs": 201980,
+          "endMs": 208180
+        },
+        {
+          "text": "nothing",
+          "startMs": 208180,
+          "endMs": 211200
+        },
+        {
+          "text": "at",
+          "startMs": 211200,
+          "endMs": 211760
+        },
+        {
+          "text": "all",
+          "startMs": 211760,
+          "endMs": 212400
+        }
+      ]
+    },
+    {
+      "text": "Pull my string, and make me cry",
+      "originalStartMs": 212400,
+      "originalEndMs": 216220,
+      "startMs": 212400,
+      "endMs": 216220,
+      "words": [
+        {
+          "text": "Pull",
+          "startMs": 212400,
+          "endMs": 212640
+        },
+        {
+          "text": "my",
+          "startMs": 212640,
+          "endMs": 212920
+        },
+        {
+          "text": "string",
+          "startMs": 212920,
+          "endMs": 214640
+        },
+        {
+          "text": "and",
+          "startMs": 214640,
+          "endMs": 215040
+        },
+        {
+          "text": "make",
+          "startMs": 215040,
+          "endMs": 215520
+        },
+        {
+          "text": "me",
+          "startMs": 215520,
+          "endMs": 215800
+        },
+        {
+          "text": "cry",
+          "startMs": 215800,
+          "endMs": 216220
+        }
+      ]
+    },
+    {
+      "text": "Advertisement, moral scrawl",
+      "originalStartMs": 216220,
+      "originalEndMs": 226620,
+      "startMs": 216220,
+      "endMs": 226620,
+      "words": [
+        {
+          "text": "Advertisement",
+          "startMs": 216220,
+          "endMs": 220740
+        },
+        {
+          "text": "moral",
+          "startMs": 220740,
+          "endMs": 222180
+        },
+        {
+          "text": "scrawl",
+          "startMs": 222180,
+          "endMs": 226620
+        }
+      ]
+    },
+    {
+      "text": "A semblance of choice when there's no choice at all",
+      "originalStartMs": 226620,
+      "originalEndMs": 233980,
+      "startMs": 226620,
+      "endMs": 233980,
+      "words": [
+        {
+          "text": "A",
+          "startMs": 226620,
+          "endMs": 226760
+        },
+        {
+          "text": "semblance",
+          "startMs": 226760,
+          "endMs": 229100
+        },
+        {
+          "text": "of",
+          "startMs": 229100,
+          "endMs": 229560
+        },
+        {
+          "text": "choice",
+          "startMs": 229560,
+          "endMs": 230280
+        },
+        {
+          "text": "when",
+          "startMs": 230280,
+          "endMs": 230620
+        },
+        {
+          "text": "there's",
+          "startMs": 230620,
+          "endMs": 231580
+        },
+        {
+          "text": "no",
+          "startMs": 231580,
+          "endMs": 231900
+        },
+        {
+          "text": "choice",
+          "startMs": 231900,
+          "endMs": 232400
+        },
+        {
+          "text": "at",
+          "startMs": 232400,
+          "endMs": 233720
+        },
+        {
+          "text": "all",
+          "startMs": 233720,
+          "endMs": 233980
+        }
+      ]
+    },
+    {
+      "text": "Out of stock, the end is nigh",
+      "originalStartMs": 233980,
+      "originalEndMs": 240520,
+      "startMs": 233980,
+      "endMs": 240520,
+      "words": [
+        {
+          "text": "Out",
+          "startMs": 233980,
+          "endMs": 234200
+        },
+        {
+          "text": "of",
+          "startMs": 234200,
+          "endMs": 234320
+        },
+        {
+          "text": "stock",
+          "startMs": 234320,
+          "endMs": 234880
+        },
+        {
+          "text": "the",
+          "startMs": 234880,
+          "endMs": 235440
+        },
+        {
+          "text": "end",
+          "startMs": 235440,
+          "endMs": 235900
+        },
+        {
+          "text": "is",
+          "startMs": 235900,
+          "endMs": 236700
+        },
+        {
+          "text": "nigh",
+          "startMs": 236700,
+          "endMs": 240520
+        }
+      ]
+    },
+    {
+      "text": "Burn, body burn, burn",
+      "originalStartMs": 240520,
+      "originalEndMs": 261260,
+      "startMs": 240520,
+      "endMs": 261260,
+      "words": [
+        {
+          "text": "Burn",
+          "startMs": 240520,
+          "endMs": 240980
+        },
+        {
+          "text": "body",
+          "startMs": 240980,
+          "endMs": 244820
+        },
+        {
+          "text": "burn",
+          "startMs": 244820,
+          "endMs": 245180
+        },
+        {
+          "text": "burn",
+          "startMs": 245180,
+          "endMs": 261260
+        }
+      ]
+    },
+    {
+      "text": "Now I know this might sound crazy",
+      "originalStartMs": 261260,
+      "originalEndMs": 263960,
+      "startMs": 261260,
+      "endMs": 263960,
+      "words": [
+        {
+          "text": "Now",
+          "startMs": 261260,
+          "endMs": 261660
+        },
+        {
+          "text": "I",
+          "startMs": 261660,
+          "endMs": 261780
+        },
+        {
+          "text": "know",
+          "startMs": 261780,
+          "endMs": 262280
+        },
+        {
+          "text": "this",
+          "startMs": 262280,
+          "endMs": 262600
+        },
+        {
+          "text": "might",
+          "startMs": 262600,
+          "endMs": 263020
+        },
+        {
+          "text": "sound",
+          "startMs": 263020,
+          "endMs": 263580
+        },
+        {
+          "text": "crazy",
+          "startMs": 263580,
+          "endMs": 263960
+        }
+      ]
+    },
+    {
+      "text": "But I've smelled the plastic daisies",
+      "originalStartMs": 263960,
+      "originalEndMs": 268660,
+      "startMs": 263960,
+      "endMs": 268660,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 263960,
+          "endMs": 264300
+        },
+        {
+          "text": "I've",
+          "startMs": 264300,
+          "endMs": 264740
+        },
+        {
+          "text": "smelled",
+          "startMs": 264740,
+          "endMs": 266100
+        },
+        {
+          "text": "the",
+          "startMs": 266100,
+          "endMs": 266260
+        },
+        {
+          "text": "plastic",
+          "startMs": 266260,
+          "endMs": 267380
+        },
+        {
+          "text": "daisies",
+          "startMs": 267380,
+          "endMs": 268660
+        }
+      ]
+    },
+    {
+      "text": "And it seems we've found ourselves in hell",
+      "originalStartMs": 268660,
+      "originalEndMs": 276900,
+      "startMs": 268660,
+      "endMs": 276900,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 268660,
+          "endMs": 269160
+        },
+        {
+          "text": "it",
+          "startMs": 269160,
+          "endMs": 269320
+        },
+        {
+          "text": "seems",
+          "startMs": 269320,
+          "endMs": 270320
+        },
+        {
+          "text": "we've",
+          "startMs": 270320,
+          "endMs": 270980
+        },
+        {
+          "text": "found",
+          "startMs": 270980,
+          "endMs": 272260
+        },
+        {
+          "text": "ourselves",
+          "startMs": 272260,
+          "endMs": 275040
+        },
+        {
+          "text": "in",
+          "startMs": 275040,
+          "endMs": 275360
+        },
+        {
+          "text": "hell",
+          "startMs": 275360,
+          "endMs": 276900
+        }
+      ]
+    }
+  ]
+}

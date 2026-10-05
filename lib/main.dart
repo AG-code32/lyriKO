@@ -1,18 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'screens/home_screen.dart';
 
-void main() {
-  WidgetsFlutterBinding
-      .ensureInitialized();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await windowManager.ensureInitialized();
+
+  const windowOptions = WindowOptions(
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+    windowButtonVisibility: true,
+  );
+
+  windowManager.waitUntilReadyToShow(
+    windowOptions,
+    () async {
+      await windowManager.show();
+      await windowManager.focus();
+    },
+  );
 
   runApp(
     const LyricsApp(),
   );
 }
 
-class LyricsApp
-    extends StatelessWidget {
+class LyricsApp extends StatelessWidget {
   const LyricsApp({
     super.key,
   });
@@ -23,19 +39,15 @@ class LyricsApp
   ) {
     return MaterialApp(
       title: 'Lyriko',
-      debugShowCheckedModeBanner:
-          false,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness:
-            Brightness.dark,
+        brightness: Brightness.dark,
         useMaterial3: true,
-        scaffoldBackgroundColor:
-            const Color(
+        scaffoldBackgroundColor: const Color(
           0xFF080808,
         ),
       ),
-      home:
-          const HomeScreen(),
+      home: const HomeScreen(),
     );
   }
 }

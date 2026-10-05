@@ -1,0 +1,887 @@
+{
+  "songId": "avenged-sevenfold-easier",
+  "title": "Easier",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\07. Easier.mp3",
+  "durationMs": 149120,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.3992,
+      "medianScore": -0.3508,
+      "goodScoreRatio": 1.0,
+      "veryBadScoreRatio": 0.0,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 142,
+    "matchedWords": 138,
+    "wordCoverage": 0.9718,
+    "totalLines": 19,
+    "matchedLines": 19,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "It's easier to just walk away",
+      "originalStartMs": 1040,
+      "originalEndMs": 7740,
+      "startMs": 1040,
+      "endMs": 7740,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 1040,
+          "endMs": 1420
+        },
+        {
+          "text": "easier",
+          "startMs": 1420,
+          "endMs": 4000
+        },
+        {
+          "text": "to",
+          "startMs": 4000,
+          "endMs": 5640
+        },
+        {
+          "text": "just",
+          "startMs": 5640,
+          "endMs": 6160
+        },
+        {
+          "text": "walk",
+          "startMs": 6160,
+          "endMs": 6920
+        },
+        {
+          "text": "away",
+          "startMs": 6920,
+          "endMs": 7740
+        }
+      ]
+    },
+    {
+      "text": "I know you'll see brighter days along the way",
+      "originalStartMs": 7740,
+      "originalEndMs": 17900,
+      "startMs": 7740,
+      "endMs": 17900,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 7740,
+          "endMs": 9180
+        },
+        {
+          "text": "know",
+          "startMs": 9180,
+          "endMs": 11740
+        },
+        {
+          "text": "you'll",
+          "startMs": 11740,
+          "endMs": 12120
+        },
+        {
+          "text": "see",
+          "startMs": 12120,
+          "endMs": 12520
+        },
+        {
+          "text": "brighter",
+          "startMs": 12520,
+          "endMs": 13420
+        },
+        {
+          "text": "days",
+          "startMs": 13420,
+          "endMs": 15820
+        },
+        {
+          "text": "along",
+          "startMs": 15820,
+          "endMs": 16580
+        },
+        {
+          "text": "the",
+          "startMs": 16580,
+          "endMs": 16760
+        },
+        {
+          "text": "way",
+          "startMs": 16760,
+          "endMs": 17900
+        }
+      ]
+    },
+    {
+      "text": "I've been shaped by peaks and valleys",
+      "originalStartMs": 17900,
+      "originalEndMs": 51260,
+      "startMs": 17900,
+      "endMs": 51260,
+      "words": [
+        {
+          "text": "I've",
+          "startMs": 17900,
+          "endMs": 26620
+        },
+        {
+          "text": "been",
+          "startMs": 26620,
+          "endMs": 32160
+        },
+        {
+          "text": "shaped",
+          "startMs": 32160,
+          "endMs": 46580
+        },
+        {
+          "text": "by",
+          "startMs": 46580,
+          "endMs": 47480
+        },
+        {
+          "text": "peaks",
+          "startMs": 47480,
+          "endMs": 48740
+        },
+        {
+          "text": "and",
+          "startMs": 48740,
+          "endMs": 49440
+        },
+        {
+          "text": "valleys",
+          "startMs": 49440,
+          "endMs": 51260
+        }
+      ]
+    },
+    {
+      "text": "Found a plateau where I cursed at the sky",
+      "originalStartMs": 51260,
+      "originalEndMs": 56120,
+      "startMs": 51260,
+      "endMs": 56120,
+      "words": [
+        {
+          "text": "Found",
+          "startMs": 51260,
+          "endMs": 51900
+        },
+        {
+          "text": "a",
+          "startMs": 51900,
+          "endMs": 52040
+        },
+        {
+          "text": "plateau",
+          "startMs": 52040,
+          "endMs": 53280
+        },
+        {
+          "text": "where",
+          "startMs": 53280,
+          "endMs": 53920
+        },
+        {
+          "text": "I",
+          "startMs": 53920,
+          "endMs": 54060
+        },
+        {
+          "text": "cursed",
+          "startMs": 54060,
+          "endMs": 55040
+        },
+        {
+          "text": "at",
+          "startMs": 55040,
+          "endMs": 55320
+        },
+        {
+          "text": "the",
+          "startMs": 55320,
+          "endMs": 55600
+        },
+        {
+          "text": "sky",
+          "startMs": 55600,
+          "endMs": 56120
+        }
+      ]
+    },
+    {
+      "text": "Sometimes I feel that the rain falls on me",
+      "originalStartMs": 56120,
+      "originalEndMs": 63640,
+      "startMs": 56120,
+      "endMs": 63640,
+      "words": [
+        {
+          "text": "Sometimes",
+          "startMs": 56120,
+          "endMs": 57600
+        },
+        {
+          "text": "I",
+          "startMs": 57600,
+          "endMs": 57700
+        },
+        {
+          "text": "feel",
+          "startMs": 57700,
+          "endMs": 58580
+        },
+        {
+          "text": "that",
+          "startMs": 58580,
+          "endMs": 59380
+        },
+        {
+          "text": "the",
+          "startMs": 59380,
+          "endMs": 60240
+        },
+        {
+          "text": "rain",
+          "startMs": 60240,
+          "endMs": 61260
+        },
+        {
+          "text": "falls",
+          "startMs": 61260,
+          "endMs": 62160
+        },
+        {
+          "text": "on",
+          "startMs": 62160,
+          "endMs": 62900
+        },
+        {
+          "text": "me",
+          "startMs": 62900,
+          "endMs": 63640
+        }
+      ]
+    },
+    {
+      "text": "Bound to the flesh 'til the day that I die",
+      "originalStartMs": 63640,
+      "originalEndMs": 71520,
+      "startMs": 63640,
+      "endMs": 71520,
+      "words": [
+        {
+          "text": "Bound",
+          "startMs": 63640,
+          "endMs": 64740
+        },
+        {
+          "text": "to",
+          "startMs": 64740,
+          "endMs": 64960
+        },
+        {
+          "text": "the",
+          "startMs": 64960,
+          "endMs": 65240
+        },
+        {
+          "text": "flesh",
+          "startMs": 65240,
+          "endMs": 66240
+        },
+        {
+          "text": "til",
+          "startMs": 66240,
+          "endMs": 67560
+        },
+        {
+          "text": "the",
+          "startMs": 67560,
+          "endMs": 68020
+        },
+        {
+          "text": "day",
+          "startMs": 68020,
+          "endMs": 68940
+        },
+        {
+          "text": "that",
+          "startMs": 68940,
+          "endMs": 69800
+        },
+        {
+          "text": "I",
+          "startMs": 69800,
+          "endMs": 69960
+        },
+        {
+          "text": "die",
+          "startMs": 69960,
+          "endMs": 71520
+        }
+      ]
+    },
+    {
+      "text": "It's easier to just walk away (whoa, whoa, whoa, whoa, whoa)",
+      "originalStartMs": 71520,
+      "originalEndMs": 81280,
+      "startMs": 71520,
+      "endMs": 81280,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 71520,
+          "endMs": 71820
+        },
+        {
+          "text": "easier",
+          "startMs": 71820,
+          "endMs": 75740
+        },
+        {
+          "text": "to",
+          "startMs": 75740,
+          "endMs": 76020
+        },
+        {
+          "text": "just",
+          "startMs": 76020,
+          "endMs": 76560
+        },
+        {
+          "text": "walk",
+          "startMs": 76560,
+          "endMs": 77320
+        },
+        {
+          "text": "away",
+          "startMs": 77320,
+          "endMs": 78240
+        },
+        {
+          "text": "whoa",
+          "startMs": 78240,
+          "endMs": 78600
+        },
+        {
+          "text": "whoa",
+          "startMs": 78600,
+          "endMs": 79000
+        },
+        {
+          "text": "whoa",
+          "startMs": 79000,
+          "endMs": 79340
+        },
+        {
+          "text": "whoa",
+          "startMs": 79340,
+          "endMs": 79760
+        },
+        {
+          "text": "whoa",
+          "startMs": 79760,
+          "endMs": 81280
+        }
+      ]
+    },
+    {
+      "text": "I know you'll see brighter days (yeah-yeah, yeah-yeah)",
+      "originalStartMs": 81280,
+      "originalEndMs": 84980,
+      "startMs": 81280,
+      "endMs": 84980,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 81280,
+          "endMs": 81560
+        },
+        {
+          "text": "know",
+          "startMs": 81560,
+          "endMs": 82160
+        },
+        {
+          "text": "you'll",
+          "startMs": 82160,
+          "endMs": 82560
+        },
+        {
+          "text": "see",
+          "startMs": 82560,
+          "endMs": 82920
+        },
+        {
+          "text": "brighter",
+          "startMs": 82920,
+          "endMs": 84280
+        },
+        {
+          "text": "days",
+          "startMs": 84280,
+          "endMs": 84980
+        }
+      ]
+    },
+    {
+      "text": "Along the way",
+      "originalStartMs": 86620,
+      "originalEndMs": 88620,
+      "startMs": 86620,
+      "endMs": 88620,
+      "words": [
+        {
+          "text": "Along",
+          "startMs": 86620,
+          "endMs": 87200
+        },
+        {
+          "text": "the",
+          "startMs": 87200,
+          "endMs": 87860
+        },
+        {
+          "text": "way",
+          "startMs": 87860,
+          "endMs": 88620
+        }
+      ]
+    },
+    {
+      "text": "Days like this come as days go",
+      "originalStartMs": 88620,
+      "originalEndMs": 95280,
+      "startMs": 88620,
+      "endMs": 95280,
+      "words": [
+        {
+          "text": "Days",
+          "startMs": 88620,
+          "endMs": 89280
+        },
+        {
+          "text": "like",
+          "startMs": 89280,
+          "endMs": 90920
+        },
+        {
+          "text": "this",
+          "startMs": 90920,
+          "endMs": 92500
+        },
+        {
+          "text": "come",
+          "startMs": 92500,
+          "endMs": 93700
+        },
+        {
+          "text": "as",
+          "startMs": 93700,
+          "endMs": 94100
+        },
+        {
+          "text": "days",
+          "startMs": 94100,
+          "endMs": 94940
+        },
+        {
+          "text": "go",
+          "startMs": 94940,
+          "endMs": 95280
+        }
+      ]
+    },
+    {
+      "text": "And all that you love just as soon be goodbyes",
+      "originalStartMs": 95280,
+      "originalEndMs": 102380,
+      "startMs": 95280,
+      "endMs": 102380,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 95280,
+          "endMs": 96200
+        },
+        {
+          "text": "all",
+          "startMs": 96200,
+          "endMs": 96500
+        },
+        {
+          "text": "that",
+          "startMs": 96500,
+          "endMs": 96940
+        },
+        {
+          "text": "you",
+          "startMs": 96940,
+          "endMs": 97280
+        },
+        {
+          "text": "love",
+          "startMs": 97280,
+          "endMs": 98100
+        },
+        {
+          "text": "just",
+          "startMs": 98100,
+          "endMs": 98620
+        },
+        {
+          "text": "as",
+          "startMs": 98620,
+          "endMs": 98920
+        },
+        {
+          "text": "soon",
+          "startMs": 98920,
+          "endMs": 99720
+        },
+        {
+          "text": "be",
+          "startMs": 99720,
+          "endMs": 100020
+        },
+        {
+          "text": "goodbyes",
+          "startMs": 100020,
+          "endMs": 102380
+        }
+      ]
+    },
+    {
+      "text": "What was so far for so long now behind me",
+      "originalStartMs": 102380,
+      "originalEndMs": 108360,
+      "startMs": 102380,
+      "endMs": 108360,
+      "words": [
+        {
+          "text": "What",
+          "startMs": 102380,
+          "endMs": 102980
+        },
+        {
+          "text": "was",
+          "startMs": 102980,
+          "endMs": 103320
+        },
+        {
+          "text": "so",
+          "startMs": 103320,
+          "endMs": 103620
+        },
+        {
+          "text": "far",
+          "startMs": 103620,
+          "endMs": 104120
+        },
+        {
+          "text": "for",
+          "startMs": 104120,
+          "endMs": 104780
+        },
+        {
+          "text": "so",
+          "startMs": 104780,
+          "endMs": 105220
+        },
+        {
+          "text": "long",
+          "startMs": 105220,
+          "endMs": 105700
+        },
+        {
+          "text": "now",
+          "startMs": 105700,
+          "endMs": 106080
+        },
+        {
+          "text": "behind",
+          "startMs": 106080,
+          "endMs": 107720
+        },
+        {
+          "text": "me",
+          "startMs": 107720,
+          "endMs": 108360
+        }
+      ]
+    },
+    {
+      "text": "So hold applause 'til the end of the ride",
+      "originalStartMs": 108360,
+      "originalEndMs": 120460,
+      "startMs": 108360,
+      "endMs": 120460,
+      "words": [
+        {
+          "text": "So",
+          "startMs": 108360,
+          "endMs": 108760
+        },
+        {
+          "text": "hold",
+          "startMs": 108760,
+          "endMs": 109820
+        },
+        {
+          "text": "applause",
+          "startMs": 109820,
+          "endMs": 111180
+        },
+        {
+          "text": "til",
+          "startMs": 111180,
+          "endMs": 112180
+        },
+        {
+          "text": "the",
+          "startMs": 112180,
+          "endMs": 112800
+        },
+        {
+          "text": "end",
+          "startMs": 112800,
+          "endMs": 113240
+        },
+        {
+          "text": "of",
+          "startMs": 113240,
+          "endMs": 113560
+        },
+        {
+          "text": "the",
+          "startMs": 113560,
+          "endMs": 114320
+        },
+        {
+          "text": "ride",
+          "startMs": 114320,
+          "endMs": 120460
+        }
+      ]
+    },
+    {
+      "text": "It's easier to just walk away",
+      "originalStartMs": 120460,
+      "originalEndMs": 126240,
+      "startMs": 120460,
+      "endMs": 126240,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 120460,
+          "endMs": 121160
+        },
+        {
+          "text": "easier",
+          "startMs": 121160,
+          "endMs": 122900
+        },
+        {
+          "text": "to",
+          "startMs": 122900,
+          "endMs": 123360
+        },
+        {
+          "text": "just",
+          "startMs": 123360,
+          "endMs": 124300
+        },
+        {
+          "text": "walk",
+          "startMs": 124300,
+          "endMs": 125840
+        },
+        {
+          "text": "away",
+          "startMs": 125840,
+          "endMs": 126240
+        }
+      ]
+    },
+    {
+      "text": "I know you'll see brighter days",
+      "originalStartMs": 126240,
+      "originalEndMs": 131220,
+      "startMs": 126240,
+      "endMs": 131220,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 126240,
+          "endMs": 126420
+        },
+        {
+          "text": "know",
+          "startMs": 126420,
+          "endMs": 127680
+        },
+        {
+          "text": "you'll",
+          "startMs": 127680,
+          "endMs": 128500
+        },
+        {
+          "text": "see",
+          "startMs": 128500,
+          "endMs": 129000
+        },
+        {
+          "text": "brighter",
+          "startMs": 129000,
+          "endMs": 130680
+        },
+        {
+          "text": "days",
+          "startMs": 130680,
+          "endMs": 131220
+        }
+      ]
+    },
+    {
+      "text": "Along the way",
+      "originalStartMs": 131220,
+      "originalEndMs": 133020,
+      "startMs": 131220,
+      "endMs": 133020,
+      "words": [
+        {
+          "text": "Along",
+          "startMs": 131220,
+          "endMs": 132060
+        },
+        {
+          "text": "the",
+          "startMs": 132060,
+          "endMs": 132520
+        },
+        {
+          "text": "way",
+          "startMs": 132520,
+          "endMs": 133020
+        }
+      ]
+    },
+    {
+      "text": "It's easier to just walk away",
+      "originalStartMs": 133020,
+      "originalEndMs": 139040,
+      "startMs": 133020,
+      "endMs": 139040,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 133020,
+          "endMs": 133680
+        },
+        {
+          "text": "easier",
+          "startMs": 133680,
+          "endMs": 135180
+        },
+        {
+          "text": "to",
+          "startMs": 135180,
+          "endMs": 135740
+        },
+        {
+          "text": "just",
+          "startMs": 135740,
+          "endMs": 136560
+        },
+        {
+          "text": "walk",
+          "startMs": 136560,
+          "endMs": 137440
+        },
+        {
+          "text": "away",
+          "startMs": 137440,
+          "endMs": 139040
+        }
+      ]
+    },
+    {
+      "text": "I know you'll see brighter days (it's easier)",
+      "originalStartMs": 139040,
+      "originalEndMs": 147240,
+      "startMs": 139040,
+      "endMs": 147240,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 139040,
+          "endMs": 139220
+        },
+        {
+          "text": "know",
+          "startMs": 139220,
+          "endMs": 141300
+        },
+        {
+          "text": "you'll",
+          "startMs": 141300,
+          "endMs": 142680
+        },
+        {
+          "text": "see",
+          "startMs": 142680,
+          "endMs": 143100
+        },
+        {
+          "text": "brighter",
+          "startMs": 143100,
+          "endMs": 144780
+        },
+        {
+          "text": "days",
+          "startMs": 144780,
+          "endMs": 145300
+        },
+        {
+          "text": "it's",
+          "startMs": 145300,
+          "endMs": 146000
+        },
+        {
+          "text": "easier",
+          "startMs": 146000,
+          "endMs": 147240
+        }
+      ]
+    },
+    {
+      "text": "Along the way",
+      "originalStartMs": 147240,
+      "originalEndMs": 149120,
+      "startMs": 147240,
+      "endMs": 149120,
+      "words": [
+        {
+          "text": "Along",
+          "startMs": 147240,
+          "endMs": 148180
+        },
+        {
+          "text": "the",
+          "startMs": 148180,
+          "endMs": 148600
+        },
+        {
+          "text": "way",
+          "startMs": 148600,
+          "endMs": 149120
+        }
+      ]
+    }
+  ]
+}
