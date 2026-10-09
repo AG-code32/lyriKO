@@ -1,0 +1,623 @@
+{
+  "songId": "avenged-sevenfold-o-rdinary",
+  "title": "(O)rdinary",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\09. (O)rdinary.mp3",
+  "durationMs": 115800,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.3181,
+      "medianScore": -0.2631,
+      "goodScoreRatio": 1.0,
+      "veryBadScoreRatio": 0.0,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 96,
+    "matchedWords": 96,
+    "wordCoverage": 1.0,
+    "totalLines": 13,
+    "matchedLines": 13,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "Will you give me my own soul?",
+      "originalStartMs": 27280,
+      "originalEndMs": 34940,
+      "startMs": 27280,
+      "endMs": 34940,
+      "words": [
+        {
+          "text": "Will",
+          "startMs": 27280,
+          "endMs": 27760
+        },
+        {
+          "text": "you",
+          "startMs": 27760,
+          "endMs": 29320
+        },
+        {
+          "text": "give",
+          "startMs": 29320,
+          "endMs": 29800
+        },
+        {
+          "text": "me",
+          "startMs": 29800,
+          "endMs": 30940
+        },
+        {
+          "text": "my",
+          "startMs": 30940,
+          "endMs": 33080
+        },
+        {
+          "text": "own",
+          "startMs": 33080,
+          "endMs": 33500
+        },
+        {
+          "text": "soul",
+          "startMs": 33500,
+          "endMs": 34940
+        }
+      ]
+    },
+    {
+      "text": "Will you let me take control?",
+      "originalStartMs": 34940,
+      "originalEndMs": 43360,
+      "startMs": 34940,
+      "endMs": 43360,
+      "words": [
+        {
+          "text": "Will",
+          "startMs": 34940,
+          "endMs": 36160
+        },
+        {
+          "text": "you",
+          "startMs": 36160,
+          "endMs": 37300
+        },
+        {
+          "text": "let",
+          "startMs": 37300,
+          "endMs": 38240
+        },
+        {
+          "text": "me",
+          "startMs": 38240,
+          "endMs": 39120
+        },
+        {
+          "text": "take",
+          "startMs": 39120,
+          "endMs": 40920
+        },
+        {
+          "text": "control",
+          "startMs": 40920,
+          "endMs": 43360
+        }
+      ]
+    },
+    {
+      "text": "I wanna see the things that you see",
+      "originalStartMs": 43360,
+      "originalEndMs": 47060,
+      "startMs": 43360,
+      "endMs": 47060,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 43360,
+          "endMs": 43960
+        },
+        {
+          "text": "wanna",
+          "startMs": 43960,
+          "endMs": 44480
+        },
+        {
+          "text": "see",
+          "startMs": 44480,
+          "endMs": 44760
+        },
+        {
+          "text": "the",
+          "startMs": 44760,
+          "endMs": 44960
+        },
+        {
+          "text": "things",
+          "startMs": 44960,
+          "endMs": 45340
+        },
+        {
+          "text": "that",
+          "startMs": 45340,
+          "endMs": 45580
+        },
+        {
+          "text": "you",
+          "startMs": 45580,
+          "endMs": 45760
+        },
+        {
+          "text": "see",
+          "startMs": 45760,
+          "endMs": 47060
+        }
+      ]
+    },
+    {
+      "text": "I wanna be the human you be",
+      "originalStartMs": 47060,
+      "originalEndMs": 51220,
+      "startMs": 47060,
+      "endMs": 51220,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 47060,
+          "endMs": 48080
+        },
+        {
+          "text": "wanna",
+          "startMs": 48080,
+          "endMs": 48640
+        },
+        {
+          "text": "be",
+          "startMs": 48640,
+          "endMs": 48900
+        },
+        {
+          "text": "the",
+          "startMs": 48900,
+          "endMs": 49120
+        },
+        {
+          "text": "human",
+          "startMs": 49120,
+          "endMs": 49780
+        },
+        {
+          "text": "you",
+          "startMs": 49780,
+          "endMs": 50020
+        },
+        {
+          "text": "be",
+          "startMs": 50020,
+          "endMs": 51220
+        }
+      ]
+    },
+    {
+      "text": "I wanna know the secrets inside",
+      "originalStartMs": 51220,
+      "originalEndMs": 56360,
+      "startMs": 51220,
+      "endMs": 56360,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 51220,
+          "endMs": 52300
+        },
+        {
+          "text": "wanna",
+          "startMs": 52300,
+          "endMs": 52820
+        },
+        {
+          "text": "know",
+          "startMs": 52820,
+          "endMs": 53140
+        },
+        {
+          "text": "the",
+          "startMs": 53140,
+          "endMs": 53320
+        },
+        {
+          "text": "secrets",
+          "startMs": 53320,
+          "endMs": 53980
+        },
+        {
+          "text": "inside",
+          "startMs": 53980,
+          "endMs": 56360
+        }
+      ]
+    },
+    {
+      "text": "I wanna know the feelings you hide",
+      "originalStartMs": 56360,
+      "originalEndMs": 60480,
+      "startMs": 56360,
+      "endMs": 60480,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 56360,
+          "endMs": 56460
+        },
+        {
+          "text": "wanna",
+          "startMs": 56460,
+          "endMs": 57000
+        },
+        {
+          "text": "know",
+          "startMs": 57000,
+          "endMs": 57300
+        },
+        {
+          "text": "the",
+          "startMs": 57300,
+          "endMs": 57520
+        },
+        {
+          "text": "feelings",
+          "startMs": 57520,
+          "endMs": 58160
+        },
+        {
+          "text": "you",
+          "startMs": 58160,
+          "endMs": 58360
+        },
+        {
+          "text": "hide",
+          "startMs": 58360,
+          "endMs": 60480
+        }
+      ]
+    },
+    {
+      "text": "Will you give me my own soul control?",
+      "originalStartMs": 60480,
+      "originalEndMs": 69160,
+      "startMs": 60480,
+      "endMs": 69160,
+      "words": [
+        {
+          "text": "Will",
+          "startMs": 60480,
+          "endMs": 61120
+        },
+        {
+          "text": "you",
+          "startMs": 61120,
+          "endMs": 62460
+        },
+        {
+          "text": "give",
+          "startMs": 62460,
+          "endMs": 64160
+        },
+        {
+          "text": "me",
+          "startMs": 64160,
+          "endMs": 65160
+        },
+        {
+          "text": "my",
+          "startMs": 65160,
+          "endMs": 66420
+        },
+        {
+          "text": "own",
+          "startMs": 66420,
+          "endMs": 66880
+        },
+        {
+          "text": "soul",
+          "startMs": 66880,
+          "endMs": 68180
+        },
+        {
+          "text": "control",
+          "startMs": 68180,
+          "endMs": 69160
+        }
+      ]
+    },
+    {
+      "text": "Tell me how to dream, and tell me what it means",
+      "originalStartMs": 69160,
+      "originalEndMs": 77940,
+      "startMs": 69160,
+      "endMs": 77940,
+      "words": [
+        {
+          "text": "Tell",
+          "startMs": 69160,
+          "endMs": 71140
+        },
+        {
+          "text": "me",
+          "startMs": 71140,
+          "endMs": 71640
+        },
+        {
+          "text": "how",
+          "startMs": 71640,
+          "endMs": 71920
+        },
+        {
+          "text": "to",
+          "startMs": 71920,
+          "endMs": 72100
+        },
+        {
+          "text": "dream",
+          "startMs": 72100,
+          "endMs": 74000
+        },
+        {
+          "text": "and",
+          "startMs": 74000,
+          "endMs": 74520
+        },
+        {
+          "text": "tell",
+          "startMs": 74520,
+          "endMs": 75520
+        },
+        {
+          "text": "me",
+          "startMs": 75520,
+          "endMs": 75800
+        },
+        {
+          "text": "what",
+          "startMs": 75800,
+          "endMs": 76160
+        },
+        {
+          "text": "it",
+          "startMs": 76160,
+          "endMs": 76760
+        },
+        {
+          "text": "means",
+          "startMs": 76760,
+          "endMs": 77940
+        }
+      ]
+    },
+    {
+      "text": "Tell me how to feel, and tell me you believe",
+      "originalStartMs": 77940,
+      "originalEndMs": 91380,
+      "startMs": 77940,
+      "endMs": 91380,
+      "words": [
+        {
+          "text": "Tell",
+          "startMs": 77940,
+          "endMs": 79360
+        },
+        {
+          "text": "me",
+          "startMs": 79360,
+          "endMs": 80140
+        },
+        {
+          "text": "how",
+          "startMs": 80140,
+          "endMs": 80440
+        },
+        {
+          "text": "to",
+          "startMs": 80440,
+          "endMs": 80820
+        },
+        {
+          "text": "feel",
+          "startMs": 80820,
+          "endMs": 82000
+        },
+        {
+          "text": "and",
+          "startMs": 82000,
+          "endMs": 82500
+        },
+        {
+          "text": "tell",
+          "startMs": 82500,
+          "endMs": 83680
+        },
+        {
+          "text": "me",
+          "startMs": 83680,
+          "endMs": 84060
+        },
+        {
+          "text": "you",
+          "startMs": 84060,
+          "endMs": 84320
+        },
+        {
+          "text": "believe",
+          "startMs": 84320,
+          "endMs": 91380
+        }
+      ]
+    },
+    {
+      "text": "Tell me all the things you wanted me to be",
+      "originalStartMs": 91380,
+      "originalEndMs": 97260,
+      "startMs": 91380,
+      "endMs": 97260,
+      "words": [
+        {
+          "text": "Tell",
+          "startMs": 91380,
+          "endMs": 92400
+        },
+        {
+          "text": "me",
+          "startMs": 92400,
+          "endMs": 92980
+        },
+        {
+          "text": "all",
+          "startMs": 92980,
+          "endMs": 93480
+        },
+        {
+          "text": "the",
+          "startMs": 93480,
+          "endMs": 93820
+        },
+        {
+          "text": "things",
+          "startMs": 93820,
+          "endMs": 94920
+        },
+        {
+          "text": "you",
+          "startMs": 94920,
+          "endMs": 95100
+        },
+        {
+          "text": "wanted",
+          "startMs": 95100,
+          "endMs": 95740
+        },
+        {
+          "text": "me",
+          "startMs": 95740,
+          "endMs": 96040
+        },
+        {
+          "text": "to",
+          "startMs": 96040,
+          "endMs": 96500
+        },
+        {
+          "text": "be",
+          "startMs": 96500,
+          "endMs": 97260
+        }
+      ]
+    },
+    {
+      "text": "Tell me when I'm really alive",
+      "originalStartMs": 97260,
+      "originalEndMs": 107180,
+      "startMs": 97260,
+      "endMs": 107180,
+      "words": [
+        {
+          "text": "Tell",
+          "startMs": 97260,
+          "endMs": 98740
+        },
+        {
+          "text": "me",
+          "startMs": 98740,
+          "endMs": 99220
+        },
+        {
+          "text": "when",
+          "startMs": 99220,
+          "endMs": 99860
+        },
+        {
+          "text": "I'm",
+          "startMs": 99860,
+          "endMs": 101960
+        },
+        {
+          "text": "really",
+          "startMs": 101960,
+          "endMs": 104320
+        },
+        {
+          "text": "alive",
+          "startMs": 104320,
+          "endMs": 107180
+        }
+      ]
+    },
+    {
+      "text": "Can you feel my love?",
+      "originalStartMs": 107180,
+      "originalEndMs": 113380,
+      "startMs": 107180,
+      "endMs": 113380,
+      "words": [
+        {
+          "text": "Can",
+          "startMs": 107180,
+          "endMs": 110800
+        },
+        {
+          "text": "you",
+          "startMs": 110800,
+          "endMs": 111680
+        },
+        {
+          "text": "feel",
+          "startMs": 111680,
+          "endMs": 112420
+        },
+        {
+          "text": "my",
+          "startMs": 112420,
+          "endMs": 112660
+        },
+        {
+          "text": "love",
+          "startMs": 112660,
+          "endMs": 113380
+        }
+      ]
+    },
+    {
+      "text": "Can you feel my love?",
+      "originalStartMs": 113380,
+      "originalEndMs": 115800,
+      "startMs": 113380,
+      "endMs": 115800,
+      "words": [
+        {
+          "text": "Can",
+          "startMs": 113380,
+          "endMs": 114020
+        },
+        {
+          "text": "you",
+          "startMs": 114020,
+          "endMs": 114280
+        },
+        {
+          "text": "feel",
+          "startMs": 114280,
+          "endMs": 114940
+        },
+        {
+          "text": "my",
+          "startMs": 114940,
+          "endMs": 115240
+        },
+        {
+          "text": "love",
+          "startMs": 115240,
+          "endMs": 115800
+        }
+      ]
+    }
+  ]
+}

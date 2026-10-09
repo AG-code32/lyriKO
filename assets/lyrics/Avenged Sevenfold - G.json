@@ -1,0 +1,1710 @@
+{
+  "songId": "avenged-sevenfold-g",
+  "title": "G",
+  "artist": "Avenged Sevenfold",
+  "audioPath": "F:\\Nueva carpeta\\Avenged Sevenfold - Life Is But A Dream (2023) Mp3 320kbps (PMEDIA)\\08. G.mp3",
+  "durationMs": 217760,
+  "alignment": {
+    "method": "sequential-local-acoustic-v3",
+    "acoustic": {
+      "meanScore": -0.7463,
+      "medianScore": -0.4574,
+      "goodScoreRatio": 0.9358,
+      "veryBadScoreRatio": 0.0226,
+      "scoredSegmentRatio": 1.0
+    },
+    "totalLyricWords": 265,
+    "matchedWords": 263,
+    "wordCoverage": 0.9925,
+    "totalLines": 41,
+    "matchedLines": 41,
+    "lineCoverage": 1.0,
+    "inferredLines": 0
+  },
+  "lines": [
+    {
+      "text": "I am the man",
+      "originalStartMs": 29220,
+      "originalEndMs": 31800,
+      "startMs": 29220,
+      "endMs": 31800,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 29220,
+          "endMs": 29300
+        },
+        {
+          "text": "am",
+          "startMs": 29300,
+          "endMs": 29540
+        },
+        {
+          "text": "the",
+          "startMs": 29540,
+          "endMs": 29740
+        },
+        {
+          "text": "man",
+          "startMs": 29740,
+          "endMs": 31800
+        }
+      ]
+    },
+    {
+      "text": "Six days of bullshit, a wave of my hand",
+      "originalStartMs": 31800,
+      "originalEndMs": 37300,
+      "startMs": 31800,
+      "endMs": 37300,
+      "words": [
+        {
+          "text": "Six",
+          "startMs": 31800,
+          "endMs": 33160
+        },
+        {
+          "text": "days",
+          "startMs": 33160,
+          "endMs": 33580
+        },
+        {
+          "text": "of",
+          "startMs": 33580,
+          "endMs": 33820
+        },
+        {
+          "text": "bullshit",
+          "startMs": 33820,
+          "endMs": 35000
+        },
+        {
+          "text": "a",
+          "startMs": 35000,
+          "endMs": 35300
+        },
+        {
+          "text": "wave",
+          "startMs": 35300,
+          "endMs": 35960
+        },
+        {
+          "text": "of",
+          "startMs": 35960,
+          "endMs": 36140
+        },
+        {
+          "text": "my",
+          "startMs": 36140,
+          "endMs": 36460
+        },
+        {
+          "text": "hand",
+          "startMs": 36460,
+          "endMs": 37300
+        }
+      ]
+    },
+    {
+      "text": "And you know what I need",
+      "originalStartMs": 37300,
+      "originalEndMs": 42420,
+      "startMs": 37300,
+      "endMs": 42420,
+      "words": [
+        {
+          "text": "And",
+          "startMs": 37300,
+          "endMs": 37580
+        },
+        {
+          "text": "you",
+          "startMs": 37580,
+          "endMs": 37800
+        },
+        {
+          "text": "know",
+          "startMs": 37800,
+          "endMs": 38480
+        },
+        {
+          "text": "what",
+          "startMs": 38480,
+          "endMs": 40240
+        },
+        {
+          "text": "I",
+          "startMs": 40240,
+          "endMs": 40420
+        },
+        {
+          "text": "need",
+          "startMs": 40420,
+          "endMs": 42420
+        }
+      ]
+    },
+    {
+      "text": "Put your hands together, get down on your knees",
+      "originalStartMs": 42420,
+      "originalEndMs": 48840,
+      "startMs": 42420,
+      "endMs": 48840,
+      "words": [
+        {
+          "text": "Put",
+          "startMs": 42420,
+          "endMs": 43820
+        },
+        {
+          "text": "your",
+          "startMs": 43820,
+          "endMs": 44120
+        },
+        {
+          "text": "hands",
+          "startMs": 44120,
+          "endMs": 44540
+        },
+        {
+          "text": "together",
+          "startMs": 44540,
+          "endMs": 45740
+        },
+        {
+          "text": "get",
+          "startMs": 45740,
+          "endMs": 46100
+        },
+        {
+          "text": "down",
+          "startMs": 46100,
+          "endMs": 46580
+        },
+        {
+          "text": "on",
+          "startMs": 46580,
+          "endMs": 46780
+        },
+        {
+          "text": "your",
+          "startMs": 46780,
+          "endMs": 47000
+        },
+        {
+          "text": "knees",
+          "startMs": 47000,
+          "endMs": 48840
+        }
+      ]
+    },
+    {
+      "text": "Or climb a hill and just don't talk",
+      "originalStartMs": 48840,
+      "originalEndMs": 53460,
+      "startMs": 48840,
+      "endMs": 53460,
+      "words": [
+        {
+          "text": "Or",
+          "startMs": 48840,
+          "endMs": 49420
+        },
+        {
+          "text": "climb",
+          "startMs": 49420,
+          "endMs": 49920
+        },
+        {
+          "text": "a",
+          "startMs": 49920,
+          "endMs": 50020
+        },
+        {
+          "text": "hill",
+          "startMs": 50020,
+          "endMs": 50620
+        },
+        {
+          "text": "and",
+          "startMs": 50620,
+          "endMs": 50820
+        },
+        {
+          "text": "just",
+          "startMs": 50820,
+          "endMs": 51200
+        },
+        {
+          "text": "don't",
+          "startMs": 51200,
+          "endMs": 51700
+        },
+        {
+          "text": "talk",
+          "startMs": 51700,
+          "endMs": 53460
+        }
+      ]
+    },
+    {
+      "text": "I never made a man, didn't trip when they walk the walk",
+      "originalStartMs": 53460,
+      "originalEndMs": 58500,
+      "startMs": 53460,
+      "endMs": 58500,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 53460,
+          "endMs": 54760
+        },
+        {
+          "text": "never",
+          "startMs": 54760,
+          "endMs": 55260
+        },
+        {
+          "text": "made",
+          "startMs": 55260,
+          "endMs": 55660
+        },
+        {
+          "text": "a",
+          "startMs": 55660,
+          "endMs": 55780
+        },
+        {
+          "text": "man",
+          "startMs": 55780,
+          "endMs": 56480
+        },
+        {
+          "text": "didn't",
+          "startMs": 56480,
+          "endMs": 56880
+        },
+        {
+          "text": "trip",
+          "startMs": 56880,
+          "endMs": 57160
+        },
+        {
+          "text": "when",
+          "startMs": 57160,
+          "endMs": 57300
+        },
+        {
+          "text": "they",
+          "startMs": 57300,
+          "endMs": 57480
+        },
+        {
+          "text": "walk",
+          "startMs": 57480,
+          "endMs": 57800
+        },
+        {
+          "text": "the",
+          "startMs": 57800,
+          "endMs": 57980
+        },
+        {
+          "text": "walk",
+          "startMs": 57980,
+          "endMs": 58500
+        }
+      ]
+    },
+    {
+      "text": "It's so chic and we love",
+      "originalStartMs": 58500,
+      "originalEndMs": 63160,
+      "startMs": 58500,
+      "endMs": 63160,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 58500,
+          "endMs": 58880
+        },
+        {
+          "text": "so",
+          "startMs": 58880,
+          "endMs": 59260
+        },
+        {
+          "text": "chic",
+          "startMs": 59260,
+          "endMs": 60800
+        },
+        {
+          "text": "and",
+          "startMs": 60800,
+          "endMs": 61600
+        },
+        {
+          "text": "we",
+          "startMs": 61600,
+          "endMs": 61820
+        },
+        {
+          "text": "love",
+          "startMs": 61820,
+          "endMs": 63160
+        }
+      ]
+    },
+    {
+      "text": "What you've done with the place",
+      "originalStartMs": 63160,
+      "originalEndMs": 66500,
+      "startMs": 63160,
+      "endMs": 66500,
+      "words": [
+        {
+          "text": "What",
+          "startMs": 63160,
+          "endMs": 64200
+        },
+        {
+          "text": "you've",
+          "startMs": 64200,
+          "endMs": 64520
+        },
+        {
+          "text": "done",
+          "startMs": 64520,
+          "endMs": 65160
+        },
+        {
+          "text": "with",
+          "startMs": 65160,
+          "endMs": 65440
+        },
+        {
+          "text": "the",
+          "startMs": 65440,
+          "endMs": 65720
+        },
+        {
+          "text": "place",
+          "startMs": 65720,
+          "endMs": 66500
+        }
+      ]
+    },
+    {
+      "text": "Compliments you with style and grace",
+      "originalStartMs": 66500,
+      "originalEndMs": 70260,
+      "startMs": 66500,
+      "endMs": 70260,
+      "words": [
+        {
+          "text": "Compliments",
+          "startMs": 66500,
+          "endMs": 67900
+        },
+        {
+          "text": "you",
+          "startMs": 67900,
+          "endMs": 67980
+        },
+        {
+          "text": "with",
+          "startMs": 67980,
+          "endMs": 68060
+        },
+        {
+          "text": "style",
+          "startMs": 68060,
+          "endMs": 68200
+        },
+        {
+          "text": "and",
+          "startMs": 68200,
+          "endMs": 68380
+        },
+        {
+          "text": "grace",
+          "startMs": 68380,
+          "endMs": 70260
+        }
+      ]
+    },
+    {
+      "text": "Can't tell me that all I see ain't a gift from the fabulous one",
+      "originalStartMs": 70260,
+      "originalEndMs": 75040,
+      "startMs": 70260,
+      "endMs": 75040,
+      "words": [
+        {
+          "text": "Can't",
+          "startMs": 70260,
+          "endMs": 70520
+        },
+        {
+          "text": "tell",
+          "startMs": 70520,
+          "endMs": 70860
+        },
+        {
+          "text": "me",
+          "startMs": 70860,
+          "endMs": 71120
+        },
+        {
+          "text": "that",
+          "startMs": 71120,
+          "endMs": 71440
+        },
+        {
+          "text": "all",
+          "startMs": 71440,
+          "endMs": 71800
+        },
+        {
+          "text": "I",
+          "startMs": 71800,
+          "endMs": 71940
+        },
+        {
+          "text": "see",
+          "startMs": 71940,
+          "endMs": 72360
+        },
+        {
+          "text": "ain't",
+          "startMs": 72360,
+          "endMs": 72920
+        },
+        {
+          "text": "a",
+          "startMs": 72920,
+          "endMs": 73040
+        },
+        {
+          "text": "gift",
+          "startMs": 73040,
+          "endMs": 73180
+        },
+        {
+          "text": "from",
+          "startMs": 73180,
+          "endMs": 73340
+        },
+        {
+          "text": "the",
+          "startMs": 73340,
+          "endMs": 73480
+        },
+        {
+          "text": "fabulous",
+          "startMs": 73480,
+          "endMs": 74100
+        },
+        {
+          "text": "one",
+          "startMs": 74100,
+          "endMs": 75040
+        }
+      ]
+    },
+    {
+      "text": "Thought about a name that came to me",
+      "originalStartMs": 75040,
+      "originalEndMs": 77560,
+      "startMs": 75040,
+      "endMs": 77560,
+      "words": [
+        {
+          "text": "Thought",
+          "startMs": 75040,
+          "endMs": 75720
+        },
+        {
+          "text": "about",
+          "startMs": 75720,
+          "endMs": 76040
+        },
+        {
+          "text": "a",
+          "startMs": 76040,
+          "endMs": 76140
+        },
+        {
+          "text": "name",
+          "startMs": 76140,
+          "endMs": 76640
+        },
+        {
+          "text": "that",
+          "startMs": 76640,
+          "endMs": 76980
+        },
+        {
+          "text": "came",
+          "startMs": 76980,
+          "endMs": 77300
+        },
+        {
+          "text": "to",
+          "startMs": 77300,
+          "endMs": 77360
+        },
+        {
+          "text": "me",
+          "startMs": 77360,
+          "endMs": 77560
+        }
+      ]
+    },
+    {
+      "text": "Can you explain why the phone would ring?",
+      "originalStartMs": 77560,
+      "originalEndMs": 80560,
+      "startMs": 77560,
+      "endMs": 80560,
+      "words": [
+        {
+          "text": "Can",
+          "startMs": 77560,
+          "endMs": 77860
+        },
+        {
+          "text": "you",
+          "startMs": 77860,
+          "endMs": 77960
+        },
+        {
+          "text": "explain",
+          "startMs": 77960,
+          "endMs": 78500
+        },
+        {
+          "text": "why",
+          "startMs": 78500,
+          "endMs": 78680
+        },
+        {
+          "text": "the",
+          "startMs": 78680,
+          "endMs": 78840
+        },
+        {
+          "text": "phone",
+          "startMs": 78840,
+          "endMs": 79180
+        },
+        {
+          "text": "would",
+          "startMs": 79180,
+          "endMs": 79500
+        },
+        {
+          "text": "ring",
+          "startMs": 79500,
+          "endMs": 80560
+        }
+      ]
+    },
+    {
+      "text": "Prayed so hard, and oh my Lord",
+      "originalStartMs": 80560,
+      "originalEndMs": 83100,
+      "startMs": 80560,
+      "endMs": 83100,
+      "words": [
+        {
+          "text": "Prayed",
+          "startMs": 80560,
+          "endMs": 81180
+        },
+        {
+          "text": "so",
+          "startMs": 81180,
+          "endMs": 81420
+        },
+        {
+          "text": "hard",
+          "startMs": 81420,
+          "endMs": 82120
+        },
+        {
+          "text": "and",
+          "startMs": 82120,
+          "endMs": 82460
+        },
+        {
+          "text": "oh",
+          "startMs": 82460,
+          "endMs": 82600
+        },
+        {
+          "text": "my",
+          "startMs": 82600,
+          "endMs": 82840
+        },
+        {
+          "text": "Lord",
+          "startMs": 82840,
+          "endMs": 83100
+        }
+      ]
+    },
+    {
+      "text": "I got a spot at the front of the lot",
+      "originalStartMs": 83100,
+      "originalEndMs": 86220,
+      "startMs": 83100,
+      "endMs": 86220,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 83100,
+          "endMs": 83180
+        },
+        {
+          "text": "got",
+          "startMs": 83180,
+          "endMs": 83420
+        },
+        {
+          "text": "a",
+          "startMs": 83420,
+          "endMs": 83460
+        },
+        {
+          "text": "spot",
+          "startMs": 83460,
+          "endMs": 83900
+        },
+        {
+          "text": "at",
+          "startMs": 83900,
+          "endMs": 84000
+        },
+        {
+          "text": "the",
+          "startMs": 84000,
+          "endMs": 84140
+        },
+        {
+          "text": "front",
+          "startMs": 84140,
+          "endMs": 84400
+        },
+        {
+          "text": "of",
+          "startMs": 84400,
+          "endMs": 84500
+        },
+        {
+          "text": "the",
+          "startMs": 84500,
+          "endMs": 84620
+        },
+        {
+          "text": "lot",
+          "startMs": 84620,
+          "endMs": 86220
+        }
+      ]
+    },
+    {
+      "text": "Can't be late for my weekly date",
+      "originalStartMs": 86220,
+      "originalEndMs": 88220,
+      "startMs": 86220,
+      "endMs": 88220,
+      "words": [
+        {
+          "text": "Can't",
+          "startMs": 86220,
+          "endMs": 86540
+        },
+        {
+          "text": "be",
+          "startMs": 86540,
+          "endMs": 86760
+        },
+        {
+          "text": "late",
+          "startMs": 86760,
+          "endMs": 87140
+        },
+        {
+          "text": "for",
+          "startMs": 87140,
+          "endMs": 87320
+        },
+        {
+          "text": "my",
+          "startMs": 87320,
+          "endMs": 87500
+        },
+        {
+          "text": "weekly",
+          "startMs": 87500,
+          "endMs": 87900
+        },
+        {
+          "text": "date",
+          "startMs": 87900,
+          "endMs": 88220
+        }
+      ]
+    },
+    {
+      "text": "'Cause we're gonna save someone",
+      "originalStartMs": 88820,
+      "originalEndMs": 93340,
+      "startMs": 88820,
+      "endMs": 93340,
+      "words": [
+        {
+          "text": "we're",
+          "startMs": 88820,
+          "endMs": 89160
+        },
+        {
+          "text": "gonna",
+          "startMs": 89160,
+          "endMs": 89460
+        },
+        {
+          "text": "save",
+          "startMs": 89460,
+          "endMs": 89940
+        },
+        {
+          "text": "someone",
+          "startMs": 89940,
+          "endMs": 93340
+        }
+      ]
+    },
+    {
+      "text": "What?",
+      "originalStartMs": 93340,
+      "originalEndMs": 94740,
+      "startMs": 93340,
+      "endMs": 94740,
+      "words": [
+        {
+          "text": "What",
+          "startMs": 93340,
+          "endMs": 94740
+        }
+      ]
+    },
+    {
+      "text": "What have I done?",
+      "originalStartMs": 94740,
+      "originalEndMs": 97360,
+      "startMs": 94740,
+      "endMs": 97360,
+      "words": [
+        {
+          "text": "What",
+          "startMs": 94740,
+          "endMs": 95820
+        },
+        {
+          "text": "have",
+          "startMs": 95820,
+          "endMs": 96000
+        },
+        {
+          "text": "I",
+          "startMs": 96000,
+          "endMs": 96080
+        },
+        {
+          "text": "done",
+          "startMs": 96080,
+          "endMs": 97360
+        }
+      ]
+    },
+    {
+      "text": "Jesus Christ",
+      "originalStartMs": 97360,
+      "originalEndMs": 100260,
+      "startMs": 97360,
+      "endMs": 100260,
+      "words": [
+        {
+          "text": "Jesus",
+          "startMs": 97360,
+          "endMs": 98920
+        },
+        {
+          "text": "Christ",
+          "startMs": 98920,
+          "endMs": 100260
+        }
+      ]
+    },
+    {
+      "text": "Ah",
+      "originalStartMs": 100260,
+      "originalEndMs": 102700,
+      "startMs": 100260,
+      "endMs": 102700,
+      "words": [
+        {
+          "text": "Ah",
+          "startMs": 100260,
+          "endMs": 102700
+        }
+      ]
+    },
+    {
+      "text": "You gotta be kidding me",
+      "originalStartMs": 102700,
+      "originalEndMs": 112020,
+      "startMs": 102700,
+      "endMs": 112020,
+      "words": [
+        {
+          "text": "You",
+          "startMs": 102700,
+          "endMs": 104580
+        },
+        {
+          "text": "gotta",
+          "startMs": 104580,
+          "endMs": 104960
+        },
+        {
+          "text": "be",
+          "startMs": 104960,
+          "endMs": 105140
+        },
+        {
+          "text": "kidding",
+          "startMs": 105140,
+          "endMs": 105540
+        },
+        {
+          "text": "me",
+          "startMs": 105540,
+          "endMs": 112020
+        }
+      ]
+    },
+    {
+      "text": "I am the plan",
+      "originalStartMs": 112020,
+      "originalEndMs": 121680,
+      "startMs": 112020,
+      "endMs": 121680,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 112020,
+          "endMs": 118860
+        },
+        {
+          "text": "am",
+          "startMs": 118860,
+          "endMs": 119520
+        },
+        {
+          "text": "the",
+          "startMs": 119520,
+          "endMs": 119700
+        },
+        {
+          "text": "plan",
+          "startMs": 119700,
+          "endMs": 121680
+        }
+      ]
+    },
+    {
+      "text": "Cheap imitations by obsessive fans",
+      "originalStartMs": 121680,
+      "originalEndMs": 127160,
+      "startMs": 121680,
+      "endMs": 127160,
+      "words": [
+        {
+          "text": "Cheap",
+          "startMs": 121680,
+          "endMs": 123260
+        },
+        {
+          "text": "imitations",
+          "startMs": 123260,
+          "endMs": 125420
+        },
+        {
+          "text": "by",
+          "startMs": 125420,
+          "endMs": 125900
+        },
+        {
+          "text": "obsessive",
+          "startMs": 125900,
+          "endMs": 126580
+        },
+        {
+          "text": "fans",
+          "startMs": 126580,
+          "endMs": 127160
+        }
+      ]
+    },
+    {
+      "text": "But you're great and fun to watch",
+      "originalStartMs": 127160,
+      "originalEndMs": 132420,
+      "startMs": 127160,
+      "endMs": 132420,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 127160,
+          "endMs": 127460
+        },
+        {
+          "text": "you're",
+          "startMs": 127460,
+          "endMs": 127740
+        },
+        {
+          "text": "great",
+          "startMs": 127740,
+          "endMs": 129120
+        },
+        {
+          "text": "and",
+          "startMs": 129120,
+          "endMs": 130100
+        },
+        {
+          "text": "fun",
+          "startMs": 130100,
+          "endMs": 130460
+        },
+        {
+          "text": "to",
+          "startMs": 130460,
+          "endMs": 130900
+        },
+        {
+          "text": "watch",
+          "startMs": 130900,
+          "endMs": 132420
+        }
+      ]
+    },
+    {
+      "text": "On the seventh day, I thought about world peace",
+      "originalStartMs": 132420,
+      "originalEndMs": 135700,
+      "startMs": 132420,
+      "endMs": 135700,
+      "words": [
+        {
+          "text": "On",
+          "startMs": 132420,
+          "endMs": 133300
+        },
+        {
+          "text": "the",
+          "startMs": 133300,
+          "endMs": 133440
+        },
+        {
+          "text": "seventh",
+          "startMs": 133440,
+          "endMs": 133840
+        },
+        {
+          "text": "day",
+          "startMs": 133840,
+          "endMs": 134060
+        },
+        {
+          "text": "I",
+          "startMs": 134060,
+          "endMs": 134180
+        },
+        {
+          "text": "thought",
+          "startMs": 134180,
+          "endMs": 134440
+        },
+        {
+          "text": "about",
+          "startMs": 134440,
+          "endMs": 134800
+        },
+        {
+          "text": "world",
+          "startMs": 134800,
+          "endMs": 135240
+        },
+        {
+          "text": "peace",
+          "startMs": 135240,
+          "endMs": 135700
+        }
+      ]
+    },
+    {
+      "text": "But I decided just to take it off",
+      "originalStartMs": 135700,
+      "originalEndMs": 144680,
+      "startMs": 135700,
+      "endMs": 144680,
+      "words": [
+        {
+          "text": "But",
+          "startMs": 135700,
+          "endMs": 135920
+        },
+        {
+          "text": "I",
+          "startMs": 135920,
+          "endMs": 136020
+        },
+        {
+          "text": "decided",
+          "startMs": 136020,
+          "endMs": 136500
+        },
+        {
+          "text": "just",
+          "startMs": 136500,
+          "endMs": 136660
+        },
+        {
+          "text": "to",
+          "startMs": 136660,
+          "endMs": 136780
+        },
+        {
+          "text": "take",
+          "startMs": 136780,
+          "endMs": 137160
+        },
+        {
+          "text": "it",
+          "startMs": 137160,
+          "endMs": 137400
+        },
+        {
+          "text": "off",
+          "startMs": 137400,
+          "endMs": 144680
+        }
+      ]
+    },
+    {
+      "text": "It's so chic and we love",
+      "originalStartMs": 144680,
+      "originalEndMs": 158420,
+      "startMs": 144680,
+      "endMs": 158420,
+      "words": [
+        {
+          "text": "It's",
+          "startMs": 144680,
+          "endMs": 155500
+        },
+        {
+          "text": "so",
+          "startMs": 155500,
+          "endMs": 156100
+        },
+        {
+          "text": "chic",
+          "startMs": 156100,
+          "endMs": 157700
+        },
+        {
+          "text": "and",
+          "startMs": 157700,
+          "endMs": 157940
+        },
+        {
+          "text": "we",
+          "startMs": 157940,
+          "endMs": 158020
+        },
+        {
+          "text": "love",
+          "startMs": 158020,
+          "endMs": 158420
+        }
+      ]
+    },
+    {
+      "text": "What you've done with the place",
+      "originalStartMs": 158420,
+      "originalEndMs": 165880,
+      "startMs": 158420,
+      "endMs": 165880,
+      "words": [
+        {
+          "text": "What",
+          "startMs": 158420,
+          "endMs": 158860
+        },
+        {
+          "text": "you've",
+          "startMs": 158860,
+          "endMs": 163380
+        },
+        {
+          "text": "done",
+          "startMs": 163380,
+          "endMs": 164100
+        },
+        {
+          "text": "with",
+          "startMs": 164100,
+          "endMs": 164780
+        },
+        {
+          "text": "the",
+          "startMs": 164780,
+          "endMs": 165100
+        },
+        {
+          "text": "place",
+          "startMs": 165100,
+          "endMs": 165880
+        }
+      ]
+    },
+    {
+      "text": "Compliments you with style and grace",
+      "originalStartMs": 165880,
+      "originalEndMs": 175420,
+      "startMs": 165880,
+      "endMs": 175420,
+      "words": [
+        {
+          "text": "Compliments",
+          "startMs": 165880,
+          "endMs": 170200
+        },
+        {
+          "text": "you",
+          "startMs": 170200,
+          "endMs": 170460
+        },
+        {
+          "text": "with",
+          "startMs": 170460,
+          "endMs": 171000
+        },
+        {
+          "text": "style",
+          "startMs": 171000,
+          "endMs": 172260
+        },
+        {
+          "text": "and",
+          "startMs": 172260,
+          "endMs": 173160
+        },
+        {
+          "text": "grace",
+          "startMs": 173160,
+          "endMs": 175420
+        }
+      ]
+    },
+    {
+      "text": "Can't tell me that all I see ain't a gift from the fabulous one",
+      "originalStartMs": 175420,
+      "originalEndMs": 181740,
+      "startMs": 175420,
+      "endMs": 181740,
+      "words": [
+        {
+          "text": "Can't",
+          "startMs": 175420,
+          "endMs": 175820
+        },
+        {
+          "text": "tell",
+          "startMs": 175820,
+          "endMs": 176560
+        },
+        {
+          "text": "me",
+          "startMs": 176560,
+          "endMs": 176780
+        },
+        {
+          "text": "that",
+          "startMs": 176780,
+          "endMs": 177280
+        },
+        {
+          "text": "all",
+          "startMs": 177280,
+          "endMs": 177660
+        },
+        {
+          "text": "I",
+          "startMs": 177660,
+          "endMs": 177740
+        },
+        {
+          "text": "see",
+          "startMs": 177740,
+          "endMs": 177940
+        },
+        {
+          "text": "ain't",
+          "startMs": 177940,
+          "endMs": 178280
+        },
+        {
+          "text": "a",
+          "startMs": 178280,
+          "endMs": 178440
+        },
+        {
+          "text": "gift",
+          "startMs": 178440,
+          "endMs": 178860
+        },
+        {
+          "text": "from",
+          "startMs": 178860,
+          "endMs": 179140
+        },
+        {
+          "text": "the",
+          "startMs": 179140,
+          "endMs": 179340
+        },
+        {
+          "text": "fabulous",
+          "startMs": 179340,
+          "endMs": 179900
+        },
+        {
+          "text": "one",
+          "startMs": 179900,
+          "endMs": 181740
+        }
+      ]
+    },
+    {
+      "text": "Thought about a name that came to me",
+      "originalStartMs": 181740,
+      "originalEndMs": 187320,
+      "startMs": 181740,
+      "endMs": 187320,
+      "words": [
+        {
+          "text": "Thought",
+          "startMs": 181740,
+          "endMs": 182760
+        },
+        {
+          "text": "about",
+          "startMs": 182760,
+          "endMs": 184540
+        },
+        {
+          "text": "a",
+          "startMs": 184540,
+          "endMs": 184580
+        },
+        {
+          "text": "name",
+          "startMs": 184580,
+          "endMs": 184800
+        },
+        {
+          "text": "that",
+          "startMs": 184800,
+          "endMs": 185260
+        },
+        {
+          "text": "came",
+          "startMs": 185260,
+          "endMs": 186980
+        },
+        {
+          "text": "to",
+          "startMs": 186980,
+          "endMs": 187160
+        },
+        {
+          "text": "me",
+          "startMs": 187160,
+          "endMs": 187320
+        }
+      ]
+    },
+    {
+      "text": "Can you explain why the phone would ring?",
+      "originalStartMs": 187320,
+      "originalEndMs": 192040,
+      "startMs": 187320,
+      "endMs": 192040,
+      "words": [
+        {
+          "text": "Can",
+          "startMs": 187320,
+          "endMs": 187540
+        },
+        {
+          "text": "you",
+          "startMs": 187540,
+          "endMs": 187880
+        },
+        {
+          "text": "explain",
+          "startMs": 187880,
+          "endMs": 189860
+        },
+        {
+          "text": "why",
+          "startMs": 189860,
+          "endMs": 190000
+        },
+        {
+          "text": "the",
+          "startMs": 190000,
+          "endMs": 190160
+        },
+        {
+          "text": "phone",
+          "startMs": 190160,
+          "endMs": 190900
+        },
+        {
+          "text": "would",
+          "startMs": 190900,
+          "endMs": 191280
+        },
+        {
+          "text": "ring",
+          "startMs": 191280,
+          "endMs": 192040
+        }
+      ]
+    },
+    {
+      "text": "Prayed so hard, and oh my Lord",
+      "originalStartMs": 192040,
+      "originalEndMs": 193260,
+      "startMs": 192040,
+      "endMs": 193260,
+      "words": [
+        {
+          "text": "Prayed",
+          "startMs": 192040,
+          "endMs": 192500
+        },
+        {
+          "text": "so",
+          "startMs": 192500,
+          "endMs": 192540
+        },
+        {
+          "text": "hard",
+          "startMs": 192540,
+          "endMs": 192840
+        },
+        {
+          "text": "and",
+          "startMs": 192840,
+          "endMs": 192900
+        },
+        {
+          "text": "oh",
+          "startMs": 192900,
+          "endMs": 193000
+        },
+        {
+          "text": "my",
+          "startMs": 193000,
+          "endMs": 193040
+        },
+        {
+          "text": "Lord",
+          "startMs": 193040,
+          "endMs": 193260
+        }
+      ]
+    },
+    {
+      "text": "I got a spot at the front of the lot",
+      "originalStartMs": 193260,
+      "originalEndMs": 196760,
+      "startMs": 193260,
+      "endMs": 196760,
+      "words": [
+        {
+          "text": "I",
+          "startMs": 193260,
+          "endMs": 193320
+        },
+        {
+          "text": "got",
+          "startMs": 193320,
+          "endMs": 193440
+        },
+        {
+          "text": "a",
+          "startMs": 193440,
+          "endMs": 193520
+        },
+        {
+          "text": "spot",
+          "startMs": 193520,
+          "endMs": 193740
+        },
+        {
+          "text": "at",
+          "startMs": 193740,
+          "endMs": 194280
+        },
+        {
+          "text": "the",
+          "startMs": 194280,
+          "endMs": 194900
+        },
+        {
+          "text": "front",
+          "startMs": 194900,
+          "endMs": 195560
+        },
+        {
+          "text": "of",
+          "startMs": 195560,
+          "endMs": 195720
+        },
+        {
+          "text": "the",
+          "startMs": 195720,
+          "endMs": 195820
+        },
+        {
+          "text": "lot",
+          "startMs": 195820,
+          "endMs": 196760
+        }
+      ]
+    },
+    {
+      "text": "Can't be late for my weekly date",
+      "originalStartMs": 196760,
+      "originalEndMs": 200800,
+      "startMs": 196760,
+      "endMs": 200800,
+      "words": [
+        {
+          "text": "Can't",
+          "startMs": 196760,
+          "endMs": 197880
+        },
+        {
+          "text": "be",
+          "startMs": 197880,
+          "endMs": 198100
+        },
+        {
+          "text": "late",
+          "startMs": 198100,
+          "endMs": 198640
+        },
+        {
+          "text": "for",
+          "startMs": 198640,
+          "endMs": 198940
+        },
+        {
+          "text": "my",
+          "startMs": 198940,
+          "endMs": 199000
+        },
+        {
+          "text": "weekly",
+          "startMs": 199000,
+          "endMs": 200340
+        },
+        {
+          "text": "date",
+          "startMs": 200340,
+          "endMs": 200800
+        }
+      ]
+    },
+    {
+      "text": "'Cause we're gonna save someone",
+      "originalStartMs": 201080,
+      "originalEndMs": 205000,
+      "startMs": 201080,
+      "endMs": 205000,
+      "words": [
+        {
+          "text": "we're",
+          "startMs": 201080,
+          "endMs": 201300
+        },
+        {
+          "text": "gonna",
+          "startMs": 201300,
+          "endMs": 201800
+        },
+        {
+          "text": "save",
+          "startMs": 201800,
+          "endMs": 202120
+        },
+        {
+          "text": "someone",
+          "startMs": 202120,
+          "endMs": 205000
+        }
+      ]
+    },
+    {
+      "text": "Ah, fuck",
+      "originalStartMs": 205000,
+      "originalEndMs": 205660,
+      "startMs": 205000,
+      "endMs": 205660,
+      "words": [
+        {
+          "text": "Ah",
+          "startMs": 205000,
+          "endMs": 205300
+        },
+        {
+          "text": "fuck",
+          "startMs": 205300,
+          "endMs": 205660
+        }
+      ]
+    },
+    {
+      "text": "Give me a delete button",
+      "originalStartMs": 205660,
+      "originalEndMs": 209200,
+      "startMs": 205660,
+      "endMs": 209200,
+      "words": [
+        {
+          "text": "Give",
+          "startMs": 205660,
+          "endMs": 207200
+        },
+        {
+          "text": "me",
+          "startMs": 207200,
+          "endMs": 207340
+        },
+        {
+          "text": "a",
+          "startMs": 207340,
+          "endMs": 207440
+        },
+        {
+          "text": "delete",
+          "startMs": 207440,
+          "endMs": 207800
+        },
+        {
+          "text": "button",
+          "startMs": 207800,
+          "endMs": 209200
+        }
+      ]
+    },
+    {
+      "text": "Delete",
+      "originalStartMs": 209200,
+      "originalEndMs": 212100,
+      "startMs": 209200,
+      "endMs": 212100,
+      "words": [
+        {
+          "text": "Delete",
+          "startMs": 209200,
+          "endMs": 212100
+        }
+      ]
+    },
+    {
+      "text": "Not too bad for a first try",
+      "originalStartMs": 212100,
+      "originalEndMs": 215940,
+      "startMs": 212100,
+      "endMs": 215940,
+      "words": [
+        {
+          "text": "Not",
+          "startMs": 212100,
+          "endMs": 213540
+        },
+        {
+          "text": "too",
+          "startMs": 213540,
+          "endMs": 213760
+        },
+        {
+          "text": "bad",
+          "startMs": 213760,
+          "endMs": 214140
+        },
+        {
+          "text": "for",
+          "startMs": 214140,
+          "endMs": 214360
+        },
+        {
+          "text": "a",
+          "startMs": 214360,
+          "endMs": 214420
+        },
+        {
+          "text": "first",
+          "startMs": 214420,
+          "endMs": 214800
+        },
+        {
+          "text": "try",
+          "startMs": 214800,
+          "endMs": 215940
+        }
+      ]
+    },
+    {
+      "text": "When, robot?",
+      "originalStartMs": 215940,
+      "originalEndMs": 217760,
+      "startMs": 215940,
+      "endMs": 217760,
+      "words": [
+        {
+          "text": "When",
+          "startMs": 215940,
+          "endMs": 217200
+        },
+        {
+          "text": "robot",
+          "startMs": 217200,
+          "endMs": 217760
+        }
+      ]
+    }
+  ]
+}

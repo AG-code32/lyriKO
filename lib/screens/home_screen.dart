@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../services/android_media_session_service.dart';
 import '../services/fingerprint_match_service.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/system_audio_capture_service.dart';
@@ -32,8 +33,11 @@ class _HomeScreenState extends State<HomeScreen>
   final SystemAudioCaptureService _captureService =
       SystemAudioCaptureService();
 
-  final WindowsMediaSessionService _mediaSessionService =
+  final WindowsMediaSessionService _windowsMediaSessionService =
       WindowsMediaSessionService();
+
+  final AndroidMediaSessionService _androidMediaSessionService =
+      AndroidMediaSessionService();
 
   //
   // Optimized recognition schedule.
@@ -91,31 +95,37 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _initialize() async {
     await _loadLibrary();
 
-    // Media Session is optional. If it is available, it becomes
-    // the preferred source for metadata and playback state.
-    await _mediaSessionService.initialize();
+    if (Platform.isWindows) {
+      // Windows Media Session is optional. If it is available, it becomes
+      // the preferred source for metadata and playback state.
+      await _windowsMediaSessionService.initialize();
 
-    try {
-      final info = await _fingerprintService.ensureReady();
+      try {
+        final info = await _fingerprintService.ensureReady();
 
-      if (!mounted) {
-        return;
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _engineInfo = info;
+        });
+      } catch (_) {
+        // Fingerprint remains a Windows fallback. Do not disable LISTEN just
+        // because the fallback engine is unavailable.
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _engineInfo = null;
+          _error = null;
+        });
       }
-
-      setState(() {
-        _engineInfo = info;
-      });
-    } catch (e) {
-      // Fingerprint remains a fallback. Do not disable LISTEN just
-      // because the fallback engine is unavailable.
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _engineInfo = null;
-        _error = null;
-      });
+    } else if (Platform.isAndroid) {
+      // The Android bridge was validated separately. No audio capture or
+      // fingerprint fallback is used on Android yet.
+      _engineInfo = null;
     }
   }
 
@@ -171,7 +181,78 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<bool> _tryIdentifyFromMediaSession() async {
-    final sessions = await _mediaSessionService.getSessions();
+    if (Platform.isAndroid) {
+      return _tryIdentifyFromAndroidMediaSession();
+    }
+
+    if (Platform.isWindows) {
+      return _tryIdentifyFromWindowsMediaSession();
+    }
+
+    return false;
+  }
+
+  Future<bool> _tryIdentifyFromAndroidMediaSession() async {
+    final hasAccess = await _androidMediaSessionService.hasNotificationAccess();
+
+    if (!hasAccess) {
+      if (mounted) {
+        setState(() {
+          _status = 'Notification access is required';
+        });
+      }
+
+      await _androidMediaSessionService.openNotificationAccessSettings();
+      return false;
+    }
+
+    final sessions = await _androidMediaSessionService.getSessions();
+
+    final ordered = [...sessions]
+      ..sort((a, b) {
+        final aRank = a.isPlaying ? 0 : (a.isPaused ? 1 : 2);
+        final bRank = b.isPlaying ? 0 : (b.isPaused ? 1 : 2);
+        return aRank.compareTo(bRank);
+      });
+
+    for (final session in ordered) {
+      if (!session.available || !session.hasMetadata) {
+        continue;
+      }
+
+      final song = await _lyricsService.findSongForMediaMetadata(
+        title: session.title,
+        artist: session.artist,
+        albumArtist: session.albumArtist,
+      );
+
+      if (song == null) {
+        continue;
+      }
+
+      debugPrint(
+        'Android media match: '
+        '${session.sourceAppId} | '
+        '${session.artist} | '
+        '${session.title} -> '
+        '${song.displayName}',
+      );
+
+      await _openDetectedSong(
+        song: song,
+        initialPositionMs: session.estimatedPositionMs,
+        lockedTrackName: song.displayName,
+        mediaSourceAppId: session.sourceAppId,
+      );
+
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<bool> _tryIdentifyFromWindowsMediaSession() async {
+    final sessions = await _windowsMediaSessionService.getSessions();
 
     if (sessions.isEmpty) {
       return false;
@@ -200,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       debugPrint(
-        'Media metadata match: '
+        'Windows media match: '
         '${session.sourceAppId} | '
         '${session.artist} | '
         '${session.title} -> '
@@ -209,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       await _openDetectedSong(
         song: song,
-        initialPositionMs: session.positionMs,
+        initialPositionMs: session.estimatedPositionMs(),
         lockedTrackName: song.displayName,
         mediaSourceAppId: session.sourceAppId,
       );
@@ -220,24 +301,30 @@ class _HomeScreenState extends State<HomeScreen>
     return false;
   }
 
-  Future<WindowsMediaSessionState?> _findActivePlaybackSession() async {
-    final sessions = await _mediaSessionService.getSessions();
+  Future<String?> _findActivePlaybackSourceAppId() async {
+    if (Platform.isAndroid) {
+      final sessions = await _androidMediaSessionService.getSessions();
+      final active = sessions
+          .where((session) => session.available && (session.isPlaying || session.isPaused))
+          .toList();
 
-    final active = sessions
-        .where((session) => session.available && (session.isPlaying || session.isPaused))
-        .toList();
-
-    if (active.isEmpty) {
-      return null;
+      if (active.isEmpty) return null;
+      active.sort((a, b) => (a.isPlaying ? 0 : 1).compareTo(b.isPlaying ? 0 : 1));
+      return active.first.sourceAppId;
     }
 
-    active.sort((a, b) {
-      final aRank = a.isPlaying ? 0 : 1;
-      final bRank = b.isPlaying ? 0 : 1;
-      return aRank.compareTo(bRank);
-    });
+    if (Platform.isWindows) {
+      final sessions = await _windowsMediaSessionService.getSessions();
+      final active = sessions
+          .where((session) => session.available && (session.isPlaying || session.isPaused))
+          .toList();
 
-    return active.first;
+      if (active.isEmpty) return null;
+      active.sort((a, b) => (a.isPlaying ? 0 : 1).compareTo(b.isPlaying ? 0 : 1));
+      return active.first.sourceAppId;
+    }
+
+    return null;
   }
 
   Future<void> _openDetectedSong({
@@ -300,7 +387,16 @@ class _HomeScreenState extends State<HomeScreen>
         return;
       }
 
-      // Fallback path: audfprint.
+      if (Platform.isAndroid) {
+        if (mounted) {
+          setState(() {
+            _status = 'No matching lyrics found for the active Android media session';
+          });
+        }
+        return;
+      }
+
+      // Windows fallback path: audfprint.
       if (_engineInfo == null) {
         try {
           _engineInfo = await _fingerprintService.ensureReady();
@@ -390,13 +486,13 @@ class _HomeScreenState extends State<HomeScreen>
 
           // Even when identification required fingerprint, a browser/player
           // Media Session can still provide play/pause/seek afterwards.
-          final mediaSession = await _findActivePlaybackSession();
+          final mediaSourceAppId = await _findActivePlaybackSourceAppId();
 
           await _openDetectedSong(
             song: song,
             initialPositionMs: positionMs,
             lockedTrackName: result.trackPath ?? song.title,
-            mediaSourceAppId: mediaSession?.sourceAppId,
+            mediaSourceAppId: mediaSourceAppId,
           );
 
           return true;
@@ -483,10 +579,10 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    //
-    // Add Song may update audfprint DB.
-    //
-    _fingerprintService.dispose();
+    // Add Song may update audfprint DB on Windows.
+    if (Platform.isWindows) {
+      _fingerprintService.dispose();
+    }
 
     await Navigator.push(
       context,
@@ -502,26 +598,26 @@ class _HomeScreenState extends State<HomeScreen>
 
     await _loadLibrary();
 
-    try {
-      final info =
-          await _fingerprintService
-              .ensureReady();
+    if (Platform.isWindows) {
+      try {
+        final info = await _fingerprintService.ensureReady();
 
-      if (!mounted) {
-        return;
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _engineInfo = info;
+        });
+      } catch (e) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _error = e.toString();
+        });
       }
-
-      setState(() {
-        _engineInfo = info;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _error = e.toString();
-      });
     }
   }
 
@@ -775,11 +871,10 @@ class _HomeScreenState extends State<HomeScreen>
 
     _listenAnimation.dispose();
 
-    _captureService
-        .stopContinuousCapture();
-
-    _fingerprintService
-        .dispose();
+    if (Platform.isWindows) {
+      _captureService.stopContinuousCapture();
+      _fingerprintService.dispose();
+    }
 
     super.dispose();
   }
@@ -802,11 +897,10 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             child:
                 SingleChildScrollView(
-              padding:
-                  const EdgeInsets.fromLTRB(
-                34,
-                34,
-                34,
+              padding: EdgeInsets.fromLTRB(
+                MediaQuery.sizeOf(context).width < 600 ? 18 : 34,
+                MediaQuery.sizeOf(context).width < 600 ? 22 : 34,
+                MediaQuery.sizeOf(context).width < 600 ? 18 : 34,
                 50,
               ),
               child:
@@ -820,7 +914,7 @@ class _HomeScreenState extends State<HomeScreen>
                         TextAlign.center,
                     style:
                         TextStyle(
-                      fontSize: 46,
+                      fontSize: 40,
                       fontWeight:
                           FontWeight.w800,
                       letterSpacing:
@@ -870,8 +964,8 @@ class _HomeScreenState extends State<HomeScreen>
                                       0.04,
                           child:
                               Container(
-                            width: 150,
-                            height: 150,
+                            width: MediaQuery.sizeOf(context).width < 600 ? 126 : 150,
+                            height: MediaQuery.sizeOf(context).width < 600 ? 126 : 150,
                             decoration:
                                 BoxDecoration(
                               shape:
@@ -922,7 +1016,7 @@ class _HomeScreenState extends State<HomeScreen>
                                           .stop_rounded
                                       : Icons
                                           .graphic_eq_rounded,
-                                  size: 66,
+                                  size: MediaQuery.sizeOf(context).width < 600 ? 56 : 66,
                                 ),
                               ),
                             ),
@@ -936,56 +1030,58 @@ class _HomeScreenState extends State<HomeScreen>
                     height: 48,
                   ),
 
-                  Row(
-                    children: [
-                      const Expanded(
-                        child:
-                            Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final mobile = constraints.maxWidth < 600;
+
+                      final heading = const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your Songs',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Preview or edit synchronization visually',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      );
+
+                      final addButton = FilledButton.icon(
+                        onPressed: _listening ? null : _openAddSong,
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('ADD SONG'),
+                      );
+
+                      if (mobile) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(
-                              'Your Songs',
-                              style:
-                                  TextStyle(
-                                fontSize: 24,
-                                fontWeight:
-                                    FontWeight.w700,
-                              ),
-                            ),
-
-                            SizedBox(
-                              height: 3,
-                            ),
-
-                            Text(
-                              'Preview or edit synchronization visually',
-                              style:
-                                  TextStyle(
-                                color:
-                                    Colors.white38,
-                                fontSize: 13,
-                              ),
+                            heading,
+                            const SizedBox(height: 14),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: addButton,
                             ),
                           ],
-                        ),
-                      ),
+                        );
+                      }
 
-                      FilledButton.icon(
-                        onPressed:
-                            _listening
-                                ? null
-                                : _openAddSong,
-                        icon:
-                            const Icon(
-                          Icons.add_rounded,
-                        ),
-                        label:
-                            const Text(
-                          'ADD SONG',
-                        ),
-                      ),
-                    ],
+                      return Row(
+                        children: [
+                          Expanded(child: heading),
+                          addButton,
+                        ],
+                      );
+                    },
                   ),
 
                   const SizedBox(
@@ -1068,180 +1164,129 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildSongCard(
     SyncedLyricsSong song,
   ) {
-    return Container(
-      margin:
-          const EdgeInsets.only(
-        bottom: 12,
-      ),
-      padding:
-          const EdgeInsets.fromLTRB(
-        20,
-        17,
-        10,
-        17,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            const Color(
-          0xFF121212,
-        ),
-        borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
-        border:
-            Border.all(
-          color:
-              Colors.white.withValues(
-            alpha: 0.05,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration:
-                BoxDecoration(
-              color:
-                  Colors.white.withValues(
-                alpha: 0.06,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 600;
+
+        final info = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: mobile ? 42 : 48,
+              height: mobile ? 42 : 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
               ),
-              borderRadius:
-                  BorderRadius.circular(
-                12,
-              ),
+              child: const Icon(Icons.music_note_rounded),
             ),
-            child:
-                const Icon(
-              Icons.music_note_rounded,
-            ),
-          ),
-
-          const SizedBox(
-            width: 16,
-          ),
-
-          Expanded(
-            child:
-                Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  song.title,
-                  style:
-                      const TextStyle(
-                    fontSize: 17,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 3,
-                ),
-
-                Text(
-                  song.artist,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white54,
-                    fontSize: 13,
-                  ),
-                ),
-
-                const SizedBox(
-                  height: 3,
-                ),
-
-                Text(
-                  '${song.lines.length} lyric lines',
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white24,
-                    fontSize: 11,
-                  ),
-                ),
-
-                if (song.hasManualCalibration)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(
-                      top: 4,
+            SizedBox(width: mobile ? 12 : 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    song.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
-                    child:
-                        Text(
-                      '${song.manualCalibrationCount} manually adjusted lines',
-                      style:
-                          const TextStyle(
-                        color:
-                            Colors.greenAccent,
-                        fontSize: 10,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    song.artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${song.lines.length} lyric lines',
+                    style: const TextStyle(
+                      color: Colors.white24,
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (song.hasManualCalibration)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${song.manualCalibrationCount} manually adjusted lines',
+                        style: const TextStyle(
+                          color: Colors.greenAccent,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-
-          OutlinedButton.icon(
-            onPressed: () =>
-                _openPreview(song),
-            icon:
-                const Icon(
-              Icons.play_arrow_rounded,
-              size: 18,
-            ),
-            label:
-                const Text(
-              'PREVIEW',
-            ),
-          ),
-
-          const SizedBox(
-            width: 8,
-          ),
-
-          FilledButton.tonalIcon(
-            onPressed: () =>
-                _openEditor(song),
-            icon:
-                const Icon(
-              Icons.timeline_rounded,
-              size: 18,
-            ),
-            label:
-                const Text(
-              'EDIT',
-            ),
-          ),
-
-          const SizedBox(
-            width: 5,
-          ),
-
-          Tooltip(
-            message:
-                'Delete song',
-            child:
-                IconButton(
-              onPressed: () =>
-                  _deleteSong(song),
-              icon:
-                  const Icon(
-                Icons.delete_outline_rounded,
+                ],
               ),
-              color:
-                  Colors.white38,
+            ),
+          ],
+        );
+
+        final actions = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: mobile ? WrapAlignment.start : WrapAlignment.end,
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _openPreview(song),
+              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+              label: const Text('PREVIEW'),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: () => _openEditor(song),
+              icon: const Icon(Icons.timeline_rounded, size: 18),
+              label: const Text('EDIT'),
+            ),
+            IconButton(
+              tooltip: 'Delete song',
+              onPressed: () => _deleteSong(song),
+              icon: const Icon(Icons.delete_outline_rounded),
+              color: Colors.white38,
+            ),
+          ],
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: EdgeInsets.fromLTRB(
+            mobile ? 14 : 20,
+            15,
+            mobile ? 12 : 10,
+            15,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF121212),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.05),
             ),
           ),
-        ],
-      ),
+          child: mobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    info,
+                    const SizedBox(height: 14),
+                    actions,
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: info),
+                    const SizedBox(width: 16),
+                    actions,
+                  ],
+                ),
+        );
+      },
     );
   }
+
 }

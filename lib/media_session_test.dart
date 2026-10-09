@@ -1,728 +1,392 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
-import 'services/windows_media_session_service.dart';
+import 'package:flutter/services.dart';
 
 void main() {
-  WidgetsFlutterBinding
-      .ensureInitialized();
-
-  runApp(
-    const MediaSessionTestApp(),
-  );
+  runApp(const AndroidMediaSessionTestApp());
 }
 
-class MediaSessionTestApp
-    extends StatelessWidget {
-  const MediaSessionTestApp({
-    super.key,
-  });
+class AndroidMediaSessionTestApp extends StatelessWidget {
+  const AndroidMediaSessionTestApp({super.key});
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner:
-          false,
-
-      theme:
-          ThemeData.dark(),
-
-      home:
-          const MediaSessionTestScreen(),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(useMaterial3: true),
+      home: const AndroidMediaSessionTestScreen(),
     );
   }
 }
 
-class MediaSessionTestScreen
-    extends StatefulWidget {
-  const MediaSessionTestScreen({
-    super.key,
-  });
+class AndroidMediaSessionTestScreen extends StatefulWidget {
+  const AndroidMediaSessionTestScreen({super.key});
 
   @override
-  State<MediaSessionTestScreen>
-      createState() =>
-          _MediaSessionTestScreenState();
+  State<AndroidMediaSessionTestScreen> createState() =>
+      _AndroidMediaSessionTestScreenState();
 }
 
-class _MediaSessionTestScreenState
-    extends State<MediaSessionTestScreen> {
-  final WindowsMediaSessionService
-      _mediaService =
-      WindowsMediaSessionService();
+class _AndroidMediaSessionTestScreenState
+    extends State<AndroidMediaSessionTestScreen>
+    with WidgetsBindingObserver {
+  static const MethodChannel _channel = MethodChannel(
+    'lyriko/android_media_session',
+  );
 
   Timer? _timer;
-
-  bool _initializing =
-      true;
-
-  bool _refreshing =
-      false;
-
+  bool _hasAccess = false;
+  bool _loading = true;
   String? _error;
-
-  WindowsMediaSessionState?
-      _currentSession;
-
-  List<WindowsMediaSessionState>
-      _sessions =
-      [];
+  List<Map<String, dynamic>> _sessions = const [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshAccessAndSessions();
 
-    _initialize();
-  }
-
-  Future<void> _initialize() async {
-    try {
-      final initialized =
-          await _mediaService
-              .initialize();
-
-      if (!initialized) {
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          _initializing =
-              false;
-
-          _error =
-              'Windows Media Session '
-              'could not be initialized.';
-        });
-
-        return;
-      }
-
-      await _refresh();
-
-      _timer =
-          Timer.periodic(
-        const Duration(
-          seconds:
-              1,
-        ),
-        (_) {
-          _refresh();
-        },
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _initializing =
-            false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _initializing =
-            false;
-
-        _error =
-            e.toString();
-      });
-    }
-  }
-
-  Future<void> _refresh() async {
-    if (_refreshing) {
-      return;
-    }
-
-    _refreshing =
-        true;
-
-    try {
-      final current =
-          await _mediaService
-              .getState();
-
-      final sessions =
-          await _mediaService
-              .getSessions();
-
-      print('');
-      print(
-        '==========================================',
-      );
-      print(
-        'CURRENT WINDOWS MEDIA SESSION',
-      );
-      print(
-        current,
-      );
-      print(
-        '------------------------------------------',
-      );
-      print(
-        'ALL WINDOWS MEDIA SESSIONS: '
-        '${sessions.length}',
-      );
-
-      for (var i = 0;
-          i < sessions.length;
-          i++) {
-        print(
-          'SESSION ${i + 1}: '
-          '${sessions[i]}',
-        );
-      }
-
-      print(
-        '==========================================',
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _currentSession =
-            current;
-
-        _sessions =
-            sessions;
-
-        _error =
-            null;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _error =
-            e.toString();
-      });
-    } finally {
-      _refreshing =
-          false;
-    }
-  }
-
-  String _formatTime(
-    int milliseconds,
-  ) {
-    if (milliseconds <
-        0) {
-      milliseconds =
-          0;
-    }
-
-    final totalSeconds =
-        milliseconds ~/
-            1000;
-
-    final hours =
-        totalSeconds ~/
-            3600;
-
-    final minutes =
-        (totalSeconds %
-                3600) ~/
-            60;
-
-    final seconds =
-        totalSeconds %
-            60;
-
-    if (hours > 0) {
-      return '$hours:'
-          '${minutes.toString().padLeft(2, '0')}:'
-          '${seconds.toString().padLeft(2, '0')}';
-    }
-
-    return '$minutes:'
-        '${seconds.toString().padLeft(2, '0')}';
-  }
-
-  String _statusText(
-    WindowsMediaPlaybackStatus
-        status,
-  ) {
-    switch (status) {
-      case WindowsMediaPlaybackStatus
-            .playing:
-        return 'PLAYING';
-
-      case WindowsMediaPlaybackStatus
-            .paused:
-        return 'PAUSED';
-
-      case WindowsMediaPlaybackStatus
-            .stopped:
-        return 'STOPPED';
-
-      case WindowsMediaPlaybackStatus
-            .changing:
-        return 'CHANGING';
-
-      case WindowsMediaPlaybackStatus
-            .opened:
-        return 'OPENED';
-
-      case WindowsMediaPlaybackStatus
-            .closed:
-        return 'CLOSED';
-
-      case WindowsMediaPlaybackStatus
-            .unavailable:
-        return 'UNAVAILABLE';
-
-      case WindowsMediaPlaybackStatus
-            .unknown:
-        return 'UNKNOWN';
-    }
-  }
-
-  Color _statusColor(
-    WindowsMediaPlaybackStatus
-        status,
-  ) {
-    switch (status) {
-      case WindowsMediaPlaybackStatus
-            .playing:
-        return Colors.greenAccent;
-
-      case WindowsMediaPlaybackStatus
-            .paused:
-        return Colors.orangeAccent;
-
-      case WindowsMediaPlaybackStatus
-            .stopped:
-        return Colors.redAccent;
-
-      default:
-        return Colors.white54;
-    }
+    _timer = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (_) => _refreshSessions(),
+    );
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshAccessAndSessions();
+    }
+  }
+
+  Future<void> _refreshAccessAndSessions() async {
+    try {
+      final enabled =
+          await _channel.invokeMethod<bool>('isNotificationAccessEnabled') ??
+              false;
+
+      if (!mounted) return;
+
+      setState(() {
+        _hasAccess = enabled;
+        _loading = false;
+        _error = null;
+      });
+
+      if (enabled) {
+        await _refreshSessions();
+      } else if (mounted) {
+        setState(() => _sessions = const []);
+      }
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '${error.code}: ${error.message ?? ''}';
+      });
+    }
+  }
+
+  Future<void> _openNotificationAccess() async {
+    await _channel.invokeMethod<bool>('openNotificationAccessSettings');
+  }
+
+  Future<void> _refreshSessions() async {
+    if (!_hasAccess) return;
+
+    try {
+      final raw = await _channel.invokeMethod<List<dynamic>>('getSessions');
+
+      final sessions = (raw ?? const <dynamic>[])
+          .map(
+            (item) => Map<String, dynamic>.from(
+              item as Map,
+            ),
+          )
+          .toList(growable: false);
+
+      if (!mounted) return;
+
+      setState(() {
+        _sessions = sessions;
+        _error = null;
+      });
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = '${error.code}: ${error.message ?? ''}';
+      });
+    }
+  }
+
+  String _formatMs(Object? value) {
+    final milliseconds = switch (value) {
+      int number => number,
+      num number => number.toInt(),
+      _ => 0,
+    };
+
+    final totalSeconds = milliseconds ~/ 1000;
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    final millis = milliseconds.abs() % 1000;
+
+    if (hours > 0) {
+      return '$hours:'
+          '${minutes.toString().padLeft(2, '0')}:'
+          '${seconds.toString().padLeft(2, '0')}.'
+          '${millis.toString().padLeft(3, '0')}';
+    }
+
+    return '$minutes:'
+        '${seconds.toString().padLeft(2, '0')}.'
+        '${millis.toString().padLeft(3, '0')}';
+  }
+
+  String _text(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? '—' : text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          const Color(
-        0xFF080808,
+      appBar: AppBar(
+        title: const Text('Android MediaSession test'),
+        actions: [
+          IconButton(
+            onPressed: _refreshAccessAndSessions,
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
-
-      appBar:
-          AppBar(
-        backgroundColor:
-            const Color(
-          0xFF101010,
-        ),
-
-        title:
-            const Text(
-          'Windows Media Sessions',
-        ),
-      ),
-
-      body:
-          _initializing
-              ? const Center(
-                  child:
-                      CircularProgressIndicator(),
-                )
-              : _error != null
-                  ? Center(
-                      child:
-                          Padding(
-                        padding:
-                            const EdgeInsets.all(
-                          24,
-                        ),
-
-                        child:
-                            Text(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _AccessCard(
+                    hasAccess: _hasAccess,
+                    onOpenSettings: _openNotificationAccess,
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
                           _error!,
-                          textAlign:
-                              TextAlign.center,
-
-                          style:
-                              const TextStyle(
-                            color:
-                                Colors.redAccent,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
                           ),
                         ),
                       ),
-                    )
-                  : _buildContent(),
-    );
-  }
-
-  Widget _buildContent() {
-    return ListView(
-      padding:
-          const EdgeInsets.all(
-        24,
-      ),
-
-      children: [
-        const Text(
-          'CURRENT SESSION',
-          style:
-              TextStyle(
-            color:
-                Colors.white54,
-
-            fontSize:
-                12,
-
-            fontWeight:
-                FontWeight.bold,
-
-            letterSpacing:
-                1.2,
-          ),
-        ),
-
-        const SizedBox(
-          height:
-              12,
-        ),
-
-        if (_currentSession !=
-            null)
-          _sessionCard(
-            _currentSession!,
-            current:
-                true,
-          ),
-
-        const SizedBox(
-          height:
-              32,
-        ),
-
-        Text(
-          'ALL SESSIONS (${_sessions.length})',
-          style:
-              const TextStyle(
-            color:
-                Colors.white54,
-
-            fontSize:
-                12,
-
-            fontWeight:
-                FontWeight.bold,
-
-            letterSpacing:
-                1.2,
-          ),
-        ),
-
-        const SizedBox(
-          height:
-              12,
-        ),
-
-        if (_sessions.isEmpty)
-          const Padding(
-            padding:
-                EdgeInsets.all(
-              20,
-            ),
-
-            child:
-                Text(
-              'Windows returned no media sessions.',
-              style:
-                  TextStyle(
-                color:
-                    Colors.white54,
-              ),
-            ),
-          ),
-
-        for (var i = 0;
-            i < _sessions.length;
-            i++) ...[
-          _sessionCard(
-            _sessions[i],
-            index:
-                i + 1,
-          ),
-
-          const SizedBox(
-            height:
-                16,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _sessionCard(
-    WindowsMediaSessionState
-        state, {
-    int? index,
-    bool current = false,
-  }) {
-    final statusColor =
-        _statusColor(
-      state.playbackStatus,
-    );
-
-    return Container(
-      padding:
-          const EdgeInsets.all(
-        20,
-      ),
-
-      decoration:
-          BoxDecoration(
-        color:
-            Colors.white
-                .withValues(
-          alpha:
-              0.05,
-        ),
-
-        borderRadius:
-            BorderRadius.circular(
-          14,
-        ),
-
-        border:
-            Border.all(
-          color:
-              current
-                  ? Colors.white
-                      .withValues(
-                      alpha:
-                          0.25,
-                    )
-                  : Colors.white
-                      .withValues(
-                      alpha:
-                          0.08,
                     ),
+                  ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'Active sessions: ${_sessions.length}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: !_hasAccess
+                        ? const Center(
+                            child: Text(
+                              'Enable notification access first.',
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : _sessions.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No active media sessions.\n'
+                                  'Start Spotify or YouTube, play something, '
+                                  'then return here.',
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            : ListView.separated(
+                                itemCount: _sessions.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, index) {
+                                  final session = _sessions[index];
+                                  return _SessionCard(
+                                    index: index,
+                                    packageName:
+                                        _text(session['packageName']),
+                                    title: _text(session['title']),
+                                    artist: _text(session['artist']),
+                                    albumArtist:
+                                        _text(session['albumArtist']),
+                                    album: _text(session['album']),
+                                    state: _text(session['state']),
+                                    position: _formatMs(
+                                      session['estimatedPositionMs'],
+                                    ),
+                                    rawPosition: _formatMs(
+                                      session['rawPositionMs'],
+                                    ),
+                                    duration: _formatMs(
+                                      session['durationMs'],
+                                    ),
+                                    speed: session['playbackSpeed']
+                                            ?.toString() ??
+                                        '—',
+                                    age: _formatMs(
+                                      session['elapsedSinceUpdateMs'],
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+class _AccessCard extends StatelessWidget {
+  const _AccessCard({
+    required this.hasAccess,
+    required this.onOpenSettings,
+  });
+
+  final bool hasAccess;
+  final VoidCallback onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Icon(
+              hasAccess ? Icons.check_circle : Icons.warning_amber_rounded,
+              size: 30,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasAccess
+                        ? 'Notification access enabled'
+                        : 'Notification access required',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hasAccess
+                        ? 'Lyriko can query active Android media sessions.'
+                        : 'Android requires notification-listener access '
+                            'to inspect media sessions from other apps.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: onOpenSettings,
+              child: Text(hasAccess ? 'Settings' : 'Enable'),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
 
-      child:
-          Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+class _SessionCard extends StatelessWidget {
+  const _SessionCard({
+    required this.index,
+    required this.packageName,
+    required this.title,
+    required this.artist,
+    required this.albumArtist,
+    required this.album,
+    required this.state,
+    required this.position,
+    required this.rawPosition,
+    required this.duration,
+    required this.speed,
+    required this.age,
+  });
 
-        children: [
-          Row(
-            children: [
-              Container(
-                width:
-                    10,
-                height:
-                    10,
+  final int index;
+  final String packageName;
+  final String title;
+  final String artist;
+  final String albumArtist;
+  final String album;
+  final String state;
+  final String position;
+  final String rawPosition;
+  final String duration;
+  final String speed;
+  final String age;
 
-                decoration:
-                    BoxDecoration(
-                  shape:
-                      BoxShape.circle,
-
-                  color:
-                      statusColor,
-                ),
-              ),
-
-              const SizedBox(
-                width:
-                    10,
-              ),
-
-              Expanded(
-                child:
-                    Text(
-                  current
-                      ? 'CURRENT SESSION'
-                      : 'SESSION $index',
-
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white,
-
-                    fontSize:
-                        16,
-
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              Text(
-                _statusText(
-                  state
-                      .playbackStatus,
-                ),
-
-                style:
-                    TextStyle(
-                  color:
-                      statusColor,
-
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(
-            height:
-                18,
-          ),
-
-          _info(
-            'App',
-            state.sourceAppId,
-          ),
-
-          _info(
-            'Title',
-            state.title,
-          ),
-
-          _info(
-            'Artist',
-            state.artist,
-          ),
-
-          _info(
-            'Album artist',
-            state.albumArtist,
-          ),
-
-          _info(
-            'Album',
-            state.albumTitle,
-          ),
-
-          _info(
-            'Playback type',
-            state.playbackType,
-          ),
-
-          _info(
-            'Genres',
-            state.genres.isEmpty
-                ? ''
-                : state.genres
-                    .join(
-                    ', ',
-                  ),
-          ),
-
-          _info(
-            'Track number',
-            state.trackNumber ==
-                    0
-                ? ''
-                : state.trackNumber
-                    .toString(),
-          ),
-
-          _info(
-            'Position',
-            '${_formatTime(state.positionMs)} '
-            '(${state.positionMs} ms)',
-          ),
-
-          _info(
-            'Duration',
-            '${_formatTime(state.durationMs)} '
-            '(${state.durationMs} ms)',
-          ),
-
-          _info(
-            'Start',
-            '${state.startTimeMs} ms',
-          ),
-
-          _info(
-            'End',
-            '${state.endTimeMs} ms',
-          ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Session ${index + 1}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
+            _row('App', packageName),
+            _row('Title', title),
+            _row('Artist', artist),
+            _row('Album artist', albumArtist),
+            _row('Album', album),
+            _row('State', state),
+            _row('Position', position),
+            _row('Raw position', rawPosition),
+            _row('Duration', duration),
+            _row('Speed', speed),
+            _row('Timeline age', age),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _info(
-    String label,
-    String value,
-  ) {
-    final shown =
-        value.trim().isEmpty
-            ? '—'
-            : value;
-
+  Widget _row(String label, String value) {
     return Padding(
-      padding:
-          const EdgeInsets.only(
-        bottom:
-            8,
-      ),
-
-      child:
-          Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width:
-                140,
-
-            child:
-                Text(
+            width: 105,
+            child: Text(
               label,
-
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white38,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-
-          Expanded(
-            child:
-                Text(
-              shown,
-
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
-              ),
-            ),
-          ),
+          Expanded(child: SelectableText(value)),
         ],
       ),
     );

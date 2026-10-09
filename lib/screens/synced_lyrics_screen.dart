@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../services/android_media_session_service.dart';
+import '../services/android_native_lyrics_overlay_service.dart';
 import '../services/fingerprint_match_service.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/system_audio_capture_service.dart';
@@ -33,10 +35,14 @@ class SyncedLyricsScreen extends StatefulWidget {
   State<SyncedLyricsScreen> createState() => _SyncedLyricsScreenState();
 }
 
-class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
+class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBindingObserver {
   final SyncedLyricsService _lyricsService = SyncedLyricsService();
   final WindowsMediaSessionService _mediaService =
       WindowsMediaSessionService();
+  final AndroidMediaSessionService _androidMediaService =
+      AndroidMediaSessionService();
+  final AndroidNativeLyricsOverlayService _androidOverlayService =
+      AndroidNativeLyricsOverlayService();
   final FingerprintMatchService _fingerprintService = FingerprintMatchService();
   final SystemAudioCaptureService _captureService = SystemAudioCaptureService();
   final ItemScrollController _scrollController = ItemScrollController();
@@ -62,6 +68,8 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
   bool _fallbackBusy = false;
   bool _fallbackStarted = false;
   bool _fallbackPaused = false;
+  bool _androidOverlayStarted = false;
+  int _lastAndroidOverlayBroadcastAtMs = 0;
 
   int? _lastMediaRawPositionMs;
   bool? _lastMediaPlaying;
@@ -90,6 +98,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _anchorPositionMs = widget.initialPositionMs;
     _currentPositionMs = widget.initialPositionMs;
@@ -99,6 +108,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
   }
 
   Future<void> _enterLyricsOverlayMode() async {
+    if (!Platform.isWindows) {
+      return;
+    }
+
     try {
       await windowManager.setBackgroundColor(
         Colors.transparent,
@@ -121,8 +134,152 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (!Platform.isAndroid || state != AppLifecycleState.resumed) {
+      return;
+    }
+
+    final song = _song;
+    if (song == null) return;
+
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        unawaited(
+          _startAndroidFloatingOverlay(
+            song,
+            requestIfNeeded: false,
+          ),
+        );
+      }
+    });
+  }
+
+  Future<void> _ensureAndroidFloatingOverlay(SyncedLyricsSong song) async {
+    if (!Platform.isAndroid) return;
+
+    await _startAndroidFloatingOverlay(
+      song,
+      requestIfNeeded: true,
+    );
+  }
+
+  Future<void> _startAndroidFloatingOverlay(
+    SyncedLyricsSong song, {
+    required bool requestIfNeeded,
+  }) async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      var granted = await _androidOverlayService.isPermissionGranted();
+
+      if (!granted && requestIfNeeded) {
+        await _androidOverlayService.requestPermission();
+        return;
+      }
+
+      if (!granted) {
+        if (mounted && requestIfNeeded) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Enable “Display over other apps” for Lyriko, then return to the app.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      final state = _buildAndroidOverlayState(song);
+      final started = await _androidOverlayService.show(state);
+
+      _androidOverlayStarted = started;
+
+      if (!started && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'The native floating lyrics overlay could not start.',
+            ),
+          ),
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('Could not start native Android lyrics overlay: $e');
+      debugPrintStack(stackTrace: stack);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Floating lyrics error: $e',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _forceOpenAndroidOverlay() async {
+    final song = _song;
+    if (!Platform.isAndroid || song == null) return;
+
+    await _startAndroidFloatingOverlay(
+      song,
+      requestIfNeeded: true,
+    );
+  }
+
+  Map<String, dynamic> _buildAndroidOverlayState(
+    SyncedLyricsSong song,
+  ) {
+    return {
+      'title': song.title,
+      'artist': song.artist,
+      'positionMs': _currentPositionMs,
+      'playing': _clockRunning,
+      'tracking': _trackingLabel,
+      'lines': song.lines
+          .map(
+            (line) => {
+              'text': line.text,
+              'startMs': line.startMs,
+              'endMs': line.endMs,
+            },
+          )
+          .toList(),
+    };
+  }
+
+  Future<void> _broadcastAndroidOverlay(
+    SyncedLyricsSong song, {
+    bool force = false,
+  }) async {
+    if (!Platform.isAndroid || !_androidOverlayStarted) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (!force && now - _lastAndroidOverlayBroadcastAtMs < 220) {
+      return;
+    }
+
+    _lastAndroidOverlayBroadcastAtMs = now;
+
+    try {
+      await _androidOverlayService.update(
+        _buildAndroidOverlayState(song),
+      );
+    } catch (e) {
+      debugPrint(
+        'Could not update native Android lyrics overlay: $e',
+      );
+    }
+  }
+
   Future<void> _restoreNormalWindowMode() async {
-    if (!_overlayModeActive) {
+    if (!Platform.isWindows || !_overlayModeActive) {
       return;
     }
 
@@ -169,7 +326,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
 
       _setAnchor(safePosition, running: true, forceScroll: false);
 
-      await _mediaService.initialize();
+      if (Platform.isWindows) {
+        await _mediaService.initialize();
+      }
 
       _startUiTimer();
       _startMediaTimer();
@@ -177,6 +336,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
 
       // Poll immediately rather than waiting for the first timer tick.
       await _pollMediaSession();
+
+      if (Platform.isAndroid) {
+        await _ensureAndroidFloatingOverlay(song);
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -226,6 +389,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
     if (changed) {
       _scrollToLine(active);
     }
+
+    if (Platform.isAndroid) {
+      unawaited(_broadcastAndroidOverlay(song));
+    }
   }
 
   int _estimatedPositionMs(SyncedLyricsSong song) {
@@ -244,6 +411,23 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
     _mediaPollBusy = true;
 
     try {
+      if (Platform.isAndroid) {
+        final sessions = await _androidMediaService.getSessions();
+        final session = _selectAndroidMediaSession(sessions);
+
+        if (session != null) {
+          _lastMediaSeenAt = DateTime.now();
+          _applyAndroidMediaSession(session);
+          return;
+        }
+
+        _setTrackingStatus(
+          'WAITING',
+          Colors.white54,
+        );
+        return;
+      }
+
       final sessions = await _mediaService.getSessions();
       final session = _selectMediaSession(sessions);
 
@@ -264,10 +448,154 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
         return;
       }
 
-      await _ensureFingerprintFallback();
+      if (Platform.isWindows) {
+        await _ensureFingerprintFallback();
+      }
     } finally {
       _mediaPollBusy = false;
     }
+  }
+
+  AndroidMediaSessionState? _selectAndroidMediaSession(
+    List<AndroidMediaSessionState> sessions,
+  ) {
+    final song = _song;
+    if (song == null) return null;
+
+    final usable = sessions
+        .where(
+          (session) =>
+              session.available &&
+              (session.isPlaying || session.isPaused || session.isStopped),
+        )
+        .toList();
+
+    if (usable.isEmpty) return null;
+
+    AndroidMediaSessionState? bestMetadata;
+    var bestScore = 0;
+
+    for (final session in usable) {
+      final score = _lyricsService.mediaMetadataScoreForSong(
+        song,
+        title: session.title,
+        artist: session.artist,
+        albumArtist: session.albumArtist,
+      );
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMetadata = session;
+      }
+    }
+
+    if (bestMetadata != null && bestScore >= 70) {
+      return bestMetadata;
+    }
+
+    final preferredApp = widget.mediaSourceAppId?.trim().toLowerCase();
+
+    if (preferredApp != null && preferredApp.isNotEmpty) {
+      final sameApp = usable
+          .where(
+            (session) =>
+                session.sourceAppId.trim().toLowerCase() == preferredApp,
+          )
+          .toList();
+
+      if (sameApp.isNotEmpty) {
+        sameApp.sort((a, b) {
+          final aRank = a.isPlaying ? 0 : (a.isPaused ? 1 : 2);
+          final bRank = b.isPlaying ? 0 : (b.isPaused ? 1 : 2);
+          return aRank.compareTo(bRank);
+        });
+
+        return sameApp.first;
+      }
+    }
+
+    final active = usable
+        .where((session) => session.isPlaying || session.isPaused)
+        .toList();
+
+    if (active.length == 1) {
+      return active.first;
+    }
+
+    return null;
+  }
+
+  void _applyAndroidMediaSession(AndroidMediaSessionState session) {
+    final song = _song;
+    if (song == null) return;
+
+    final rawPosition = _clampPosition(session.positionMs, song);
+    final mediaPosition = _clampPosition(session.estimatedPositionMs, song);
+    final isPlaying = session.isPlaying;
+    final isPaused = session.isPaused || session.isStopped;
+
+    if (isPaused) {
+      final pausePosition =
+          rawPosition > 0 ? rawPosition : _estimatedPositionMs(song);
+
+      _lastMediaRawPositionMs = rawPosition;
+      _lastMediaPlaying = false;
+
+      _setAnchor(
+        pausePosition,
+        running: false,
+        forceScroll: true,
+      );
+
+      _setTrackingStatus(
+        'PAUSED',
+        Colors.orangeAccent,
+      );
+      return;
+    }
+
+    if (!isPlaying) return;
+
+    final predicted = _estimatedPositionMs(song);
+    final previousRaw = _lastMediaRawPositionMs;
+    final rawChanged = previousRaw == null ||
+        (rawPosition - previousRaw).abs() >= _mediaRawChangeThresholdMs;
+    final resuming = _lastMediaPlaying != true;
+
+    if (resuming) {
+      _setAnchor(
+        mediaPosition,
+        running: true,
+        forceScroll: true,
+      );
+    } else if (rawChanged) {
+      final drift = mediaPosition - predicted;
+
+      if (drift.abs() >= _mediaHardSeekThresholdMs) {
+        _setAnchor(
+          mediaPosition,
+          running: true,
+          forceScroll: true,
+        );
+      } else if (drift.abs() >= 120) {
+        final corrected =
+            predicted + (drift * _mediaSoftCorrectionFactor).round();
+
+        _setAnchor(
+          corrected,
+          running: true,
+          forceScroll: false,
+        );
+      }
+    }
+
+    _lastMediaRawPositionMs = rawPosition;
+    _lastMediaPlaying = true;
+
+    _setTrackingStatus(
+      'MEDIA',
+      Colors.greenAccent,
+    );
   }
 
   WindowsMediaSessionState? _selectMediaSession(
@@ -462,10 +790,15 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
       _trackingLabel = label;
       _trackingColor = color;
     });
+
+    final song = _song;
+    if (Platform.isAndroid && song != null) {
+      unawaited(_broadcastAndroidOverlay(song, force: true));
+    }
   }
 
   Future<void> _ensureFingerprintFallback() async {
-    if (_fallbackStarted || _openingEditor) return;
+    if (!Platform.isWindows || _fallbackStarted || _openingEditor) return;
 
     try {
       await _fingerprintService.ensureReady();
@@ -768,15 +1101,17 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _uiTimer?.cancel();
     _mediaTimer?.cancel();
     _fallbackTimer?.cancel();
-
     _localClock.stop();
     _fallbackCaptureClock.stop();
 
-    _captureService.stopContinuousCapture();
-    _fingerprintService.dispose();
+    if (Platform.isWindows) {
+      _captureService.stopContinuousCapture();
+      _fingerprintService.dispose();
+    }
 
     unawaited(
       _restoreNormalWindowMode(),
@@ -789,7 +1124,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
   Widget build(BuildContext context) {
     final song = _song;
     final backgroundOpacity =
-        (_backgroundOpacityPercent / 100.0).clamp(0.0, 1.0);
+        (_backgroundOpacityPercent / 100.0).clamp(0.0, 1.0).toDouble();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -821,13 +1156,196 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
                         ],
                       ),
           ),
-          ..._buildResizeHandles(),
+          if (Platform.isWindows) ..._buildResizeHandles(),
         ],
       ),
     );
   }
 
   Widget _buildHeader(SyncedLyricsSong song) {
+    if (Platform.isAndroid || MediaQuery.sizeOf(context).width < 600) {
+      return _buildMobileHeader(song);
+    }
+
+    return _buildDesktopHeader(song);
+  }
+
+  Widget _buildMobileHeader(SyncedLyricsSong song) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Back',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      song.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (song.artist.isNotEmpty)
+                      Text(
+                        song.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatTime(_currentPositionMs),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _trackingColor,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _trackingLabel,
+                        style: TextStyle(
+                          color: _trackingColor.withValues(alpha: 0.82),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Text(
+                'BACKGROUND',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 13,
+                    ),
+                  ),
+                  child: Slider(
+                    min: 0,
+                    max: 100,
+                    divisions: 100,
+                    value: _backgroundOpacityPercent,
+                    onChanged: (value) {
+                      setState(() {
+                        _backgroundOpacityPercent = value;
+                      });
+
+                      if (Platform.isAndroid) {
+                        unawaited(
+                          _androidOverlayService.setBackground(value),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 42,
+                child: Text(
+                  '${_backgroundOpacityPercent.round()}%',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (Platform.isAndroid)
+                TextButton.icon(
+                  onPressed: _forceOpenAndroidOverlay,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.picture_in_picture_alt_rounded, size: 17),
+                  label: const Text(
+                    'FLOAT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              IconButton(
+                tooltip: 'Calibrate',
+                visualDensity: VisualDensity.compact,
+                onPressed: _openingEditor ? null : _openEditor,
+                icon: const Icon(Icons.tune_rounded, size: 20),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeader(SyncedLyricsSong song) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.symmetric(
@@ -866,7 +1384,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onPanStart: (_) {
-                      windowManager.startDragging();
+                      if (Platform.isWindows) {
+                        windowManager.startDragging();
+                      }
                     },
                     child: Container(
                       constraints: const BoxConstraints(

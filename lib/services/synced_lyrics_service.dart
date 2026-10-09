@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 class SyncedLyricWord {
   final String text;
   final int startMs;
@@ -100,6 +102,8 @@ class SyncedLyricsSong {
 }
 
 class SyncedLyricsService {
+  bool get _usesBundledAssets => Platform.isAndroid || Platform.isIOS;
+
   String get _userProfile {
     final value = Platform.environment['USERPROFILE'];
 
@@ -117,81 +121,71 @@ class SyncedLyricsService {
   String get lyricsRoot => '$projectRoot\\assets\\lyrics';
 
   Future<List<SyncedLyricsSong>> loadLibrary() async {
-    final directory = Directory(lyricsRoot);
-
-    if (!await directory.exists()) {
-      return [];
-    }
-
     final discoveredSongs = <SyncedLyricsSong>[];
 
-    await for (final entity in directory.list(followLinks: false)) {
-      if (entity is! File) {
-        continue;
+    if (_usesBundledAssets) {
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final jsonAssets = manifest
+          .listAssets()
+          .where(
+            (asset) =>
+                asset.startsWith('assets/lyrics/') &&
+                asset.toLowerCase().endsWith('.json'),
+          )
+          .toList();
+
+      for (final assetPath in jsonAssets) {
+        try {
+          final song = await loadSong(assetPath);
+          if (song.lines.isNotEmpty) {
+            discoveredSongs.add(song);
+          }
+        } catch (_) {
+          // Ignore debug/generated JSON files that are not Lyriko songs.
+        }
+      }
+    } else {
+      final directory = Directory(lyricsRoot);
+
+      if (!await directory.exists()) {
+        return [];
       }
 
-      if (!entity.path.toLowerCase().endsWith('.json')) {
-        continue;
-      }
-
-      try {
-        final song = await loadSong(entity.path);
-
-        if (song.lines.isEmpty) {
+      await for (final entity in directory.list(followLinks: false)) {
+        if (entity is! File ||
+            !entity.path.toLowerCase().endsWith('.json')) {
           continue;
         }
 
-        discoveredSongs.add(song);
-      } catch (_) {
-        //
-        // Ignore old/debug/generated JSON files
-        // which are not Lyriko song JSON files.
-        //
+        try {
+          final song = await loadSong(entity.path);
+          if (song.lines.isNotEmpty) {
+            discoveredSongs.add(song);
+          }
+        } catch (_) {
+          // Ignore debug/generated JSON files that are not Lyriko songs.
+        }
       }
     }
 
-    //
-    // -------------------------------------------------
-    // DEDUPLICATION
-    // -------------------------------------------------
-    //
-    // One logical song = artist + title.
-    //
-    // If multiple JSON files represent the same song,
-    // keep the safest/best version.
-    //
-    // Priority:
-    //
-    // 1. More manually calibrated lines.
-    // 2. More lyric lines.
-    // 3. Most recently modified JSON.
-    //
-    // This protects the manually calibrated Nobody
-    // from being hidden by a newly generated raw CTC
-    // copy.
-    //
     final deduplicated = <String, SyncedLyricsSong>{};
 
     for (final song in discoveredSongs) {
       final key = identityKey(song.artist, song.title);
-
       final existing = deduplicated[key];
 
       if (existing == null) {
         deduplicated[key] = song;
-
-        continue;
+      } else {
+        deduplicated[key] = _choosePreferredSong(existing, song);
       }
-
-      deduplicated[key] = _choosePreferredSong(existing, song);
     }
 
     final songs = deduplicated.values.toList();
 
     songs.sort((a, b) {
-      final artistComparison = a.artist.toLowerCase().compareTo(
-        b.artist.toLowerCase(),
-      );
+      final artistComparison =
+          a.artist.toLowerCase().compareTo(b.artist.toLowerCase());
 
       if (artistComparison != 0) {
         return artistComparison;
@@ -256,13 +250,32 @@ class SyncedLyricsService {
   }
 
   Future<SyncedLyricsSong> loadSong(String jsonPath) async {
-    final file = File(jsonPath);
+    final isAsset = jsonPath.startsWith('assets/');
 
-    if (!await file.exists()) {
-      throw StateError('Sync JSON not found:\n$jsonPath');
+    late String raw;
+    late String filename;
+    late DateTime modifiedAt;
+
+    if (isAsset) {
+      raw = await rootBundle.loadString(jsonPath);
+      filename = jsonPath.split('/').last;
+      modifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+    } else {
+      final file = File(jsonPath);
+
+      if (!await file.exists()) {
+        throw StateError('Sync JSON not found:\n$jsonPath');
+      }
+
+      raw = await file.readAsString(encoding: utf8);
+      filename = file.uri.pathSegments.last;
+
+      try {
+        modifiedAt = (await file.stat()).modified;
+      } catch (_) {
+        modifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+      }
     }
-
-    final raw = await file.readAsString(encoding: utf8);
 
     final decoded = jsonDecode(raw);
 
@@ -271,7 +284,6 @@ class SyncedLyricsService {
     }
 
     final json = Map<String, dynamic>.from(decoded);
-
     final rawLines = json['lines'];
 
     if (rawLines is! List) {
@@ -281,11 +293,11 @@ class SyncedLyricsService {
     final lines = rawLines
         .whereType<Map>()
         .map(
-          (item) => SyncedLyricLine.fromJson(Map<String, dynamic>.from(item)),
+          (item) => SyncedLyricLine.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
         )
         .toList();
-
-    final filename = file.uri.pathSegments.last;
 
     final filenameWithoutExtension = filename.replaceFirst(
       RegExp(r'\.json$', caseSensitive: false),
@@ -293,19 +305,16 @@ class SyncedLyricsService {
     );
 
     String fallbackArtist = '';
-
     String fallbackTitle = filenameWithoutExtension;
 
     final separator = filenameWithoutExtension.indexOf(' - ');
 
     if (separator > 0) {
       fallbackArtist = filenameWithoutExtension.substring(0, separator).trim();
-
       fallbackTitle = filenameWithoutExtension.substring(separator + 3).trim();
     }
 
     final jsonTitle = json['title']?.toString().trim();
-
     final jsonArtist = json['artist']?.toString().trim();
 
     final title = jsonTitle != null && jsonTitle.isNotEmpty
@@ -326,21 +335,13 @@ class SyncedLyricsService {
       audioPath = null;
     }
 
-    DateTime modifiedAt;
-
-    try {
-      modifiedAt = (await file.stat()).modified;
-    } catch (_) {
-      modifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
-    }
-
     return SyncedLyricsSong(
       songId: json['songId']?.toString().trim().isNotEmpty == true
           ? json['songId'].toString().trim()
           : _slugify('$artist-$title'),
       title: title,
       artist: artist,
-      jsonPath: file.path,
+      jsonPath: jsonPath,
       audioPath: audioPath,
       lines: lines,
       durationMs: durationMs,
@@ -432,7 +433,9 @@ class SyncedLyricsService {
       }
     }
 
-    return bestScore >= 70 ? bestSong : null;
+    // Android/player metadata is only trusted when the SONG TITLE itself
+    // produces a strong match. Artist/album fields are only supporting data.
+    return bestScore >= 95 ? bestSong : null;
   }
 
   int mediaMetadataScoreForSong(
@@ -453,37 +456,51 @@ class SyncedLyricsService {
     final songArtist = _normalizeMediaText(song.artist);
 
     final titleExact = mediaTitle == songTitle;
-    final titleContains = mediaTitle.contains(songTitle);
-    final reverseTitleContains = songTitle.contains(mediaTitle);
+    final titlePhraseMatch = _containsWholePhrase(mediaTitle, songTitle);
 
-    final artistConfirmed = songArtist.isEmpty ||
-        mediaArtist == songArtist ||
-        mediaAlbumArtist == songArtist ||
-        mediaArtist.contains(songArtist) ||
-        mediaAlbumArtist.contains(songArtist) ||
-        mediaTitle.contains(songArtist);
+    final artistConfirmed = songArtist.isNotEmpty &&
+        (mediaArtist == songArtist ||
+            mediaAlbumArtist == songArtist ||
+            _containsWholePhrase(mediaArtist, songArtist) ||
+            _containsWholePhrase(mediaAlbumArtist, songArtist) ||
+            _containsWholePhrase(mediaTitle, songArtist));
 
-    if (titleExact && artistConfirmed) {
-      return 100;
-    }
-
+    // Exact title is authoritative. This intentionally still works when
+    // YouTube/another Android player publishes garbage in ARTIST/ALBUM.
     if (titleExact) {
-      return 90;
+      return artistConfirmed ? 110 : 100;
     }
 
-    if (titleContains && artistConfirmed) {
-      return 88;
-    }
-
-    if (titleContains && songTitle.length >= 6) {
-      return 74;
-    }
-
-    if (reverseTitleContains && artistConfirmed && mediaTitle.length >= 6) {
-      return 72;
+    // A common YouTube title is "Artist - Song (Official Video)". After
+    // normalization, the song title must appear as a COMPLETE phrase.
+    if (titlePhraseMatch) {
+      return artistConfirmed ? 105 : 95;
     }
 
     return 0;
+  }
+
+  bool _containsWholePhrase(String source, String phrase) {
+    if (source.isEmpty || phrase.isEmpty) return false;
+    if (source == phrase) return true;
+
+    final sourceTokens = source.split(' ');
+    final phraseTokens = phrase.split(' ');
+
+    if (phraseTokens.length > sourceTokens.length) return false;
+
+    for (var i = 0; i <= sourceTokens.length - phraseTokens.length; i++) {
+      var matches = true;
+      for (var j = 0; j < phraseTokens.length; j++) {
+        if (sourceTokens[i + j] != phraseTokens[j]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return true;
+    }
+
+    return false;
   }
 
   String _normalizeMediaText(String value) {
