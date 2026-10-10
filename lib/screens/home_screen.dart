@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/android_media_session_service.dart';
 import '../services/fingerprint_match_service.dart';
@@ -362,8 +363,59 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  static const MethodChannel _iosProbeChannel =
+      MethodChannel('lyriko/ios_audio_probe');
+
+  Future<void> _runIOSAudioProbe() async {
+    setState(() {
+      _listening = true;
+      _stopRequested = false;
+      _error = null;
+      _status = 'Choose full-display capture in the iOS picker';
+    });
+    _listenAnimation.repeat(reverse: true);
+    try {
+      await _iosProbeChannel.invokeMethod<void>('start');
+      while (mounted && !_stopRequested) {
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted || _stopRequested) break;
+        final stats = await _iosProbeChannel.invokeMapMethod<String, dynamic>('stats');
+        if (!mounted) break;
+        final phase = stats?['phase'] ?? 'unknown';
+        final buffers = stats?['audioBuffers'] ?? 0;
+        final bytes = stats?['audioBytes'] ?? 0;
+        final error = stats?['error'] ?? '';
+        final frames = stats?['sampleFrames'] ?? 0;
+        final payloadBuffers = stats?['payloadBuffers'] ?? 0;
+        final signalBuffers = stats?['signalBuffers'] ?? 0;
+        final rms = (stats?['rms'] as num?)?.toDouble() ?? 0.0;
+        final peak = (stats?['peak'] as num?)?.toDouble() ?? 0.0;
+        final format = stats?['format'] ?? 'unknown';
+        final diagnosis = stats?['diagnosis'] ?? '';
+        setState(() {
+          _status = 'iOS: $phase | audio: $buffers | bytes: $bytes'
+              '\nframes: $frames | payload: $payloadBuffers | signal: $signalBuffers'
+              '\nRMS: ${rms.toStringAsFixed(5)} | peak: ${peak.toStringAsFixed(5)}'
+              '\n$format | $diagnosis';
+          if (error.toString().isNotEmpty) _error = error.toString();
+        });
+        if (phase == 'error' || phase == 'cancelled') break;
+      }
+    } catch (e) {
+      if (mounted) setState(() { _status = 'iOS audio test failed'; _error = '$e'; });
+    } finally {
+      try { await _iosProbeChannel.invokeMethod<void>('stop'); } catch (_) {}
+      _listenAnimation.stop();
+      if (mounted) setState(() { _listening = false; _stopRequested = false; });
+    }
+  }
+
   Future<void> _startListening() async {
     if (_listening) {
+      return;
+    }
+    if (Platform.isIOS) {
+      await _runIOSAudioProbe();
       return;
     }
 
