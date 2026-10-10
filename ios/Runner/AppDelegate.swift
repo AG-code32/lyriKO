@@ -3,6 +3,8 @@ import UIKit
 import ScreenCaptureKit
 import CoreMedia
 import AudioToolbox
+import AVFoundation
+import ShazamKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -35,8 +37,13 @@ import AudioToolbox
 
 // Diagnostic-only probe. Audio is not recorded or uploaded.
 @available(iOS 27.0, *)
-private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, SCStreamOutput, SCStreamDelegate {
+private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, SCStreamOutput, SCStreamDelegate, SHSessionDelegate {
   private var stream: SCStream?
+  private var shazamSession: SHSession?
+  private var matchedTitle = ""
+  private var matchedArtist = ""
+  private var matchedOffset = -1.0
+  private var shazamStatus = "not initialized"
   private let picker = SCContentSharingPicker.shared
   private let audioQueue = DispatchQueue(label: "lyriko.ios.audio-probe")
   private let lock = NSLock()
@@ -54,12 +61,28 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
   private var phase = "idle"
 
   func begin() {
+    // Load only the 3-song local catalog. No network Shazam lookup.
+    guard let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog") else {
+      fail("Missing lyriko_demo.shazamcatalog in Runner target resources")
+      return
+    }
+    do {
+      let catalog = try SHCustomCatalog(dataRepresentation: Data(contentsOf: url))
+      let session = SHSession(catalog: catalog)
+      session.delegate = self
+      shazamSession = session
+    } catch {
+      fail("Could not load ShazamKit catalog: \(error.localizedDescription)")
+      return
+    }
     lock.lock()
     phase = "picker"
     buffers = 0; bytes = 0; sampleFrames = 0
     buffersWithPayload = 0; buffersWithSignal = 0; videoBuffers = 0
     rms = 0; peak = 0; audioFormat = "unknown"
     diagnosis = "waiting for audio"; lastError = ""
+    matchedTitle = ""; matchedArtist = ""; matchedOffset = -1
+    shazamStatus = "listening"
     lock.unlock()
     picker.add(self)
     picker.isActive = true
@@ -73,7 +96,9 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
       "sampleFrames": sampleFrames, "payloadBuffers": buffersWithPayload,
       "signalBuffers": buffersWithSignal, "videoBuffers": videoBuffers,
       "rms": rms, "peak": peak, "format": audioFormat,
-      "diagnosis": diagnosis, "error": lastError
+      "diagnosis": diagnosis, "error": lastError,
+      "matchedTitle": matchedTitle, "matchedArtist": matchedArtist,
+      "matchedOffset": matchedOffset, "shazamStatus": shazamStatus
     ]
   }
 
@@ -82,6 +107,7 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
     stream = nil
     picker.remove(self)
     picker.isActive = false
+    shazamSession = nil
     lock.lock(); phase = "stopped"; lock.unlock()
   }
 
@@ -212,6 +238,54 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
     } else {
       conversion = "AudioBufferList size unavailable (OSStatus \(sizeStatus))"
     }
+    // Give streaming PCM to ShazamKit, preserving the captured audio format.
+    // Only feed valid signal; the source may be silent when playback is paused.
+    if payload > 0 && inspected > 0 && maxAmplitude > 0.0001,
+       let session = shazamSession,
+       let description = CMSampleBufferGetFormatDescription(sampleBuffer),
+       let sourceASBD = CMAudioFormatDescriptionGetStreamBasicDescription(description) {
+      var asbd = sourceASBD.pointee
+      if let avFormat = AVAudioFormat(streamDescription: &asbd),
+         let pcm = AVAudioPCMBuffer(pcmFormat: avFormat, frameCapacity: AVAudioFrameCount(frames)) {
+        pcm.frameLength = AVAudioFrameCount(frames)
+        let destination = UnsafeMutableAudioBufferListPointer(pcm.mutableAudioBufferList)
+        var requiredBytes = 0
+        _ = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+          sampleBuffer, bufferListSizeNeededOut: &requiredBytes,
+          bufferListOut: nil, bufferListSize: 0,
+          blockBufferAllocator: kCFAllocatorDefault,
+          blockBufferMemoryAllocator: kCFAllocatorDefault,
+          flags: 0, blockBufferOut: nil)
+        if requiredBytes > 0 {
+          let raw = UnsafeMutableRawPointer.allocate(
+            byteCount: requiredBytes, alignment: MemoryLayout<AudioBufferList>.alignment)
+          defer { raw.deallocate() }
+          let sources = raw.bindMemory(to: AudioBufferList.self, capacity: 1)
+          var retained: CMBlockBuffer?
+          let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+            sampleBuffer, bufferListSizeNeededOut: nil,
+            bufferListOut: sources, bufferListSize: requiredBytes,
+            blockBufferAllocator: kCFAllocatorDefault,
+            blockBufferMemoryAllocator: kCFAllocatorDefault,
+            flags: 0, blockBufferOut: &retained)
+          if status == noErr {
+            withExtendedLifetime(retained) {
+              let sourceList = UnsafeMutableAudioBufferListPointer(sources)
+              if sourceList.count == destination.count {
+                for i in 0..<sourceList.count {
+                  if let src = sourceList[i].mData, let dst = destination[i].mData {
+                    let count = min(Int(sourceList[i].mDataByteSize), Int(destination[i].mDataByteSize))
+                    memcpy(dst, src, count)
+                  }
+                }
+                session.matchStreamingBuffer(pcm, at: nil)
+              }
+            }
+          }
+        }
+      }
+    }
+
     let latestRMS = inspected > 0 ? sqrt(sumSquares / Double(inspected)) : 0.0
     lock.lock()
     buffers += 1
@@ -223,6 +297,22 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
     peak = maxAmplitude
     audioFormat = formatName
     diagnosis = conversion
+    lock.unlock()
+  }
+
+  func session(_ session: SHSession, didFind match: SHMatch) {
+    guard let item = match.mediaItems.first else { return }
+    lock.lock()
+    matchedTitle = item.title ?? ""
+    matchedArtist = item.artist ?? ""
+    matchedOffset = item.matchOffset
+    shazamStatus = "matched"
+    lock.unlock()
+  }
+
+  func session(_ session: SHSession, didNotFindMatchFor signature: SHSignature, error: Error?) {
+    lock.lock()
+    shazamStatus = error == nil ? "still listening" : "error: \(error!.localizedDescription)"
     lock.unlock()
   }
 

@@ -399,6 +399,35 @@ class _HomeScreenState extends State<HomeScreen>
               '\n$format | $diagnosis';
           if (error.toString().isNotEmpty) _error = error.toString();
         });
+        final shazamStatus = stats?['shazamStatus'] ?? 'waiting';
+        final title = (stats?['matchedTitle'] ?? '').toString();
+        final artist = (stats?['matchedArtist'] ?? '').toString();
+        final offset = (stats?['matchedOffset'] as num?)?.toDouble() ?? -1;
+        if (title.isNotEmpty && offset >= 0) {
+          final song = await _lyricsService.findSongForMediaMetadata(
+            title: title, artist: artist,
+          );
+          if (!mounted) break;
+          await _iosProbeChannel.invokeMethod<void>('stop');
+          if (song == null) {
+            setState(() {
+              _status = 'ShazamKit: $artist — $title';
+              _error = 'Recognized, but matching lyrics were not found in the library';
+            });
+          } else {
+            await _openDetectedSong(
+              song: song,
+              initialPositionMs: (offset * 1000).round(),
+              lockedTrackName: song.displayName,
+            );
+          }
+          break;
+        }
+        if (mounted) setState(() {
+          _status = 'iOS: $phase | ShazamKit: $shazamStatus'
+              '\naudio: $buffers | bytes: $bytes | signal: $signalBuffers'
+              '\nRMS: ${rms.toStringAsFixed(5)} | peak: ${peak.toStringAsFixed(5)}';
+        });
         if (phase == 'error' || phase == 'cancelled') break;
       }
     } catch (e) {
