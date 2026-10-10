@@ -1,17 +1,16 @@
-# lyrics_app
+# Lyriko Timeline Editor v9 (iPhone)
 
-A new Flutter project.
+Replace exactly these two files in your Flutter project:
+- `lib/screens/lyrics_edit_screen.dart`
+- `lib/widgets/lyrics_timeline/lyrics_track.dart`
 
-## Getting Started
+Changes:
+- Pinch with two fingers over the timeline to zoom in/out centered on the gesture. Zoom buttons remain available.
+- iPhone lyric clips stretch to almost all of the enlarged lyrics lane height (10px vertical margins). Windows clip height stays unchanged.
+- Double tap and hold the second tap, then drag over clips, to create a multi-selection rectangle on iPhone. Desktop empty-space drag selection stays available.
+- Other playback and waveform logic untouched.
 
-This project is a starting point for a Flutter application.
+Check on your Mac:
+`flutter analyze lib/screens/lyrics_edit_screen.dart lib/widgets/lyrics_timeline/lyrics_track.dart`
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+No Flutter SDK is available in this artifact-building environment, so analyzer and iOS runtime behavior have not been verified here.

@@ -7,9 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/timeline_lyric_line.dart';
+import '../services/synced_lyrics_service.dart';
 import '../services/waveform_cache_service.dart';
+import '../services/lyriko_server_client.dart';
 import '../widgets/lyrics_timeline/lyrics_track.dart';
 import '../widgets/lyrics_timeline/timeline_ruler.dart';
 import '../widgets/lyrics_timeline/timeline_transport.dart';
@@ -35,10 +38,10 @@ class _LyricsEditScreenState
       46;
 
   static const double _audioHeight =
-      132;
+      184;
 
   static const double _lyricsHeight =
-      126;
+      166;
 
   static const double _labelWidth =
       92;
@@ -57,6 +60,61 @@ class _LyricsEditScreenState
       _scrollController =
       ScrollController();
 
+  final GlobalKey _timelineAreaKey = GlobalKey();
+  final Map<int, Offset> _touchPoints = <int, Offset>{};
+  bool _pinchActive = false;
+  bool _marqueeSelecting = false;
+  double? _lastPinchDistance;
+
+  void _trackTouchDown(PointerDownEvent event) {
+    if (event.kind != PointerDeviceKind.touch) return;
+    _touchPoints[event.pointer] = event.position;
+    if (_touchPoints.length == 2) {
+      setState(() => _pinchActive = true);
+      _lastPinchDistance = _distanceBetweenTouches();
+    }
+  }
+
+  double _distanceBetweenTouches() {
+    final points = _touchPoints.values.toList();
+    if (points.length < 2) return 0;
+    return (points[0] - points[1]).distance;
+  }
+
+  void _trackTouchMove(PointerMoveEvent event) {
+    if (!_touchPoints.containsKey(event.pointer)) return;
+    _touchPoints[event.pointer] = event.position;
+    if (_touchPoints.length != 2 || !_pinchActive) return;
+    final distance = _distanceBetweenTouches();
+    final previous = _lastPinchDistance;
+    _lastPinchDistance = distance;
+    if (previous == null || previous < 8 || distance < 8) return;
+    final box = _timelineAreaKey.currentContext?.findRenderObject();
+    if (box is! RenderBox) return;
+    final points = _touchPoints.values.toList();
+    final focalGlobal = (points[0] + points[1]) / 2;
+    final focalLocal = box.globalToLocal(focalGlobal);
+    _zoom(focalLocal.dx, (distance / previous).clamp(0.75, 1.35));
+  }
+
+  void _trackTouchEnd(PointerEvent event) {
+    _touchPoints.remove(event.pointer);
+    if (_touchPoints.length < 2) {
+      _lastPinchDistance = null;
+      if (_pinchActive) setState(() => _pinchActive = false);
+    }
+  }
+
+
+  void _onMarqueeStateChanged(bool active) {
+    if (!mounted || _marqueeSelecting == active) return;
+    if (active && _scrollController.hasClients) {
+      // Stop any previous drag or inertial horizontal scrolling immediately.
+      _scrollController.jumpTo(_scrollController.offset);
+    }
+    setState(() => _marqueeSelecting = active);
+  }
+
   final FocusNode _focusNode =
       FocusNode();
 
@@ -70,10 +128,14 @@ class _LyricsEditScreenState
 
   int _playheadAnchorMs = 0;
 
-  int _confirmedAudioMs = 0;
 
   bool _seekInProgress = false;
 
+  final SyncedLyricsService _lyricsStorage = SyncedLyricsService();
+  final LyrikoServerClient _server = LyrikoServerClient();
+  String? _serverSongId;
+  int? _serverVersion;
+  String? _editableJsonPath;
   Map<String, dynamic>? _json;
 
   final List<TimelineLyricLine>
@@ -104,6 +166,7 @@ class _LyricsEditScreenState
   bool _scrubbing = false;
 
   double _volume = 1.0;
+  bool _volumeSliderVisible = false;
 
   int _durationMs = 0;
 
@@ -155,8 +218,6 @@ class _LyricsEditScreenState
                 )
                 .toInt();
 
-        _confirmedAudioMs =
-            realMs;
 
         if (_seekInProgress) {
           return;
@@ -231,8 +292,6 @@ class _LyricsEditScreenState
                   )
                   .toInt();
 
-          _confirmedAudioMs =
-              realMs;
 
           _setPlayheadReference(
             realMs,
@@ -268,8 +327,6 @@ class _LyricsEditScreenState
                   )
                   .toInt();
 
-          _confirmedAudioMs =
-              realMs;
 
           _setPlayheadReference(
             realMs,
@@ -318,8 +375,6 @@ class _LyricsEditScreenState
     _playheadAnchorMs =
         safe;
 
-    _confirmedAudioMs =
-        safe;
 
     if (_playing) {
       _playheadClock
@@ -372,10 +427,8 @@ class _LyricsEditScreenState
   Future<void> _load()
       async {
     try {
-      final file =
-          File(
-        widget.jsonPath,
-      );
+      _editableJsonPath = await _lyricsStorage.editableJsonPath(widget.jsonPath);
+      final file = File(_editableJsonPath!);
 
       if (!await file
           .exists()) {
@@ -385,14 +438,21 @@ class _LyricsEditScreenState
         );
       }
 
-      final decoded =
-          jsonDecode(
-        await file
-            .readAsString(
-          encoding:
-              utf8,
-        ),
-      );
+      // On macOS, Windows is the source of truth for editing.
+      // iOS / Android keep their existing local/offline workflow.
+      dynamic decoded;
+      if (_server.enabled) {
+        final remoteSong = await _server.songForPath(widget.jsonPath);
+        if (remoteSong == null) {
+          throw StateError('La canción no existe en Lyriko Server: ${widget.jsonPath}');
+        }
+        _serverSongId = remoteSong['id']?.toString();
+        final envelope = await _server.lyrics(_serverSongId!);
+        _serverVersion = (envelope['version'] as num).toInt();
+        decoded = envelope['lyrics'];
+      } else {
+        decoded = jsonDecode(await file.readAsString(encoding: utf8));
+      }
 
       if (decoded
           is! Map<String, dynamic>) {
@@ -487,6 +547,14 @@ class _LyricsEditScreenState
       _json =
           decoded;
 
+      // Prefer previously imported audio; otherwise discover the bundled
+      // development MP3 for this song without changing the lyrics JSON.
+      if (!_server.enabled &&
+          (_audioPath.isEmpty || !await File(_audioPath).exists())) {
+        final bundledAudio = await _bundledAudioForSong();
+        if (bundledAudio != null) _audioPath = bundledAudio;
+      }
+
       if (!mounted) {
         return;
       }
@@ -525,29 +593,41 @@ class _LyricsEditScreenState
     }
   }
 
+  Future<String?> _bundledAudioForSong() async {
+    if (!(Platform.isIOS || Platform.isAndroid)) return null;
+    final filename = widget.jsonPath.split('/').last.replaceFirst(
+      RegExp(r'\.json$', caseSensitive: false), '');
+    // Read only the requested song to avoid copying all MP3s on first launch.
+    final asset = 'assets/audio/$filename.mp3';
+    try {
+      final data = await rootBundle.load(asset);
+      final folder = Directory(
+        '${(await getApplicationSupportDirectory()).path}/lyriko_audio');
+      await folder.create(recursive: true);
+      final file = File('${folder.path}/$filename.mp3');
+      if (!await file.exists() || await file.length() != data.lengthInBytes) {
+        await file.writeAsBytes(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+          flush: true);
+      }
+      return file.path;
+    } catch (_) {
+      return null; // No MP3 bundled yet. Editing JSON remains available.
+    }
+  }
+
   Future<void> _loadAudio()
       async {
-    if (_audioPath
-        .isEmpty) {
-      return;
-    }
-
-    final file =
-        File(
-      _audioPath,
-    );
-
-    if (!await file
-        .exists()) {
-      return;
+    if (_server.enabled) {
+      if (_serverSongId == null) return;
+    } else {
+      if (_audioPath.isEmpty || !await File(_audioPath).exists()) return;
     }
 
     try {
-      final duration =
-          await _player
-              .setFilePath(
-        _audioPath,
-      );
+      final duration = _server.enabled
+          ? await _player.setUrl(await _server.audioUrl(_serverSongId!))
+          : await _player.setFilePath(_audioPath);
 
       await _player
           .setVolume(
@@ -600,15 +680,12 @@ class _LyricsEditScreenState
     });
 
     try {
-      final data =
-          await _waveformService
-              .loadOrCreate(
-        songJsonPath:
-            widget.jsonPath,
-
-        audioPath:
-            _audioPath,
-      );
+      final data = _server.enabled
+          ? WaveformData(samples: await _server.waveform(_serverSongId!))
+          : await _waveformService.loadOrCreate(
+              songJsonPath: widget.jsonPath,
+              audioPath: _audioPath,
+            );
 
       if (!mounted) {
         return;
@@ -688,6 +765,14 @@ class _LyricsEditScreenState
         ..add(
           index,
         );
+    });
+  }
+
+  void _clearSelection() {
+    if (_selectedIndex == null && _selectedIndices.isEmpty) return;
+    setState(() {
+      _selectedIndex = null;
+      _selectedIndices.clear();
     });
   }
 
@@ -816,8 +901,6 @@ class _LyricsEditScreenState
     _playheadAnchorMs =
         value;
 
-    _confirmedAudioMs =
-        value;
 
     if (!_audioAvailable) {
       return;
@@ -1689,9 +1772,18 @@ class _LyricsEditScreenState
       output['durationMs'] =
           _durationMs;
 
-      await File(
-        widget.jsonPath,
-      ).writeAsString(
+      // Commit to Windows first. If authorization/version fails, keep the
+      // editor dirty and do not incorrectly report a successful save.
+      if (_server.enabled) {
+        if (_serverSongId == null || _serverVersion == null) {
+          throw StateError('No se ha cargado la versión del servidor.');
+        }
+        _serverVersion = await _server.saveLyrics(
+          _serverSongId!, _serverVersion!, output,
+        );
+      }
+
+      await File(_editableJsonPath ?? widget.jsonPath).writeAsString(
         const JsonEncoder
             .withIndent(
           '  ',
@@ -1706,8 +1798,7 @@ class _LyricsEditScreenState
             true,
       );
 
-      final txtPath =
-          widget.jsonPath
+      final txtPath = (_editableJsonPath ?? widget.jsonPath)
               .replaceFirst(
         RegExp(
           r'\.json$',
@@ -1853,7 +1944,11 @@ class _LyricsEditScreenState
   Widget build(
     BuildContext context,
   ) {
-    return Focus(
+    return Theme(
+      data: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF090A0F),
+      ),
+      child: Focus(
       focusNode:
           _focusNode,
 
@@ -1916,75 +2011,197 @@ class _LyricsEditScreenState
                   )
                 : _buildBody(),
       ),
+    ),
     );
   }
 
   Widget _buildBody() {
-    return Column(
+    final isMobile = MediaQuery.sizeOf(context).width < 640;
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        _header(),
-
-        _toolbar(),
-
-        Expanded(
-          child:
-              _timeline(),
+        Column(
+          children: [
+            _header(),
+            _toolbar(),
+            Expanded(child: _timeline()),
+            _inspector(),
+            if (isMobile)
+              _mobileTransport()
+            else
+              TimelineTransport(
+                playing: _playing,
+                durationMs: _durationMs,
+                position: _playhead,
+                volume: _volume,
+                onVolumeChanged: _setVolume,
+                onPlayPause: _togglePlay,
+                onBackFive: () => _skip(-5000),
+                onForwardFive: () => _skip(5000),
+              ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.all(6),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ),
+          ],
         ),
-
-        _inspector(),
-
-        TimelineTransport(
-          playing:
-              _playing,
-
-          durationMs:
-              _durationMs,
-
-          position:
-              _playhead,
-
-          volume:
-              _volume,
-
-          onVolumeChanged:
-              _setVolume,
-
-          onPlayPause:
-              _togglePlay,
-
-          onBackFive:
-              () =>
-                  _skip(
-            -5000,
-          ),
-
-          onForwardFive:
-              () =>
-                  _skip(
-            5000,
-          ),
-        ),
-
-        if (_error !=
-            null)
-          Padding(
-            padding:
-                const EdgeInsets.all(
-              6,
+        if (isMobile && _volumeSliderVisible) ...[
+          // Invisible touch layer: dismiss on any tap outside the popup.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _volumeSliderVisible = false),
+              child: const SizedBox.expand(),
             ),
+          ),
+          Positioned(
+            left: 13,
+            bottom: _error == null ? 94 : 126,
+            child: _floatingVolumeSlider(),
+          ),
+        ],
+      ],
+    );
+  }
 
-            child:
-                Text(
-              _error!,
+  Widget _floatingVolumeSlider() {
+    return Material(
+      color: const Color(0xFF222534),
+      elevation: 10,
+      shadowColor: Colors.black54,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        width: 52,
+        height: 218,
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFF45415C), width: 1),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.volume_up_rounded, size: 17, color: Color(0xFFD3BAFF)),
+            Expanded(
+              child: RotatedBox(
+                quarterTurns: 3,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    activeTrackColor: const Color(0xFFD3BAFF),
+                    inactiveTrackColor: const Color(0xFF555469),
+                    thumbColor: const Color(0xFFD3BAFF),
+                  ),
+                  child: Slider(
+                    value: _volume.clamp(0.0, 1.0),
+                    onChanged: _setVolume,
+                  ),
+                ),
+              ),
+            ),
+            Text(
+              '${(_volume * 100).round()}%',
+              style: const TextStyle(fontSize: 10, color: Color(0xFFD3BAFF)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              style:
-                  const TextStyle(
-                color:
-                    Colors.redAccent,
+  String _clockLabel(int ms) {
+    final safe = ms < 0 ? 0 : ms;
+    final minutes = safe ~/ 60000;
+    final seconds = (safe ~/ 1000) % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _mobileTransport() {
+    return Container(
+      height: 98,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFF11131A),
+        border: Border(top: BorderSide(color: Color(0xFF282B34))),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              tooltip: 'Volume',
+              icon: Icon(_volume == 0
+                  ? Icons.volume_off_rounded
+                  : Icons.volume_up_rounded),
+              onPressed: () => setState(
+                () => _volumeSliderVisible = !_volumeSliderVisible,
+              ),
+              iconSize: 26,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                tooltip: 'Back 5 seconds',
+                icon: const Icon(Icons.replay_5_rounded),
+                onPressed: () => _skip(-5000),
+                iconSize: 34,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 54),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                tooltip: _playing ? 'Pause' : 'Play',
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF31536B),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(66, 66),
+                ),
+                icon: Icon(_playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                iconSize: 38,
+                onPressed: _togglePlay,
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Forward 5 seconds',
+                icon: const Icon(Icons.forward_5_rounded),
+                onPressed: () => _skip(5000),
+                iconSize: 34,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 54),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ValueListenableBuilder<int>(
+              valueListenable: _playhead,
+              builder: (context, milliseconds, _) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _clockLabel(milliseconds),
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    _clockLabel(_durationMs),
+                    maxLines: 1,
+                    style: const TextStyle(fontSize: 11, color: Colors.white54),
+                  ),
+                ],
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -2016,6 +2233,7 @@ class _LyricsEditScreenState
 
                   style:
                       const TextStyle(
+                    color: Color(0xFFFFFFFF),
                     fontSize:
                         22,
 
@@ -2031,71 +2249,40 @@ class _LyricsEditScreenState
                   style:
                       const TextStyle(
                     color:
-                        Colors
-                            .white54,
+                        Color(0xFFADB4C4),
                   ),
                 ),
               ],
             ),
           ),
 
-          Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  10,
-
-              vertical:
-                  5,
-            ),
-
-            decoration:
-                BoxDecoration(
-              color:
-                  _audioAvailable
-                      ? const Color(
-                          0xFF173526,
-                        )
-                      : const Color(
-                          0xFF2A2A2A,
-                        ),
-
-              borderRadius:
-                  BorderRadius.circular(
-                20,
-              ),
-            ),
-
-            child:
-                Text(
-              _audioAvailable
-                  ? 'LOCAL AUDIO'
-                  : 'WAVEFORM ONLY',
-
-              style:
-                  TextStyle(
-                color:
-                    _audioAvailable
-                        ? Colors
-                            .greenAccent
-                        : Colors
-                            .white54,
-
-                fontSize:
-                    11,
-
-                fontWeight:
-                    FontWeight
-                        .w700,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget _toolbar() {
+    final mobile = MediaQuery.sizeOf(context).width < 600;
+    if (mobile) {
+      return Container(
+        color: const Color(0xFF161924),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(children: [
+          IconButton(tooltip: 'Zoom out', onPressed: () => _zoom(140, 1 / 1.25), icon: const Icon(Icons.remove)),
+          Text('${_pixelsPerSecond.round()} px/s', style: const TextStyle(fontSize: 12)),
+          IconButton(tooltip: 'Zoom in', onPressed: () => _zoom(140, 1.25), icon: const Icon(Icons.add)),
+          const Spacer(),
+          IconButton(tooltip: 'Add instrumental segment', onPressed: _selectedIndex == null ? null : _addInstrumental, icon: const Icon(Icons.music_note_rounded)),
+          IconButton(tooltip: 'Edit text', onPressed: _selectedIndex == null ? null : _editText, icon: const Icon(Icons.edit_rounded)),
+          IconButton(tooltip: 'Delete segment', onPressed: _selectedIndex == null ? null : _deleteSelected, icon: const Icon(Icons.delete_outline)),
+        ]),
+      );
+    }
+    return _desktopToolbar();
+  }
+
+  Widget _desktopToolbar() {
+
     return Container(
       color:
           const Color(
@@ -2283,7 +2470,15 @@ class _LyricsEditScreenState
   }
 
   Widget _timeline() {
-    return Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Fit the lyrics lane to the actual height of the editor viewport.
+        // Previously the three fixed-height lanes could exceed it by ~25 px.
+        final lyricsTrackHeight = constraints.hasBoundedHeight
+            ? math.max(0.0,
+                constraints.maxHeight - _rulerHeight - _audioHeight)
+            : _lyricsHeight;
+        return Row(
       children: [
         SizedBox(
           width:
@@ -2350,8 +2545,7 @@ class _LyricsEditScreenState
               ),
 
               Container(
-                height:
-                    _lyricsHeight,
+                height: lyricsTrackHeight,
 
                 color:
                     const Color(
@@ -2407,8 +2601,12 @@ class _LyricsEditScreenState
         Expanded(
           child:
               Listener(
-            onPointerSignal:
-                _wheel,
+            key: _timelineAreaKey,
+            onPointerSignal: _wheel,
+            onPointerDown: _trackTouchDown,
+            onPointerMove: _trackTouchMove,
+            onPointerUp: _trackTouchEnd,
+            onPointerCancel: _trackTouchEnd,
 
             child:
                 Scrollbar(
@@ -2425,6 +2623,9 @@ class _LyricsEditScreenState
 
                 scrollDirection:
                     Axis.horizontal,
+                physics: (_pinchActive || _marqueeSelecting)
+                    ? const NeverScrollableScrollPhysics()
+                    : null,
 
                 child:
                     SizedBox(
@@ -2526,7 +2727,7 @@ class _LyricsEditScreenState
                             _timelineWidth,
 
                         height:
-                            _lyricsHeight,
+                            lyricsTrackHeight,
 
                         pixelsPerSecond:
                             _pixelsPerSecond,
@@ -2548,6 +2749,12 @@ class _LyricsEditScreenState
 
                         onSelectionChanged:
                             _selectGroup,
+
+                        onClearSelection:
+                            _clearSelection,
+
+                        onMarqueeStateChanged:
+                            _onMarqueeStateChanged,
 
                         onHover:
                             (
@@ -2590,10 +2797,40 @@ class _LyricsEditScreenState
           ),
         ),
       ],
+        );
+      },
     );
   }
 
   Widget _inspector() {
+    if (MediaQuery.sizeOf(context).width < 600) {
+      final index = _selectedIndex;
+      if (index == null || index >= _lines.length) {
+        return Container(
+          height: 48, color: const Color(0xFF11131A), alignment: Alignment.center,
+          child: const Text('Select a lyric segment', style: TextStyle(color: Color(0xFFB2B9C8))),
+        );
+      }
+      final line = _lines[index];
+      return Container(
+        color: const Color(0xFF11131A),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(line.text, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 5),
+          Text('START ${line.startMs} ms    END ${line.endMs} ms    ORIGINAL ${line.originalStartMs} ms',
+            maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFFADB4C4), fontSize: 11)),
+        ]),
+      );
+    }
+    return _desktopInspector();
+  }
+
+  Widget _desktopInspector() {
+
     final index =
         _selectedIndex;
 

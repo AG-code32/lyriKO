@@ -8,7 +8,7 @@
 PRODUCT_NAME = lyrics_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.lyricsApp
+PRODUCT_BUNDLE_IDENTIFIER = com.gersonyance.lyriko
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.

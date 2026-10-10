@@ -26,6 +26,11 @@ class LyricsTrack extends StatefulWidget {
 
   final ValueChanged<Set<int>> onSelectionChanged;
 
+  final VoidCallback onClearSelection;
+
+  // Tell the parent to stop horizontal scrolling during marquee selection.
+  final ValueChanged<bool> onMarqueeStateChanged;
+
   final ValueChanged<int> onHover;
 
   final VoidCallback onExitHover;
@@ -63,6 +68,8 @@ class LyricsTrack extends StatefulWidget {
     required this.playhead,
     required this.onSelect,
     required this.onSelectionChanged,
+    required this.onClearSelection,
+    required this.onMarqueeStateChanged,
     required this.onHover,
     required this.onExitHover,
     required this.onMoveStart,
@@ -83,6 +90,19 @@ class _LyricsTrackState
   Offset? _marqueeCurrent;
 
   bool _marqueeActive = false;
+  int? _activeMarqueePointer;
+  DateTime? _lastTouchUp;
+  Offset? _lastTouchPosition;
+  static const Duration _doubleTouchInterval = Duration(milliseconds: 360);
+  static const double _doubleTouchRadius = 32;
+
+  double get _clipTop =>
+      defaultTargetPlatform == TargetPlatform.iOS ? 10 : 22;
+  double get _clipHeight =>
+      defaultTargetPlatform == TargetPlatform.iOS
+          ? 146
+          : 76;
+
 
   double _msToPixels(
     int milliseconds,
@@ -102,14 +122,14 @@ class _LyricsTrackState
       _msToPixels(
         line.startMs,
       ),
-      22,
+      _clipTop,
       math.max<double>(
         32,
         _msToPixels(
           line.durationMs,
         ),
       ),
-      76,
+      _clipHeight,
     );
   }
 
@@ -175,118 +195,77 @@ class _LyricsTrackState
     );
   }
 
-  void _pointerDown(
-    PointerDownEvent event,
-  ) {
-    if ((event.buttons &
-            kPrimaryButton) ==
-        0) {
-      return;
-    }
-
-    final position =
-        _clampPosition(
-      event.localPosition,
-    );
-
-    //
-    // If the click started on a clip, the clip itself
-    // handles selection / drag / resize.
-    //
-    if (_pointHitsClip(
-      position,
-    )) {
-      return;
-    }
-
+  void _beginMarquee(Offset position, int pointer) {
     setState(() {
-      _marqueeActive =
-          true;
-
-      _marqueeStart =
-          position;
-
-      _marqueeCurrent =
-          position;
+      _marqueeActive = true;
+      _activeMarqueePointer = pointer;
+      _marqueeStart = position;
+      _marqueeCurrent = position;
     });
-
-    //
-    // Clicking empty space clears the current group.
-    //
-    widget.onSelectionChanged(
-      <int>{},
-    );
+    widget.onMarqueeStateChanged(true);
+    widget.onSelectionChanged(<int>{});
   }
 
-  void _pointerMove(
-    PointerMoveEvent event,
-  ) {
-    if (!_marqueeActive) {
-      return;
+  void _updateMarquee(Offset position) {
+    setState(() => _marqueeCurrent = position);
+    final rect = _marqueeRect;
+    if (rect == null) return;
+    final selected = <int>{};
+    for (var i = 0; i < widget.lines.length; i++) {
+      if (rect.overlaps(_clipRect(i))) selected.add(i);
     }
+    widget.onSelectionChanged(selected);
+  }
 
-    if ((event.buttons &
-            kPrimaryButton) ==
-        0) {
-      _finishMarquee();
+  void _pointerDown(PointerDownEvent event) {
+    if ((event.buttons & kPrimaryButton) == 0) return;
+    final position = _clampPosition(event.localPosition);
 
-      return;
-    }
-
-    final position =
-        _clampPosition(
-      event.localPosition,
-    );
-
-    setState(() {
-      _marqueeCurrent =
-          position;
-    });
-
-    final selection =
-        _marqueeRect;
-
-    if (selection == null) {
-      return;
-    }
-
-    final selected =
-        <int>{};
-
-    for (var i = 0;
-        i < widget.lines.length;
-        i++) {
-      final clip =
-          _clipRect(i);
-
-      if (selection.overlaps(
-        clip,
-      )) {
-        selected.add(
-          i,
-        );
+    if (event.kind == PointerDeviceKind.touch) {
+      // A second touch held and dragged begins rectangle selection.
+      // One touch continues to select/move lyrics normally.
+      final now = DateTime.now();
+      final isSecondTap = _lastTouchUp != null &&
+          now.difference(_lastTouchUp!) <= _doubleTouchInterval &&
+          _lastTouchPosition != null &&
+          (position - _lastTouchPosition!).distance <= _doubleTouchRadius;
+      _lastTouchUp = null;
+      if (isSecondTap) {
+        _beginMarquee(position, event.pointer);
       }
-    }
-
-    widget.onSelectionChanged(
-      selected,
-    );
-  }
-
-  void _pointerUp(
-    PointerUpEvent event,
-  ) {
-    if (!_marqueeActive) {
       return;
     }
 
-    _finishMarquee();
+    // Preserve the desktop click-and-drag marquee on empty space.
+    if (_pointHitsClip(position)) return;
+    _beginMarquee(position, event.pointer);
+  }
+
+  void _pointerMove(PointerMoveEvent event) {
+    if (!_marqueeActive || event.pointer != _activeMarqueePointer) return;
+    if ((event.buttons & kPrimaryButton) == 0) {
+      _finishMarquee();
+      return;
+    }
+    _updateMarquee(_clampPosition(event.localPosition));
+  }
+
+  void _pointerUp(PointerUpEvent event) {
+    if (_marqueeActive && event.pointer == _activeMarqueePointer) {
+      _finishMarquee();
+      _lastTouchUp = null;
+      return;
+    }
+    if (event.kind == PointerDeviceKind.touch) {
+      _lastTouchUp = DateTime.now();
+      _lastTouchPosition = _clampPosition(event.localPosition);
+    }
   }
 
   void _pointerCancel(
     PointerCancelEvent event,
   ) {
-    if (!_marqueeActive) {
+    if (!_marqueeActive || event.pointer != _activeMarqueePointer) {
       return;
     }
 
@@ -294,9 +273,11 @@ class _LyricsTrackState
   }
 
   void _finishMarquee() {
+    widget.onMarqueeStateChanged(false);
     setState(() {
       _marqueeActive =
           false;
+      _activeMarqueePointer = null;
 
       _marqueeStart =
           null;
@@ -341,11 +322,23 @@ class _LyricsTrackState
               Clip.hardEdge,
 
           children: [
-            const Positioned.fill(
-              child: ColoredBox(
-                color:
-                    Color(
-                  0xFF15131D,
+            // Preserve the full-height touch surface for marquee selection,
+            // but paint the lyric lane only at its original visual height.
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onClearSelection,
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      height: 166,
+                      width: double.infinity,
+                      child: ColoredBox(color: Color(0xFF15131D)),
+                    ),
+                    const Expanded(
+                      child: ColoredBox(color: Color(0xFF0B0C12)),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -365,7 +358,7 @@ class _LyricsTrackState
                 ),
 
                 top:
-                    22,
+                    _clipTop,
 
                 width:
                     math.max<double>(
@@ -377,10 +370,12 @@ class _LyricsTrackState
                 ),
 
                 height:
-                    76,
+                    _clipHeight,
 
                 child:
-                    RepaintBoundary(
+                    IgnorePointer(
+                  ignoring: _marqueeActive,
+                  child: RepaintBoundary(
                   child:
                       LyricClip(
                     line:
@@ -415,30 +410,17 @@ class _LyricsTrackState
                             widget
                                 .onExitHover(),
 
-                    onMoveStart:
-                        (
-                      details,
-                    ) =>
-                            widget
-                                .onMoveStart(
-                      i,
-                      details,
-                    ),
+                    onMoveStart: (details) {
+                      if (!_marqueeActive) widget.onMoveStart(i, details);
+                    },
 
-                    onMoveUpdate:
-                        (
-                      details,
-                    ) =>
-                            widget
-                                .onMoveUpdate(
-                      i,
-                      details,
-                    ),
+                    onMoveUpdate: (details) {
+                      if (!_marqueeActive) widget.onMoveUpdate(i, details);
+                    },
 
-                    onMoveEnd:
-                        (_) =>
-                            widget
-                                .onMoveEnd(),
+                    onMoveEnd: (_) {
+                      if (!_marqueeActive) widget.onMoveEnd();
+                    },
 
                     onResizeLeft:
                         (
@@ -459,6 +441,7 @@ class _LyricsTrackState
                       i,
                       details,
                     ),
+                  ),
                   ),
                 ),
               ),

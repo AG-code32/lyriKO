@@ -9,6 +9,7 @@ import ShazamKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private var iosAudioProbe: IOSAudioProbe?
+  private var iosMicRecognition: IOSMicrophoneRecognition?
 
   override func application(
     _ application: UIApplication,
@@ -21,13 +22,18 @@ import ShazamKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     let probe = IOSAudioProbe()
     iosAudioProbe = probe
+    let mic = IOSMicrophoneRecognition()
+    iosMicRecognition = mic
     let channel = FlutterMethodChannel(name: "lyriko/ios_audio_probe", binaryMessenger: engineBridge.pluginRegistry.registrar(forPlugin: "LyrikoIOSAudioProbe")!.messenger())
-    channel.setMethodCallHandler { [weak probe] call, result in
-      guard let probe else { result(FlutterError(code: "UNAVAILABLE", message: "Audio probe unavailable", details: nil)); return }
+    channel.setMethodCallHandler { [weak probe, weak mic] call, result in
+      guard let probe, let mic else { result(FlutterError(code: "UNAVAILABLE", message: "Audio probe unavailable", details: nil)); return }
       switch call.method {
       case "start": probe.start(result: result)
       case "stats": result(probe.stats())
       case "stop": probe.stop(result: result)
+      case "startMic": mic.start(result: result)
+      case "micStats": result(mic.stats())
+      case "stopMic": mic.stop(result: result)
       default: result(FlutterMethodNotImplemented)
       }
     }
@@ -400,5 +406,233 @@ private final class IOSAudioProbe {
     if #available(iOS 27.0, *), let instance = capture as? IOSAudioCapture {
       Task { await instance.stop(); self.capture = nil; result(true) }
     } else { result(true) }
+  }
+}
+
+// Discover (ambient music): entirely separate from the existing ScreenCaptureKit probe.
+// Recognition uses the same local SHCustomCatalog, not Shazam's online database.
+private final class IOSMicrophoneRecognition: NSObject, SHSessionDelegate {
+  private var engine: AVAudioEngine?
+  private var session: SHSession?
+  private let lock = NSLock()
+  private var phase = "idle"
+  private var lastError = ""
+  private var matchedTitle = ""
+  private var matchedArtist = ""
+  private var matchedOffset = -1.0
+  private var bufferCount = 0
+  private var lastSignalEpochMs: Int64 = 0
+  private var lastBufferEpochMs: Int64 = 0
+  private var microphoneRms: Double = 0
+  // Retain an envelope of music volume, rather than interpreting room noise
+  // above a fixed low threshold as ongoing playback.
+  private var referenceRms: Double = 0
+  private var lastMusicEpochMs: Int64 = 0
+  // Discover's music gate is armed by an actual Shazam match. Room noise alone
+  // cannot start it. Short quiet passages are tolerated with hysteresis.
+  private var musicGateOpen = false
+  private var belowMusicGateSinceMs: Int64 = 0
+  private var aboveMusicGateSinceMs: Int64 = 0
+  private var matchedEpochMs: Int64 = 0
+  private var matchSequence = 0
+  private var catalog: SHCustomCatalog?
+
+  func start(result: @escaping FlutterResult) {
+    // Microphone use is foreground-only for now.
+    guard engine == nil else { result(true); return }
+    guard let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog") else {
+      result(FlutterError(code: "MISSING_CATALOG", message: "Missing lyriko_demo.shazamcatalog", details: nil))
+      return
+    }
+    do {
+      let catalog = try SHCustomCatalog(dataRepresentation: Data(contentsOf: url))
+      self.catalog = catalog
+      let newSession = SHSession(catalog: catalog)
+      newSession.delegate = self
+      session = newSession
+    } catch {
+      result(FlutterError(code: "CATALOG_ERROR", message: error.localizedDescription, details: nil))
+      return
+    }
+    lock.lock()
+    phase = "requesting permission"
+    lastError = ""; matchedTitle = ""; matchedArtist = ""; matchedOffset = -1; bufferCount = 0
+    lastSignalEpochMs = 0; lastBufferEpochMs = 0; microphoneRms = 0; referenceRms = 0; lastMusicEpochMs = 0
+    musicGateOpen = false; belowMusicGateSinceMs = 0; aboveMusicGateSinceMs = 0
+    matchedEpochMs = 0; matchSequence = 0
+    lock.unlock()
+    AVAudioApplication.requestRecordPermission { [weak self] granted in
+      DispatchQueue.main.async {
+        guard let self else { result(FlutterError(code: "UNAVAILABLE", message: "Microphone service unavailable", details: nil)); return }
+        guard granted else {
+          self.setPhase("denied", error: "Microphone permission denied. Enable it in iPhone Settings > Privacy & Security > Microphone.")
+          result(FlutterError(code: "MIC_PERMISSION", message: "Microphone permission denied", details: nil))
+          return
+        }
+        do {
+          let avSession = AVAudioSession.sharedInstance()
+          try avSession.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .allowBluetooth])
+          try avSession.setActive(true)
+          let capture = AVAudioEngine()
+          let node = capture.inputNode
+          let format = node.outputFormat(forBus: 0)
+          guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw NSError(domain: "LyrikoDiscover", code: 1, userInfo: [NSLocalizedDescriptionKey: "No microphone input format available"])
+          }
+          node.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, audioTime in
+            guard let self else { return }
+            guard let shazam = self.session else { return }
+            shazam.matchStreamingBuffer(buffer, at: audioTime)
+            // Activity is not evidence of music: capture noise continuously for
+            // recognition, but run the lyric clock only after a Shazam-confirmed
+            // song and while the signal resembles its recent loudness.
+            var level = 0.0
+            if let channels = buffer.floatChannelData, buffer.frameLength > 0 {
+              let count = Int(buffer.frameLength)
+              let samples = channels[0]
+              var sum = 0.0
+              var examined = 0
+              for index in stride(from: 0, to: count, by: 8) {
+                let value = Double(samples[index])
+                sum += value * value
+                examined += 1
+              }
+              level = sqrt(sum / Double(max(1, examined)))
+            }
+            let timestamp = Int64(Date().timeIntervalSince1970 * 1000)
+            self.lock.lock()
+            self.bufferCount += 1
+            self.lastBufferEpochMs = timestamp
+            self.microphoneRms = level
+            if self.musicGateOpen {
+              // More selective music activity gate: the room fan was keeping
+              // the original 22%-of-reference threshold open after playback stopped.
+              // Keep the matched-song level as the reference through quiet buffers;
+              // otherwise the reference drifts down to the fan's background noise.
+              let quietLimit = max(0.0015, self.referenceRms * 0.55)
+              if level < quietLimit {
+                if self.belowMusicGateSinceMs == 0 {
+                  self.belowMusicGateSinceMs = timestamp
+                } else if timestamp - self.belowMusicGateSinceMs >= 550 {
+                  self.musicGateOpen = false
+                  self.aboveMusicGateSinceMs = 0
+                }
+              } else {
+                // Update the reference only for buffers that qualify as music.
+                // Track louder material promptly, but decay very slowly to
+                // avoid adapting to persistent background noise during pauses.
+                let alpha = level > self.referenceRms ? 0.035 : 0.00015
+                self.referenceRms = self.referenceRms * (1 - alpha) + level * alpha
+                self.belowMusicGateSinceMs = 0
+                self.lastSignalEpochMs = timestamp
+                self.lastMusicEpochMs = timestamp
+              }
+            } else if self.matchSequence > 0 {
+              // Require a larger, sustained rise before waking from a pause.
+              // A sudden fan/transient alone should not usually restart lyrics.
+              let wakeLimit = max(0.0020, self.referenceRms * 0.85)
+              if level >= wakeLimit {
+                if self.aboveMusicGateSinceMs == 0 {
+                  self.aboveMusicGateSinceMs = timestamp
+                } else if timestamp - self.aboveMusicGateSinceMs >= 300 {
+                  self.musicGateOpen = true
+                  self.belowMusicGateSinceMs = 0
+                  self.lastSignalEpochMs = timestamp
+                  self.lastMusicEpochMs = timestamp
+                }
+              } else {
+                self.aboveMusicGateSinceMs = 0
+              }
+            }
+            self.lock.unlock()
+          }
+          self.engine = capture
+          capture.prepare()
+          try capture.start()
+          self.setPhase("listening")
+          result(true)
+        } catch {
+          self.cleanup()
+          self.setPhase("error", error: error.localizedDescription)
+          result(FlutterError(code: "MIC_START", message: error.localizedDescription, details: nil))
+        }
+      }
+    }
+  }
+
+  func stats() -> [String: Any] {
+    lock.lock(); defer { lock.unlock() }
+    return [
+      "phase": phase, "error": lastError, "matchedTitle": matchedTitle,
+      "matchedArtist": matchedArtist, "matchedOffset": matchedOffset,
+      "audioBuffers": bufferCount,
+      "lastBufferEpochMs": lastBufferEpochMs,
+      "microphoneRms": microphoneRms,
+      "referenceRms": referenceRms,
+      "musicGateOpen": musicGateOpen,
+      "lastMusicEpochMs": lastMusicEpochMs,
+      "lastSignalEpochMs": lastSignalEpochMs,
+      "matchedEpochMs": matchedEpochMs,
+      "matchSequence": matchSequence
+    ]
+  }
+
+  func stop(result: @escaping FlutterResult) {
+    cleanup()
+    setPhase("stopped")
+    result(true)
+  }
+
+  private func cleanup() {
+    engine?.inputNode.removeTap(onBus: 0)
+    engine?.stop()
+    engine = nil
+    session = nil
+    catalog = nil
+    try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+  }
+
+  private func setPhase(_ newPhase: String, error: String = "") {
+    lock.lock(); phase = newPhase; lastError = error; lock.unlock()
+  }
+
+  func session(_ session: SHSession, didFind match: SHMatch) {
+    guard let item = match.mediaItems.first else { return }
+    lock.lock()
+    guard self.session === session else { lock.unlock(); return }
+    matchedTitle = item.title ?? ""
+    matchedArtist = item.artist ?? ""
+    matchedOffset = item.matchOffset
+    matchedEpochMs = Int64(Date().timeIntervalSince1970 * 1000)
+    matchSequence += 1
+    // Only a verified acoustic match can initially arm this music detector.
+    // Reset reference on re-entry from silence, so changing songs works as before.
+    if !musicGateOpen {
+      referenceRms = max(0.0007, microphoneRms)
+    }
+    musicGateOpen = true
+    belowMusicGateSinceMs = 0
+    aboveMusicGateSinceMs = 0
+    lastMusicEpochMs = matchedEpochMs
+    lastSignalEpochMs = matchedEpochMs
+    phase = "matched"
+    lock.unlock()
+
+    // Recreate the custom-catalog session for subsequent positional matches.
+    // The AVAudioEngine tap remains active throughout Discover.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self, weak session] in
+      guard let self, let session else { return }
+      self.lock.lock()
+      defer { self.lock.unlock() }
+      guard self.engine != nil, self.session === session, let catalog = self.catalog else { return }
+      let newSession = SHSession(catalog: catalog)
+      newSession.delegate = self
+      self.session = newSession
+      self.phase = "listening"
+    }
+  }
+
+  func session(_ session: SHSession, didNotFindMatchFor signature: SHSignature, error: Error?) {
+    if let error { setPhase("listening", error: error.localizedDescription) }
   }
 }

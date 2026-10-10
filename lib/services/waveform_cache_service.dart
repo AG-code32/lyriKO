@@ -1,3 +1,6 @@
+import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -25,50 +28,58 @@ class WaveformCacheService {
     );
   }
 
+  Future<String> _writableCachePath(String songJsonPath) async {
+    final name = songJsonPath.replaceAll('\\', '/').split('/').last
+        .replaceFirst(RegExp(r'\.json$', caseSensitive: false), '.waveform.json');
+    final root = await getApplicationSupportDirectory();
+    final directory = Directory('${root.path}/lyriko_waveforms');
+    await directory.create(recursive: true);
+    return '${directory.path}/$name';
+  }
+
+  Future<void> clearCache(String songJsonPath) async {
+    if (Platform.isIOS || Platform.isAndroid) {
+      final file = File(await _writableCachePath(songJsonPath));
+      if (await file.exists()) await file.delete();
+    } else {
+      final file = File(cachePathForJson(songJsonPath));
+      if (await file.exists()) await file.delete();
+    }
+  }
+
+  Future<WaveformData?> _bundledWaveform(String songJsonPath) async {
+    if (!(Platform.isIOS || Platform.isAndroid)) return null;
+    if (!songJsonPath.startsWith('assets/lyrics/')) return null;
+    try {
+      final raw = await rootBundle.loadString(cachePathForJson(songJsonPath));
+      final json = jsonDecode(raw);
+      if (json is! Map || json['samples'] is! List) return null;
+      return WaveformData(samples: (json['samples'] as List)
+          .whereType<num>().map((item) => item.toDouble()).toList());
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<WaveformData?> loadOrCreate({
     required String songJsonPath,
     required String audioPath,
   }) async {
-    final cachePath =
-        cachePathForJson(
-      songJsonPath,
-    );
-
-    final cached =
-        await _loadCache(
-      cachePath,
-    );
-
-    if (cached != null) {
-      return cached;
-    }
-
-    if (audioPath.trim().isEmpty) {
-      return null;
-    }
-
-    final audioFile =
-        File(audioPath);
-
-    if (!await audioFile.exists()) {
-      return null;
-    }
-
-    final generated =
-        await _generateWaveform(
-      audioPath,
-    );
-
-    if (generated == null ||
-        generated.samples.isEmpty) {
-      return null;
-    }
-
-    await _saveCache(
-      cachePath,
-      generated,
-    );
-
+    final mobile = Platform.isIOS || Platform.isAndroid;
+    final cachePath = mobile
+        ? await _writableCachePath(songJsonPath)
+        : cachePathForJson(songJsonPath);
+    // Local waveform cache is highest priority, followed by bundled data.
+    final cached = await _loadCache(cachePath);
+    if (cached != null) return cached;
+    final bundled = await _bundledWaveform(songJsonPath);
+    if (bundled != null) return bundled;
+    if (audioPath.trim().isEmpty || !await File(audioPath).exists()) return null;
+    final generated = mobile
+        ? await _generateMobileWaveform(audioPath)
+        : await _generateWaveform(audioPath);
+    if (generated == null || generated.samples.isEmpty) return null;
+    await _saveCache(cachePath, generated);
     return generated;
   }
 
@@ -130,6 +141,25 @@ class WaveformCacheService {
       ),
       flush: true,
     );
+  }
+
+  Future<WaveformData?> _generateMobileWaveform(String audioPath) async {
+    try {
+      final controller = WaveformExtractionController();
+      final values = await controller.extractWaveformData(
+        path: audioPath,
+        noOfSamples: _targetPoints,
+      );
+      if (values.isEmpty) return null;
+      final peak = values.fold<double>(0.0,
+          (maxValue, value) => math.max(maxValue, value.abs()));
+      if (peak == 0) return WaveformData(samples: List.filled(values.length, 0));
+      return WaveformData(samples: values
+          .map((value) => (value.abs() / peak).clamp(0.0, 1.0).toDouble())
+          .toList());
+    } catch (error) {
+      return null;
+    }
   }
 
   Future<WaveformData?> _generateWaveform(

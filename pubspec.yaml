@@ -38,8 +38,11 @@ dependencies:
   just_audio: ^0.10.6
   just_audio_windows: ^0.2.3
   file_picker: ^13.1.0
+  audio_waveforms: ^2.0.2
+  path_provider: ^2.1.5
   window_manager: ^0.5.1
   flutter_overlay_window: ^0.5.0
+  flutter_secure_storage: ^11.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -63,6 +66,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/lyrics/
+    - assets/audio/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

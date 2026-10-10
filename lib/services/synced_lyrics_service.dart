@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 
 class SyncedLyricWord {
   final String text;
@@ -102,7 +103,11 @@ class SyncedLyricsSong {
 }
 
 class SyncedLyricsService {
-  bool get _usesBundledAssets => Platform.isAndroid || Platform.isIOS;
+  // On macOS the library is bundled with Flutter, just like on iOS/Android.
+  // Edits are stored as private writable copies in Application Documents.
+  // Keep the existing on-disk Windows project library unchanged.
+  bool get _usesBundledAssets =>
+      Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
 
   String get _userProfile {
     final value = Platform.environment['USERPROFILE'];
@@ -249,6 +254,25 @@ class SyncedLyricsService {
         '${_normalizeIdentityPart(title)}';
   }
 
+  /// Makes a writable private copy of a bundled lyrics JSON for editing.
+  /// The source asset stays unchanged, and existing edits are preserved.
+  Future<String> editableJsonPath(String jsonPath) async {
+    if (!jsonPath.startsWith('assets/')) return jsonPath;
+    final file = await _editedFileForAsset(jsonPath);
+    if (!await file.exists()) {
+      await file.parent.create(recursive: true);
+      final original = await rootBundle.loadString(jsonPath);
+      await file.writeAsString(original, encoding: utf8, flush: true);
+    }
+    return file.path;
+  }
+
+  Future<File> _editedFileForAsset(String assetPath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filename = assetPath.split('/').last;
+    return File('${directory.path}/lyriko_edited/$filename');
+  }
+
   Future<SyncedLyricsSong> loadSong(String jsonPath) async {
     final isAsset = jsonPath.startsWith('assets/');
 
@@ -257,9 +281,15 @@ class SyncedLyricsService {
     late DateTime modifiedAt;
 
     if (isAsset) {
-      raw = await rootBundle.loadString(jsonPath);
       filename = jsonPath.split('/').last;
-      modifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+      final edited = await _editedFileForAsset(jsonPath);
+      if (await edited.exists()) {
+        raw = await edited.readAsString(encoding: utf8);
+        modifiedAt = (await edited.stat()).modified;
+      } else {
+        raw = await rootBundle.loadString(jsonPath);
+        modifiedAt = DateTime.fromMillisecondsSinceEpoch(0);
+      }
     } else {
       final file = File(jsonPath);
 

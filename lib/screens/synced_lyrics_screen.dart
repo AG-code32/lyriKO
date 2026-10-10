@@ -19,6 +19,8 @@ class SyncedLyricsScreen extends StatefulWidget {
   final int initialPositionMs;
   final String lockedTrackName;
   final String jsonPath;
+  /// true: Discover microphone; false: Listen internal audio.
+  final bool useMicrophone;
 
   /// When Home found a Windows Media Session, it passes the owning app here.
   /// Example: chrome.exe or Spotify.exe.
@@ -29,6 +31,7 @@ class SyncedLyricsScreen extends StatefulWidget {
     required this.initialPositionMs,
     required this.lockedTrackName,
     required this.jsonPath,
+    this.useMicrophone = false,
     this.mediaSourceAppId,
   });
 
@@ -49,6 +52,8 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   final ItemScrollController _scrollController = ItemScrollController();
 
   SyncedLyricsSong? _song;
+  late String _currentJsonPath;
+  DateTime? _iosLastTrackSwitch;
 
   Timer? _uiTimer;
   Timer? _mediaTimer;
@@ -62,6 +67,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   static const int _iosMinCorrectionMs = 450;
   bool _iosPollBusy = false;
   static const int _iosQuietTimeoutMs = 1500;
+  // Discover: allow brief quiet passages, but stop the lyric clock shortly
+  // after the audible music disappears. Listen keeps its old 1500ms policy.
+  static const int _iosMicQuietTimeoutMs = 800;
+  static const int _iosMicBufferTimeoutMs = 1500;
 
   final Stopwatch _localClock = Stopwatch();
   final Stopwatch _fallbackCaptureClock = Stopwatch();
@@ -109,6 +118,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _currentJsonPath = widget.jsonPath;
 
     _anchorPositionMs = widget.initialPositionMs;
     _currentPositionMs = widget.initialPositionMs;
@@ -319,7 +329,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
   Future<void> _load() async {
     try {
-      final song = await _lyricsService.loadSong(widget.jsonPath);
+      final song = await _lyricsService.loadSong(_currentJsonPath);
 
       final safePosition = _clampPosition(widget.initialPositionMs, song);
       final active = _lyricsService.findActiveLineIndex(song, safePosition);
@@ -482,15 +492,30 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     if (_iosPollBusy || !mounted || _song == null) return;
     _iosPollBusy = true;
     try {
-      final raw = await _iosAudioChannel.invokeMapMethod<String, dynamic>('stats');
+      final raw = await _iosAudioChannel.invokeMapMethod<String, dynamic>(
+        widget.useMicrophone ? 'micStats' : 'stats',
+      );
       if (!mounted || _openingEditor) return;
       final stats = raw ?? const <String, dynamic>{};
       final phase = (stats['phase'] ?? 'idle').toString();
       final lastSignal = (stats['lastSignalEpochMs'] as num?)?.toInt() ?? 0;
       final now = DateTime.now().millisecondsSinceEpoch;
-      final active = phase == 'capturing' &&
-          lastSignal > 0 && now >= lastSignal &&
-          now - lastSignal < _iosQuietTimeoutMs;
+      // Discover stays connected while its capture engine receives buffers,
+      // but advances only when the native music-level gate reports activity.
+      // The two concepts must not be conflated: room noise is not playback.
+      final lastMusic = (stats['lastMusicEpochMs'] as num?)?.toInt() ?? 0;
+      final lastBuffer = (stats['lastBufferEpochMs'] as num?)?.toInt() ?? 0;
+      final micStreamHealthy = lastBuffer > 0 && now >= lastBuffer &&
+          now - lastBuffer < _iosMicBufferTimeoutMs;
+      final nativeMusicGateOpen = stats['musicGateOpen'] == true;
+      final micMusicActive = nativeMusicGateOpen &&
+          lastMusic > 0 && now >= lastMusic &&
+          now - lastMusic < _iosMicQuietTimeoutMs;
+      final active = widget.useMicrophone
+          ? (phase == 'listening' || phase == 'matched') &&
+              micStreamHealthy && micMusicActive
+          : phase == 'capturing' && lastSignal > 0 &&
+              now >= lastSignal && now - lastSignal < _iosQuietTimeoutMs;
       final song = _song;
       if (song == null) return;
       // Apply only fresh matches of the *currently displayed* track.
@@ -509,7 +534,24 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
           song, title: matchedTitle, artist: matchedArtist,
           albumArtist: '',
         );
-        if (score >= 70) {
+        if (score < 70) {
+          // An acoustic match for a different library track: retain the same
+          // capture session and switch the displayed lyrics in place.
+          final nextSong = await _lyricsService.findSongForMediaMetadata(
+            title: matchedTitle,
+            artist: matchedArtist,
+          );
+          if (!mounted || _openingEditor) return;
+          if (nextSong != null && nextSong.jsonPath != _currentJsonPath) {
+            final lastSwitch = _iosLastTrackSwitch;
+            final canSwitch = lastSwitch == null ||
+                DateTime.now().difference(lastSwitch) > const Duration(seconds: 3);
+            if (canSwitch) {
+              await _switchIOSSong(nextSong, offset);
+              return;
+            }
+          }
+        } else {
           // ShazamKit's matchOffset is a reference position; callback delivery
           // latency is not guaranteed. Do not add that latency blindly.
           final measured = _clampPosition((offset * 1000).round(), song);
@@ -528,7 +570,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
         if (!_clockRunning) {
           _setAnchor(_estimatedPositionMs(song), running: true, forceScroll: false);
         }
-        _setTrackingStatus('AUDIO', Colors.greenAccent);
+        _setTrackingStatus(
+          widget.useMicrophone ? 'MIC AUDIO' : 'AUDIO',
+          Colors.greenAccent,
+        );
       } else {
         if (_clockRunning) {
           _setAnchor(_estimatedPositionMs(song), running: false, forceScroll: false);
@@ -544,6 +589,32 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       _setTrackingStatus('IOS ERROR', Colors.redAccent);
     } finally {
       _iosPollBusy = false;
+    }
+  }
+
+  Future<void> _switchIOSSong(SyncedLyricsSong nextSong, double offset) async {
+    // Re-read from disk to avoid using a stale library entry after editing.
+    try {
+      final loaded = await _lyricsService.loadSong(nextSong.jsonPath);
+      if (!mounted || _openingEditor) return;
+      final position = _clampPosition((offset * 1000).round(), loaded);
+      final index = _lyricsService.findActiveLineIndex(loaded, position);
+      _iosLastTrackSwitch = DateTime.now();
+      _currentJsonPath = loaded.jsonPath;
+      _lastScrolledIndex = -1;
+      setState(() {
+        _song = loaded;
+        _activeLineIndex = index;
+        _error = null;
+      });
+      // A different song's timeline must never inherit the previous clock.
+      _setAnchor(position, running: true, forceScroll: false);
+      _setTrackingStatus('NEW TRACK', Colors.greenAccent);
+      _scheduleInitialScroll();
+      debugPrint('iOS auto track switch: ${loaded.displayName} @ ${position}ms');
+    } catch (error) {
+      debugPrint('iOS auto track switch failed: $error');
+      _setTrackingStatus('TRACK ERROR', Colors.orangeAccent);
     }
   }
 
@@ -1064,7 +1135,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       context,
       MaterialPageRoute(
         builder: (_) => LyricsEditScreen(
-          jsonPath: widget.jsonPath,
+          jsonPath: _currentJsonPath,
         ),
       ),
     );
@@ -1072,7 +1143,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     if (!mounted) return;
 
     try {
-      final updatedSong = await _lyricsService.loadSong(widget.jsonPath);
+      final updatedSong = await _lyricsService.loadSong(_currentJsonPath);
       final safePosition = _clampPosition(_currentPositionMs, updatedSong);
       final active =
           _lyricsService.findActiveLineIndex(updatedSong, safePosition);

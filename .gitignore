@@ -46,3 +46,24 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Lyriko - local audio library
+/assets/audio/
+
+# Lyriko - private credentials and runtime data
+.env
+.env.*
+!.env.example
+**/api_token
+**/tunnel_url.txt
+**/cloudflared.log
+**/cloudflared_stderr.log
+**/cloudflared_stdout.log
+**/startup.log
+
+# Local configuration backups
+*.xcconfig.backup
+
+# Apple signing credentials
+*.p12
+*.mobileprovision

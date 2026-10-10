@@ -11,6 +11,7 @@ import '../services/windows_media_session_service.dart';
 import 'add_song_screen.dart';
 import 'lyrics_edit_screen.dart';
 import 'song_preview_screen.dart';
+import 'server_settings_screen.dart';
 import 'synced_lyrics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -72,6 +73,8 @@ class _HomeScreenState extends State<HomeScreen>
   bool _listening = false;
 
   bool _stopRequested = false;
+
+  bool _usingMicrophone = false;
 
   String _status =
       'Tap to identify what is playing';
@@ -333,6 +336,7 @@ class _HomeScreenState extends State<HomeScreen>
     required int initialPositionMs,
     required String lockedTrackName,
     String? mediaSourceAppId,
+    bool useMicrophone = false,
   }) async {
     if (!mounted) {
       return;
@@ -350,6 +354,7 @@ class _HomeScreenState extends State<HomeScreen>
           lockedTrackName: lockedTrackName,
           jsonPath: song.jsonPath,
           mediaSourceAppId: mediaSourceAppId,
+          useMicrophone: useMicrophone,
         ),
       ),
     );
@@ -368,6 +373,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _runIOSAudioProbe() async {
     setState(() {
+      _usingMicrophone = false;
       _listening = true;
       _stopRequested = false;
       _error = null;
@@ -437,6 +443,73 @@ class _HomeScreenState extends State<HomeScreen>
       try { await _iosProbeChannel.invokeMethod<void>('stop'); } catch (_) {}
       _listenAnimation.stop();
       if (mounted) setState(() { _listening = false; _stopRequested = false; });
+    }
+  }
+
+  /// Discover: recognize nearby music with the iPhone / selected audio-input mic.
+  /// Uses the existing three-track custom ShazamKit catalog, not online Shazam.
+  Future<void> _runIOSMicrophone() async {
+    if (_listening || !Platform.isIOS) return;
+    setState(() {
+      _usingMicrophone = true;
+      _listening = true;
+      _stopRequested = false;
+      _error = null;
+      _status = 'Discover: requesting microphone access...';
+    });
+    _listenAnimation.repeat(reverse: true);
+    try {
+      await _iosProbeChannel.invokeMethod<void>('startMic');
+      while (mounted && !_stopRequested) {
+        await Future.delayed(const Duration(milliseconds: 850));
+        if (!mounted || _stopRequested) break;
+        final stats = await _iosProbeChannel.invokeMapMethod<String, dynamic>('micStats');
+        if (!mounted) break;
+        final phase = (stats?['phase'] ?? 'idle').toString();
+        final error = (stats?['error'] ?? '').toString();
+        final title = (stats?['matchedTitle'] ?? '').toString();
+        final artist = (stats?['matchedArtist'] ?? '').toString();
+        final offset = (stats?['matchedOffset'] as num?)?.toDouble() ?? -1;
+        if (title.isNotEmpty && offset >= 0) {
+          final song = await _lyricsService.findSongForMediaMetadata(
+            title: title, artist: artist,
+          );
+          if (!mounted || _stopRequested) break;
+          if (song == null) {
+            setState(() {
+              _status = 'Discover recognized $artist — $title';
+              _error = 'No matching lyrics in the library';
+            });
+          } else {
+            await _openDetectedSong(
+              song: song,
+              initialPositionMs: (offset * 1000).round(),
+              lockedTrackName: song.displayName,
+              useMicrophone: true,
+            );
+          }
+          break;
+        }
+        setState(() {
+          _status = phase == 'listening'
+              ? 'Discover is listening to music around you...'
+              : 'Discover: $phase';
+          if (error.isNotEmpty) _error = error;
+        });
+        if (phase == 'error' || phase == 'denied' || phase == 'stopped') break;
+      }
+    } catch (e) {
+      if (mounted) setState(() {
+        _status = 'Discover could not start';
+        _error = '$e';
+      });
+    } finally {
+      try { await _iosProbeChannel.invokeMethod<void>('stopMic'); } catch (_) {}
+      _listenAnimation.stop();
+      if (mounted) setState(() {
+        _listening = false;
+        _stopRequested = false;
+      });
     }
   }
 
@@ -961,6 +1034,54 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  Widget _recognitionButton({
+    required String label,
+    required String detail,
+    required IconData icon,
+    required Color color,
+    required bool isActive,
+    required VoidCallback? onTap,
+  }) {
+    final pulse = isActive ? _listenAnimation.value : 0.0;
+    return SizedBox(
+      width: 142,
+      child: Column(
+        children: [
+          Transform.scale(
+            scale: 1.0 + pulse * 0.045,
+            child: Material(
+              color: color,
+              shape: const CircleBorder(),
+              elevation: isActive ? 9 : 2,
+              shadowColor: color.withValues(alpha: 0.6),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onTap,
+                child: SizedBox(
+                  width: 112,
+                  height: 112,
+                  child: Icon(
+                    isActive ? Icons.stop_rounded : icon,
+                    size: 49,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(label, style: const TextStyle(
+            fontSize: 17, fontWeight: FontWeight.w700,
+          )),
+          const SizedBox(height: 3),
+          Text(detail, style: const TextStyle(
+            fontSize: 12, color: Colors.white60,
+          )),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(
     BuildContext context,
@@ -990,6 +1111,22 @@ class _HomeScreenState extends State<HomeScreen>
                 crossAxisAlignment:
                     CrossAxisAlignment.stretch,
                 children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton(
+                      tooltip: 'Server Settings',
+                      icon: const Icon(Icons.settings_rounded),
+                      onPressed: () async {
+                        await Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ServerSettingsScreen(),
+                          ),
+                        );
+                        if (mounted) await _loadLibrary();
+                      },
+                    ),
+                  ),
                   const Text(
                     'Lyriko',
                     textAlign:
@@ -1024,6 +1161,39 @@ class _HomeScreenState extends State<HomeScreen>
                     height: 38,
                   ),
 
+                  if (Platform.isIOS)
+                    Center(
+                      child: AnimatedBuilder(
+                        animation: _listenAnimation,
+                        builder: (context, _) => Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _recognitionButton(
+                              label: 'Listen',
+                              detail: 'On your phone',
+                              icon: Icons.graphic_eq_rounded,
+                              color: const Color(0xFF6656BA),
+                              isActive: _listening && !_usingMicrophone,
+                              onTap: _listening
+                                  ? (_usingMicrophone ? null : _stopListening)
+                                  : _startListening,
+                            ),
+                            const SizedBox(width: 18),
+                            _recognitionButton(
+                              label: 'Discover',
+                              detail: 'Around you',
+                              icon: Icons.mic_rounded,
+                              color: const Color(0xFF168F98),
+                              isActive: _listening && _usingMicrophone,
+                              onTap: _listening
+                                  ? (_usingMicrophone ? _stopListening : null)
+                                  : _runIOSMicrophone,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
                   Center(
                     child:
                         AnimatedBuilder(
