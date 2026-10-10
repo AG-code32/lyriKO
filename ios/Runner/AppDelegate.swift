@@ -43,7 +43,12 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
   private var matchedTitle = ""
   private var matchedArtist = ""
   private var matchedOffset = -1.0
+  private var matchedEpochMs: Int64 = 0
+  private var matchSequence = 0
+  private var nextSessionResetMs: Int64 = 0
   private var shazamStatus = "not initialized"
+  private var lastSignalEpochMs: Int64 = 0
+  private var lastAudioEpochMs: Int64 = 0
   private let picker = SCContentSharingPicker.shared
   private let audioQueue = DispatchQueue(label: "lyriko.ios.audio-probe")
   private let lock = NSLock()
@@ -82,6 +87,8 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
     rms = 0; peak = 0; audioFormat = "unknown"
     diagnosis = "waiting for audio"; lastError = ""
     matchedTitle = ""; matchedArtist = ""; matchedOffset = -1
+    matchedEpochMs = 0; matchSequence = 0; nextSessionResetMs = 0
+    lastSignalEpochMs = 0; lastAudioEpochMs = 0
     shazamStatus = "listening"
     lock.unlock()
     picker.add(self)
@@ -98,7 +105,10 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
       "rms": rms, "peak": peak, "format": audioFormat,
       "diagnosis": diagnosis, "error": lastError,
       "matchedTitle": matchedTitle, "matchedArtist": matchedArtist,
-      "matchedOffset": matchedOffset, "shazamStatus": shazamStatus
+      "matchedOffset": matchedOffset, "shazamStatus": shazamStatus,
+      "matchedEpochMs": matchedEpochMs, "matchSequence": matchSequence,
+      "lastSignalEpochMs": lastSignalEpochMs,
+      "lastAudioEpochMs": lastAudioEpochMs
     ]
   }
 
@@ -107,8 +117,7 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
     stream = nil
     picker.remove(self)
     picker.isActive = false
-    shazamSession = nil
-    lock.lock(); phase = "stopped"; lock.unlock()
+    lock.lock(); shazamSession = nil; phase = "stopped"; lock.unlock()
   }
 
   func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
@@ -241,7 +250,7 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
     // Give streaming PCM to ShazamKit, preserving the captured audio format.
     // Only feed valid signal; the source may be silent when playback is paused.
     if payload > 0 && inspected > 0 && maxAmplitude > 0.0001,
-       let session = shazamSession,
+       let session = currentShazamSession(),
        let description = CMSampleBufferGetFormatDescription(sampleBuffer),
        let sourceASBD = CMAudioFormatDescriptionGetStreamBasicDescription(description) {
       var asbd = sourceASBD.pointee
@@ -288,7 +297,12 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
 
     let latestRMS = inspected > 0 ? sqrt(sumSquares / Double(inspected)) : 0.0
     lock.lock()
+    let timeMs = Int64(Date().timeIntervalSince1970 * 1000)
     buffers += 1
+    lastAudioEpochMs = timeMs
+    if latestRMS > 0.001 && maxAmplitude > 0.005 {
+      lastSignalEpochMs = timeMs
+    }
     sampleFrames += frames
     bytes += payload
     if payload > 0 { buffersWithPayload += 1 }
@@ -302,12 +316,45 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
 
   func session(_ session: SHSession, didFind match: SHMatch) {
     guard let item = match.mediaItems.first else { return }
+    let now = Int64(Date().timeIntervalSince1970 * 1000)
+    var shouldReset = false
     lock.lock()
-    matchedTitle = item.title ?? ""
-    matchedArtist = item.artist ?? ""
-    matchedOffset = item.matchOffset
-    shazamStatus = "matched"
+    // Discard callbacks from sessions that were already replaced.
+    if session === shazamSession && phase == "capturing" {
+      matchedTitle = item.title ?? ""
+      matchedArtist = item.artist ?? ""
+      matchedOffset = item.matchOffset
+      matchedEpochMs = now
+      matchSequence += 1
+      shazamStatus = "matched #\(matchSequence)"
+      if now >= nextSessionResetMs {
+        nextSessionResetMs = now + 5000
+        shouldReset = true
+      }
+    }
     lock.unlock()
+    if shouldReset {
+      // A custom-catalog SHSession may stop reporting after a successful match.
+      // Re-arm it periodically while capture remains active, on the serial audio queue.
+      audioQueue.asyncAfter(deadline: .now() + 2.0) { [weak self, weak session] in
+        guard let self, let oldSession = session else { return }
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        guard self.phase == "capturing", self.shazamSession === oldSession else { return }
+        guard let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog"),
+              let data = try? Data(contentsOf: url),
+              let catalog = try? SHCustomCatalog(dataRepresentation: data) else { return }
+        let freshSession = SHSession(catalog: catalog)
+        freshSession.delegate = self
+        self.shazamSession = freshSession
+        self.shazamStatus = "listening for next position"
+      }
+    }
+  }
+
+  private func currentShazamSession() -> SHSession? {
+    lock.lock(); defer { lock.unlock() }
+    return shazamSession
   }
 
   func session(_ session: SHSession, didNotFindMatchFor signature: SHSignature, error: Error?) {

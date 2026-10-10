@@ -408,7 +408,8 @@ class _HomeScreenState extends State<HomeScreen>
             title: title, artist: artist,
           );
           if (!mounted) break;
-          await _iosProbeChannel.invokeMethod<void>('stop');
+          // Keep iOS capture alive while the lyrics page is visible.
+          // The finally block stops it when the lyrics page closes.
           if (song == null) {
             setState(() {
               _status = 'ShazamKit: $artist — $title';

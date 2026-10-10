@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -52,6 +53,15 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   Timer? _uiTimer;
   Timer? _mediaTimer;
   Timer? _fallbackTimer;
+
+  static const MethodChannel _iosAudioChannel =
+      MethodChannel('lyriko/ios_audio_probe');
+  bool _iosAudioSeen = false;
+  int _iosLastMatchSequence = 0;
+  static const int _iosHardSeekThresholdMs = 2000;
+  static const int _iosMinCorrectionMs = 450;
+  bool _iosPollBusy = false;
+  static const int _iosQuietTimeoutMs = 1500;
 
   final Stopwatch _localClock = Stopwatch();
   final Stopwatch _fallbackCaptureClock = Stopwatch();
@@ -324,7 +334,12 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
         _error = null;
       });
 
-      _setAnchor(safePosition, running: true, forceScroll: false);
+      // iOS does not expose third-party player's pause/seek state.
+      // Wait for captured audio before advancing the local lyric clock.
+      _setAnchor(safePosition, running: !Platform.isIOS, forceScroll: false);
+      if (Platform.isIOS) {
+        _setTrackingStatus('WAIT AUDIO', Colors.white54);
+      }
 
       if (Platform.isWindows) {
         await _mediaService.initialize();
@@ -411,6 +426,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     _mediaPollBusy = true;
 
     try {
+      if (Platform.isIOS) {
+        await _pollIOSAudio();
+        return;
+      }
       if (Platform.isAndroid) {
         final sessions = await _androidMediaService.getSessions();
         final session = _selectAndroidMediaSession(sessions);
@@ -453,6 +472,78 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       }
     } finally {
       _mediaPollBusy = false;
+    }
+  }
+
+  // Provisional iOS activity tracking, NOT authoritative YouTube playback state.
+  // Silence and other applications' audio can cause false positives/negatives.
+  // Seek correction requires periodic acoustic re-matching in a later version.
+  Future<void> _pollIOSAudio() async {
+    if (_iosPollBusy || !mounted || _song == null) return;
+    _iosPollBusy = true;
+    try {
+      final raw = await _iosAudioChannel.invokeMapMethod<String, dynamic>('stats');
+      if (!mounted || _openingEditor) return;
+      final stats = raw ?? const <String, dynamic>{};
+      final phase = (stats['phase'] ?? 'idle').toString();
+      final lastSignal = (stats['lastSignalEpochMs'] as num?)?.toInt() ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final active = phase == 'capturing' &&
+          lastSignal > 0 && now >= lastSignal &&
+          now - lastSignal < _iosQuietTimeoutMs;
+      final song = _song;
+      if (song == null) return;
+      // Apply only fresh matches of the *currently displayed* track.
+      // A new match provides a position anchor; the local clock interpolates
+      // between matches. This is not direct access to YouTube's seek state.
+      final sequence = (stats['matchSequence'] as num?)?.toInt() ?? 0;
+      final matchedAt = (stats['matchedEpochMs'] as num?)?.toInt() ?? 0;
+      final offset = (stats['matchedOffset'] as num?)?.toDouble() ?? -1;
+      final matchedTitle = (stats['matchedTitle'] ?? '').toString();
+      final matchedArtist = (stats['matchedArtist'] ?? '').toString();
+      if (active && sequence > _iosLastMatchSequence &&
+          matchedAt > 0 && now >= matchedAt && now - matchedAt < 15000 &&
+          offset >= 0 && matchedTitle.isNotEmpty) {
+        _iosLastMatchSequence = sequence;
+        final score = _lyricsService.mediaMetadataScoreForSong(
+          song, title: matchedTitle, artist: matchedArtist,
+          albumArtist: '',
+        );
+        if (score >= 70) {
+          // ShazamKit's matchOffset is a reference position; callback delivery
+          // latency is not guaranteed. Do not add that latency blindly.
+          final measured = _clampPosition((offset * 1000).round(), song);
+          final predicted = _estimatedPositionMs(song);
+          final drift = measured - predicted;
+          if (drift.abs() >= _iosHardSeekThresholdMs) {
+            _setAnchor(measured, running: true, forceScroll: true);
+          } else if (drift.abs() >= _iosMinCorrectionMs) {
+            _setAnchor(predicted + (drift * 0.35).round(),
+                running: true, forceScroll: false);
+          }
+        }
+      }
+      if (active) {
+        _iosAudioSeen = true;
+        if (!_clockRunning) {
+          _setAnchor(_estimatedPositionMs(song), running: true, forceScroll: false);
+        }
+        _setTrackingStatus('AUDIO', Colors.greenAccent);
+      } else {
+        if (_clockRunning) {
+          _setAnchor(_estimatedPositionMs(song), running: false, forceScroll: false);
+        }
+        _setTrackingStatus(
+          phase == 'error' ? 'CAPTURE ERROR' :
+          (_iosAudioSeen ? 'NO AUDIO' : 'WAIT AUDIO'),
+          phase == 'error' ? Colors.redAccent : Colors.orangeAccent,
+        );
+      }
+    } on PlatformException catch (e) {
+      debugPrint('iOS audio activity tracking failed: $e');
+      _setTrackingStatus('IOS ERROR', Colors.redAccent);
+    } finally {
+      _iosPollBusy = false;
     }
   }
 
