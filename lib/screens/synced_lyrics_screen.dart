@@ -19,6 +19,7 @@ class SyncedLyricsScreen extends StatefulWidget {
   final int initialPositionMs;
   final String lockedTrackName;
   final String jsonPath;
+
   /// true: Discover microphone; false: Listen internal audio.
   final bool useMicrophone;
 
@@ -39,10 +40,10 @@ class SyncedLyricsScreen extends StatefulWidget {
   State<SyncedLyricsScreen> createState() => _SyncedLyricsScreenState();
 }
 
-class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBindingObserver {
+class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
+    with WidgetsBindingObserver {
   final SyncedLyricsService _lyricsService = SyncedLyricsService();
-  final WindowsMediaSessionService _mediaService =
-      WindowsMediaSessionService();
+  final WindowsMediaSessionService _mediaService = WindowsMediaSessionService();
   final AndroidMediaSessionService _androidMediaService =
       AndroidMediaSessionService();
   final AndroidNativeLyricsOverlayService _androidOverlayService =
@@ -59,8 +60,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   Timer? _mediaTimer;
   Timer? _fallbackTimer;
 
-  static const MethodChannel _iosAudioChannel =
-      MethodChannel('lyriko/ios_audio_probe');
+  static const MethodChannel _iosAudioChannel = MethodChannel(
+    'lyriko/ios_audio_probe',
+  );
   bool _iosAudioSeen = false;
   int _iosLastMatchSequence = 0;
   static const int _iosHardSeekThresholdMs = 2000;
@@ -133,24 +135,18 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     }
 
     try {
-      await windowManager.setBackgroundColor(
-        Colors.transparent,
-      );
+      await windowManager.setBackgroundColor(Colors.transparent);
 
       await windowManager.setAsFrameless();
 
       await windowManager.setResizable(true);
       await windowManager.setMinimumSize(const Size(360, 240));
 
-      await windowManager.setAlwaysOnTop(
-        true,
-      );
+      await windowManager.setAlwaysOnTop(true);
 
       _overlayModeActive = true;
     } catch (e) {
-      debugPrint(
-        'Could not enable lyrics overlay mode: $e',
-      );
+      debugPrint('Could not enable lyrics overlay mode: $e');
     }
   }
 
@@ -167,12 +163,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
     Future<void>.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
-        unawaited(
-          _startAndroidFloatingOverlay(
-            song,
-            requestIfNeeded: false,
-          ),
-        );
+        unawaited(_startAndroidFloatingOverlay(song, requestIfNeeded: false));
       }
     });
   }
@@ -180,10 +171,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   Future<void> _ensureAndroidFloatingOverlay(SyncedLyricsSong song) async {
     if (!Platform.isAndroid) return;
 
-    await _startAndroidFloatingOverlay(
-      song,
-      requestIfNeeded: true,
-    );
+    await _startAndroidFloatingOverlay(song, requestIfNeeded: true);
   }
 
   Future<void> _startAndroidFloatingOverlay(
@@ -232,13 +220,8 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       debugPrintStack(stackTrace: stack);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Floating lyrics error: $e',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Floating lyrics error: $e')));
       }
     }
   }
@@ -247,15 +230,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     final song = _song;
     if (!Platform.isAndroid || song == null) return;
 
-    await _startAndroidFloatingOverlay(
-      song,
-      requestIfNeeded: true,
-    );
+    await _startAndroidFloatingOverlay(song, requestIfNeeded: true);
   }
 
-  Map<String, dynamic> _buildAndroidOverlayState(
-    SyncedLyricsSong song,
-  ) {
+  Map<String, dynamic> _buildAndroidOverlayState(SyncedLyricsSong song) {
     return {
       'title': song.title,
       'artist': song.artist,
@@ -288,13 +266,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     _lastAndroidOverlayBroadcastAtMs = now;
 
     try {
-      await _androidOverlayService.update(
-        _buildAndroidOverlayState(song),
-      );
+      await _androidOverlayService.update(_buildAndroidOverlayState(song));
     } catch (e) {
-      debugPrint(
-        'Could not update native Android lyrics overlay: $e',
-      );
+      debugPrint('Could not update native Android lyrics overlay: $e');
     }
   }
 
@@ -306,30 +280,22 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     _overlayModeActive = false;
 
     try {
-      await windowManager.setAlwaysOnTop(
-        false,
-      );
+      await windowManager.setAlwaysOnTop(false);
 
       await windowManager.setTitleBarStyle(
         TitleBarStyle.normal,
         windowButtonVisibility: true,
       );
 
-      await windowManager.setBackgroundColor(
-        const Color(
-          0xFF080808,
-        ),
-      );
+      await windowManager.setBackgroundColor(const Color(0xFF080808));
     } catch (e) {
-      debugPrint(
-        'Could not restore normal window mode: $e',
-      );
+      debugPrint('Could not restore normal window mode: $e');
     }
   }
 
   Future<void> _load() async {
     try {
-      final song = await _lyricsService.loadSong(_currentJsonPath);
+      final song = await _lyricsService.loadFreshSong(_currentJsonPath);
 
       final safePosition = _clampPosition(widget.initialPositionMs, song);
       final active = _lyricsService.findActiveLineIndex(song, safePosition);
@@ -450,10 +416,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
           return;
         }
 
-        _setTrackingStatus(
-          'WAITING',
-          Colors.white54,
-        );
+        _setTrackingStatus('WAITING', Colors.white54);
         return;
       }
 
@@ -505,17 +468,24 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       // The two concepts must not be conflated: room noise is not playback.
       final lastMusic = (stats['lastMusicEpochMs'] as num?)?.toInt() ?? 0;
       final lastBuffer = (stats['lastBufferEpochMs'] as num?)?.toInt() ?? 0;
-      final micStreamHealthy = lastBuffer > 0 && now >= lastBuffer &&
+      final micStreamHealthy =
+          lastBuffer > 0 &&
+          now >= lastBuffer &&
           now - lastBuffer < _iosMicBufferTimeoutMs;
       final nativeMusicGateOpen = stats['musicGateOpen'] == true;
-      final micMusicActive = nativeMusicGateOpen &&
-          lastMusic > 0 && now >= lastMusic &&
+      final micMusicActive =
+          nativeMusicGateOpen &&
+          lastMusic > 0 &&
+          now >= lastMusic &&
           now - lastMusic < _iosMicQuietTimeoutMs;
       final active = widget.useMicrophone
           ? (phase == 'listening' || phase == 'matched') &&
-              micStreamHealthy && micMusicActive
-          : phase == 'capturing' && lastSignal > 0 &&
-              now >= lastSignal && now - lastSignal < _iosQuietTimeoutMs;
+                micStreamHealthy &&
+                micMusicActive
+          : phase == 'capturing' &&
+                lastSignal > 0 &&
+                now >= lastSignal &&
+                now - lastSignal < _iosQuietTimeoutMs;
       final song = _song;
       if (song == null) return;
       // Apply only fresh matches of the *currently displayed* track.
@@ -526,12 +496,18 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       final offset = (stats['matchedOffset'] as num?)?.toDouble() ?? -1;
       final matchedTitle = (stats['matchedTitle'] ?? '').toString();
       final matchedArtist = (stats['matchedArtist'] ?? '').toString();
-      if (active && sequence > _iosLastMatchSequence &&
-          matchedAt > 0 && now >= matchedAt && now - matchedAt < 15000 &&
-          offset >= 0 && matchedTitle.isNotEmpty) {
+      if (active &&
+          sequence > _iosLastMatchSequence &&
+          matchedAt > 0 &&
+          now >= matchedAt &&
+          now - matchedAt < 15000 &&
+          offset >= 0 &&
+          matchedTitle.isNotEmpty) {
         _iosLastMatchSequence = sequence;
         final score = _lyricsService.mediaMetadataScoreForSong(
-          song, title: matchedTitle, artist: matchedArtist,
+          song,
+          title: matchedTitle,
+          artist: matchedArtist,
           albumArtist: '',
         );
         if (score < 70) {
@@ -544,8 +520,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
           if (!mounted || _openingEditor) return;
           if (nextSong != null && nextSong.jsonPath != _currentJsonPath) {
             final lastSwitch = _iosLastTrackSwitch;
-            final canSwitch = lastSwitch == null ||
-                DateTime.now().difference(lastSwitch) > const Duration(seconds: 3);
+            final canSwitch =
+                lastSwitch == null ||
+                DateTime.now().difference(lastSwitch) >
+                    const Duration(seconds: 3);
             if (canSwitch) {
               await _switchIOSSong(nextSong, offset);
               return;
@@ -560,15 +538,22 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
           if (drift.abs() >= _iosHardSeekThresholdMs) {
             _setAnchor(measured, running: true, forceScroll: true);
           } else if (drift.abs() >= _iosMinCorrectionMs) {
-            _setAnchor(predicted + (drift * 0.35).round(),
-                running: true, forceScroll: false);
+            _setAnchor(
+              predicted + (drift * 0.35).round(),
+              running: true,
+              forceScroll: false,
+            );
           }
         }
       }
       if (active) {
         _iosAudioSeen = true;
         if (!_clockRunning) {
-          _setAnchor(_estimatedPositionMs(song), running: true, forceScroll: false);
+          _setAnchor(
+            _estimatedPositionMs(song),
+            running: true,
+            forceScroll: false,
+          );
         }
         _setTrackingStatus(
           widget.useMicrophone ? 'MIC AUDIO' : 'AUDIO',
@@ -576,11 +561,16 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
         );
       } else {
         if (_clockRunning) {
-          _setAnchor(_estimatedPositionMs(song), running: false, forceScroll: false);
+          _setAnchor(
+            _estimatedPositionMs(song),
+            running: false,
+            forceScroll: false,
+          );
         }
         _setTrackingStatus(
-          phase == 'error' ? 'CAPTURE ERROR' :
-          (_iosAudioSeen ? 'NO AUDIO' : 'WAIT AUDIO'),
+          phase == 'error'
+              ? 'CAPTURE ERROR'
+              : (_iosAudioSeen ? 'NO AUDIO' : 'WAIT AUDIO'),
           phase == 'error' ? Colors.redAccent : Colors.orangeAccent,
         );
       }
@@ -595,7 +585,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   Future<void> _switchIOSSong(SyncedLyricsSong nextSong, double offset) async {
     // Re-read from disk to avoid using a stale library entry after editing.
     try {
-      final loaded = await _lyricsService.loadSong(nextSong.jsonPath);
+      final loaded = await _lyricsService.loadFreshSong(nextSong.jsonPath);
       if (!mounted || _openingEditor) return;
       final position = _clampPosition((offset * 1000).round(), loaded);
       final index = _lyricsService.findActiveLineIndex(loaded, position);
@@ -611,7 +601,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       _setAnchor(position, running: true, forceScroll: false);
       _setTrackingStatus('NEW TRACK', Colors.greenAccent);
       _scheduleInitialScroll();
-      debugPrint('iOS auto track switch: ${loaded.displayName} @ ${position}ms');
+      debugPrint(
+        'iOS auto track switch: ${loaded.displayName} @ ${position}ms',
+      );
     } catch (error) {
       debugPrint('iOS auto track switch failed: $error');
       _setTrackingStatus('TRACK ERROR', Colors.orangeAccent);
@@ -697,22 +689,16 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     final isPaused = session.isPaused || session.isStopped;
 
     if (isPaused) {
-      final pausePosition =
-          rawPosition > 0 ? rawPosition : _estimatedPositionMs(song);
+      final pausePosition = rawPosition > 0
+          ? rawPosition
+          : _estimatedPositionMs(song);
 
       _lastMediaRawPositionMs = rawPosition;
       _lastMediaPlaying = false;
 
-      _setAnchor(
-        pausePosition,
-        running: false,
-        forceScroll: true,
-      );
+      _setAnchor(pausePosition, running: false, forceScroll: true);
 
-      _setTrackingStatus(
-        'PAUSED',
-        Colors.orangeAccent,
-      );
+      _setTrackingStatus('PAUSED', Colors.orangeAccent);
       return;
     }
 
@@ -720,44 +706,30 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
     final predicted = _estimatedPositionMs(song);
     final previousRaw = _lastMediaRawPositionMs;
-    final rawChanged = previousRaw == null ||
+    final rawChanged =
+        previousRaw == null ||
         (rawPosition - previousRaw).abs() >= _mediaRawChangeThresholdMs;
     final resuming = _lastMediaPlaying != true;
 
     if (resuming) {
-      _setAnchor(
-        mediaPosition,
-        running: true,
-        forceScroll: true,
-      );
+      _setAnchor(mediaPosition, running: true, forceScroll: true);
     } else if (rawChanged) {
       final drift = mediaPosition - predicted;
 
       if (drift.abs() >= _mediaHardSeekThresholdMs) {
-        _setAnchor(
-          mediaPosition,
-          running: true,
-          forceScroll: true,
-        );
+        _setAnchor(mediaPosition, running: true, forceScroll: true);
       } else if (drift.abs() >= 120) {
         final corrected =
             predicted + (drift * _mediaSoftCorrectionFactor).round();
 
-        _setAnchor(
-          corrected,
-          running: true,
-          forceScroll: false,
-        );
+        _setAnchor(corrected, running: true, forceScroll: false);
       }
     }
 
     _lastMediaRawPositionMs = rawPosition;
     _lastMediaPlaying = true;
 
-    _setTrackingStatus(
-      'MEDIA',
-      Colors.greenAccent,
-    );
+    _setTrackingStatus('MEDIA', Colors.greenAccent);
   }
 
   WindowsMediaSessionState? _selectMediaSession(
@@ -804,7 +776,8 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     if (preferredApp != null && preferredApp.isNotEmpty) {
       final sameApp = usable
           .where(
-            (session) => session.sourceAppId.trim().toLowerCase() == preferredApp,
+            (session) =>
+                session.sourceAppId.trim().toLowerCase() == preferredApp,
           )
           .toList();
 
@@ -821,7 +794,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
     // The expected real-world use is one active player. If there is exactly
     // one active session, it is safe to use it even when metadata is empty.
-    final active = usable.where((session) => session.isPlaying || session.isPaused).toList();
+    final active = usable
+        .where((session) => session.isPlaying || session.isPaused)
+        .toList();
 
     if (active.length == 1) {
       return active.first;
@@ -840,21 +815,16 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     final isPaused = session.isPaused || session.isStopped;
 
     if (isPaused) {
-      final pausePosition = rawPosition > 0 ? rawPosition : _estimatedPositionMs(song);
+      final pausePosition = rawPosition > 0
+          ? rawPosition
+          : _estimatedPositionMs(song);
 
       _lastMediaRawPositionMs = rawPosition;
       _lastMediaPlaying = false;
 
-      _setAnchor(
-        pausePosition,
-        running: false,
-        forceScroll: true,
-      );
+      _setAnchor(pausePosition, running: false, forceScroll: true);
 
-      _setTrackingStatus(
-        'PAUSED',
-        Colors.orangeAccent,
-      );
+      _setTrackingStatus('PAUSED', Colors.orangeAccent);
 
       return;
     }
@@ -863,46 +833,32 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
     final predicted = _estimatedPositionMs(song);
     final previousRaw = _lastMediaRawPositionMs;
-    final rawChanged = previousRaw == null ||
+    final rawChanged =
+        previousRaw == null ||
         (rawPosition - previousRaw).abs() >= _mediaRawChangeThresholdMs;
 
     final resuming = _lastMediaPlaying != true;
 
     if (resuming) {
-      _setAnchor(
-        mediaPosition,
-        running: true,
-        forceScroll: true,
-      );
+      _setAnchor(mediaPosition, running: true, forceScroll: true);
     } else if (rawChanged) {
       final drift = mediaPosition - predicted;
 
       if (drift.abs() >= _mediaHardSeekThresholdMs) {
         // Forward/backward seek: Windows position wins immediately.
-        _setAnchor(
-          mediaPosition,
-          running: true,
-          forceScroll: true,
-        );
+        _setAnchor(mediaPosition, running: true, forceScroll: true);
       } else if (drift.abs() >= 120) {
         final corrected =
             predicted + (drift * _mediaSoftCorrectionFactor).round();
 
-        _setAnchor(
-          corrected,
-          running: true,
-          forceScroll: false,
-        );
+        _setAnchor(corrected, running: true, forceScroll: false);
       }
     }
 
     _lastMediaRawPositionMs = rawPosition;
     _lastMediaPlaying = true;
 
-    _setTrackingStatus(
-      'MEDIA',
-      Colors.greenAccent,
-    );
+    _setTrackingStatus('MEDIA', Colors.greenAccent);
   }
 
   void _setAnchor(
@@ -981,16 +937,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
         (_) => _runFingerprintFallback(),
       );
 
-      _setTrackingStatus(
-        'FINGERPRINT',
-        Colors.amberAccent,
-      );
+      _setTrackingStatus('FINGERPRINT', Colors.amberAccent);
     } catch (e) {
       debugPrint('Fingerprint fallback unavailable: $e');
-      _setTrackingStatus(
-        'LOCAL',
-        Colors.white54,
-      );
+      _setTrackingStatus('LOCAL', Colors.white54);
     }
   }
 
@@ -1025,20 +975,26 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       final resultName = _normalizeTrackIdentity(result.trackName ?? '');
       final songTitle = _normalizeTrackIdentity(song.title);
 
-      final sameSong = result.matched &&
-          ((resultPath.isNotEmpty && lockedPath.isNotEmpty && resultPath == lockedPath) ||
-              (resultName.isNotEmpty && songTitle.isNotEmpty &&
-                  (resultName.contains(songTitle) || songTitle.contains(resultName))));
+      final sameSong =
+          result.matched &&
+          ((resultPath.isNotEmpty &&
+                  lockedPath.isNotEmpty &&
+                  resultPath == lockedPath) ||
+              (resultName.isNotEmpty &&
+                  songTitle.isNotEmpty &&
+                  (resultName.contains(songTitle) ||
+                      songTitle.contains(resultName))));
 
-      final reliable = sameSong &&
+      final reliable =
+          sameSong &&
           result.offsetSeconds != null &&
           aligned >= _fallbackMinimumAlignedHashes &&
           ratio >= _fallbackMinimumRatio;
 
       if (!reliable) return;
 
-      var measuredMs =
-          ((result.offsetSeconds! + result.queryDuration) * 1000).round();
+      var measuredMs = ((result.offsetSeconds! + result.queryDuration) * 1000)
+          .round();
       measuredMs += result.roundTripTime.inMilliseconds;
       measuredMs = _clampPosition(measuredMs, song);
 
@@ -1055,22 +1011,14 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
       if (_fallbackStagnantMeasurements >= _fallbackStagnantBeforePause) {
         _fallbackPaused = true;
-        _setAnchor(
-          measuredMs,
-          running: false,
-          forceScroll: true,
-        );
+        _setAnchor(measuredMs, running: false, forceScroll: true);
         _setTrackingStatus('FP PAUSED', Colors.orangeAccent);
         return;
       }
 
       if (_fallbackPaused) {
         _fallbackPaused = false;
-        _setAnchor(
-          measuredMs,
-          running: true,
-          forceScroll: true,
-        );
+        _setAnchor(measuredMs, running: true, forceScroll: true);
         _setTrackingStatus('FINGERPRINT', Colors.amberAccent);
         return;
       }
@@ -1079,11 +1027,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       final error = measuredMs - predicted;
 
       if (error.abs() >= 1200) {
-        _setAnchor(
-          measuredMs,
-          running: true,
-          forceScroll: true,
-        );
+        _setAnchor(measuredMs, running: true, forceScroll: true);
       } else if (error.abs() >= 300) {
         _setAnchor(
           predicted + (error * 0.35).round(),
@@ -1134,19 +1078,19 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LyricsEditScreen(
-          jsonPath: _currentJsonPath,
-        ),
+        builder: (_) => LyricsEditScreen(jsonPath: _currentJsonPath),
       ),
     );
 
     if (!mounted) return;
 
     try {
-      final updatedSong = await _lyricsService.loadSong(_currentJsonPath);
+      final updatedSong = await _lyricsService.loadFreshSong(_currentJsonPath);
       final safePosition = _clampPosition(_currentPositionMs, updatedSong);
-      final active =
-          _lyricsService.findActiveLineIndex(updatedSong, safePosition);
+      final active = _lyricsService.findActiveLineIndex(
+        updatedSong,
+        safePosition,
+      );
 
       setState(() {
         _song = updatedSong;
@@ -1155,11 +1099,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
         _error = null;
       });
 
-      _setAnchor(
-        safePosition,
-        running: false,
-        forceScroll: true,
-      );
+      _setAnchor(safePosition, running: false, forceScroll: true);
 
       _lastMediaRawPositionMs = null;
       _lastMediaPlaying = null;
@@ -1214,16 +1154,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
 
     _lastScrolledIndex = index;
 
-    _scrollController.jumpTo(
-      index: index,
-      alignment: 0.45,
-    );
+    _scrollController.jumpTo(index: index, alignment: 0.45);
   }
 
-  void _scrollToLine(
-    int index, {
-    bool force = false,
-  }) {
+  void _scrollToLine(int index, {bool force = false}) {
     if (index < 0 || !_scrollController.isAttached) return;
     if (!force && index == _lastScrolledIndex) return;
 
@@ -1275,9 +1209,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       _fingerprintService.dispose();
     }
 
-    unawaited(
-      _restoreNormalWindowMode(),
-    );
+    unawaited(_restoreNormalWindowMode());
 
     super.dispose();
   }
@@ -1285,8 +1217,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   @override
   Widget build(BuildContext context) {
     final song = _song;
-    final backgroundOpacity =
-        (_backgroundOpacityPercent / 100.0).clamp(0.0, 1.0).toDouble();
+    final backgroundOpacity = (_backgroundOpacityPercent / 100.0)
+        .clamp(0.0, 1.0)
+        .toDouble();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1310,13 +1243,13 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
                     ),
                   )
                 : song == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : Column(
-                        children: [
-                          _buildHeader(song),
-                          Expanded(child: _buildLyrics(song)),
-                        ],
-                      ),
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      _buildHeader(song),
+                      Expanded(child: _buildLyrics(song)),
+                    ],
+                  ),
           ),
           if (Platform.isWindows) ..._buildResizeHandles(),
         ],
@@ -1339,9 +1272,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.28),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
       child: Column(
         children: [
@@ -1455,9 +1386,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
                       });
 
                       if (Platform.isAndroid) {
-                        unawaited(
-                          _androidOverlayService.setBackground(value),
-                        );
+                        unawaited(_androidOverlayService.setBackground(value));
                       }
                     },
                   ),
@@ -1485,13 +1414,13 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     foregroundColor: Colors.white,
                   ),
-                  icon: const Icon(Icons.picture_in_picture_alt_rounded, size: 17),
+                  icon: const Icon(
+                    Icons.picture_in_picture_alt_rounded,
+                    size: 17,
+                  ),
                   label: const Text(
                     'FLOAT',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
                   ),
                 ),
               IconButton(
@@ -1510,16 +1439,11 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   Widget _buildDesktopHeader(SyncedLyricsSong song) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.28),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
       child: Column(
         children: [
@@ -1551,9 +1475,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
                       }
                     },
                     child: Container(
-                      constraints: const BoxConstraints(
-                        minHeight: 50,
-                      ),
+                      constraints: const BoxConstraints(minHeight: 50),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
@@ -1607,9 +1529,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: Colors.black.withValues(alpha: 0.30),
-                  side: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.18),
-                  ),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
                 ),
                 icon: const Icon(Icons.tune_rounded, size: 17),
                 label: const Text('CALIBRATE'),
@@ -1826,10 +1746,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen> with WidgetsBin
   Widget _buildLyrics(SyncedLyricsSong song) {
     return ScrollablePositionedList.builder(
       itemScrollController: _scrollController,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 42,
-        vertical: 180,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 42, vertical: 180),
       itemCount: song.lines.length,
       itemBuilder: (context, index) {
         final line = song.lines[index];

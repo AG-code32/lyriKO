@@ -471,8 +471,23 @@ private final class IOSMicrophoneRecognition: NSObject, SHSessionDelegate {
         }
         do {
           let avSession = AVAudioSession.sharedInstance()
-          try avSession.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .allowBluetooth])
+          // Discover records from the iPhone's built-in microphone, never from
+          // a Bluetooth hands-free microphone. Keep high-quality Bluetooth
+          // playback (A2DP) available while recording ambient sound.
+          try avSession.setCategory(
+            .playAndRecord,
+            mode: .measurement,
+            options: [.mixWithOthers, .allowBluetoothA2DP]
+          )
           try avSession.setActive(true)
+          guard let builtInMic = avSession.availableInputs?.first(where: { $0.portType == .builtInMic }) else {
+            throw NSError(
+              domain: "LyrikoDiscover",
+              code: 2,
+              userInfo: [NSLocalizedDescriptionKey: "iPhone built-in microphone unavailable"]
+            )
+          }
+          try avSession.setPreferredInput(builtInMic)
           let capture = AVAudioEngine()
           let node = capture.inputNode
           let format = node.outputFormat(forBus: 0)

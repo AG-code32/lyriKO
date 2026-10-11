@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'lyriko_server_client.dart';
+
 class SyncedLyricWord {
   final String text;
   final int startMs;
@@ -103,6 +105,48 @@ class SyncedLyricsSong {
 }
 
 class SyncedLyricsService {
+  final LyrikoServerClient _server = LyrikoServerClient();
+
+  /// iOS keeps bundled lyrics as an offline fallback. Once configured, pull
+  /// remote lyrics into the same private writable cache used by loadSong().
+  /// No remote JSON is written to the application bundle.
+  Future<void> _refreshRemoteSong(String songId, String assetPath) async {
+    final envelope = await _server.lyrics(songId);
+    final payload = envelope['lyrics'];
+    if (payload is! Map || payload['lines'] is! List) {
+      throw const FormatException('Invalid remote lyrics document');
+    }
+    final edited = await _editedFileForAsset(assetPath);
+    await edited.parent.create(recursive: true);
+    final temp = File('${edited.path}.tmp');
+    await temp.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(payload),
+      encoding: utf8,
+      flush: true,
+    );
+    // Replace only after a complete JSON download.
+    if (await edited.exists()) await edited.delete();
+    await temp.rename(edited.path);
+  }
+
+  Future<SyncedLyricsSong> loadFreshSong(String jsonPath) async {
+    if (Platform.isIOS && await _server.isConfigured()) {
+      try {
+        final entry = await _server.songForPath(jsonPath);
+        if (entry != null &&
+            entry['id'] != null &&
+            jsonPath.startsWith('assets/')) {
+          await _refreshRemoteSong(entry['id'].toString(), jsonPath);
+        }
+      } catch (error) {
+        // Audio recognition must keep working with the last cached lyrics.
+        // Editing is handled separately and requires a live server.
+        print('Lyriko remote refresh unavailable; using cached lyrics: $error');
+      }
+    }
+    return loadSong(jsonPath);
+  }
+
   // On macOS the library is bundled with Flutter, just like on iOS/Android.
   // Edits are stored as private writable copies in Application Documents.
   // Keep the existing on-disk Windows project library unchanged.
@@ -126,6 +170,41 @@ class SyncedLyricsService {
   String get lyricsRoot => '$projectRoot\\assets\\lyrics';
 
   Future<List<SyncedLyricsSong>> loadLibrary() async {
+    if (Platform.isIOS && await _server.isConfigured()) {
+      try {
+        final remoteEntries = await _server.songs();
+        final remoteSongs = <SyncedLyricsSong>[];
+        for (final entry in remoteEntries) {
+          final id = entry['id']?.toString() ?? '';
+          final artist = entry['artist']?.toString() ?? '';
+          final title = entry['title']?.toString() ?? '';
+          if (id.isEmpty || title.isEmpty) continue;
+          final assetPath = 'assets/lyrics/$artist - $title.json';
+          try {
+            await _refreshRemoteSong(id, assetPath);
+            final song = await loadSong(assetPath);
+            if (song.lines.isNotEmpty) remoteSongs.add(song);
+          } catch (error) {
+            // Keep other songs available if one document is temporarily bad.
+            print('Lyriko: unable to cache $title: $error');
+          }
+        }
+        if (remoteSongs.isNotEmpty) {
+          remoteSongs.sort((a, b) {
+            final artist = a.artist.toLowerCase().compareTo(
+              b.artist.toLowerCase(),
+            );
+            return artist != 0
+                ? artist
+                : a.title.toLowerCase().compareTo(b.title.toLowerCase());
+          });
+          return remoteSongs;
+        }
+      } catch (error) {
+        // Quick Tunnel URLs can expire; use saved lyrics as offline fallback.
+        print('Lyriko: server unavailable; loading cached library: $error');
+      }
+    }
     final discoveredSongs = <SyncedLyricsSong>[];
 
     if (_usesBundledAssets) {
@@ -157,8 +236,7 @@ class SyncedLyricsService {
       }
 
       await for (final entity in directory.list(followLinks: false)) {
-        if (entity is! File ||
-            !entity.path.toLowerCase().endsWith('.json')) {
+        if (entity is! File || !entity.path.toLowerCase().endsWith('.json')) {
           continue;
         }
 
@@ -189,8 +267,9 @@ class SyncedLyricsService {
     final songs = deduplicated.values.toList();
 
     songs.sort((a, b) {
-      final artistComparison =
-          a.artist.toLowerCase().compareTo(b.artist.toLowerCase());
+      final artistComparison = a.artist.toLowerCase().compareTo(
+        b.artist.toLowerCase(),
+      );
 
       if (artistComparison != 0) {
         return artistComparison;
@@ -323,9 +402,7 @@ class SyncedLyricsService {
     final lines = rawLines
         .whereType<Map>()
         .map(
-          (item) => SyncedLyricLine.fromJson(
-            Map<String, dynamic>.from(item),
-          ),
+          (item) => SyncedLyricLine.fromJson(Map<String, dynamic>.from(item)),
         )
         .toList();
 
@@ -438,7 +515,6 @@ class SyncedLyricsService {
     return null;
   }
 
-
   Future<SyncedLyricsSong?> findSongForMediaMetadata({
     required String title,
     String artist = '',
@@ -488,7 +564,8 @@ class SyncedLyricsService {
     final titleExact = mediaTitle == songTitle;
     final titlePhraseMatch = _containsWholePhrase(mediaTitle, songTitle);
 
-    final artistConfirmed = songArtist.isNotEmpty &&
+    final artistConfirmed =
+        songArtist.isNotEmpty &&
         (mediaArtist == songArtist ||
             mediaAlbumArtist == songArtist ||
             _containsWholePhrase(mediaArtist, songArtist) ||

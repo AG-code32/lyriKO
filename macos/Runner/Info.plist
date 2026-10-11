@@ -22,6 +22,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSAppDataUsageDescription</key>
+	<string></string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Lyriko reads the current track from Spotify or Apple Music to display synchronized lyrics.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>

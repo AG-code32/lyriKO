@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import '../services/android_media_session_service.dart';
 import '../services/fingerprint_match_service.dart';
 import '../services/synced_lyrics_service.dart';
+import '../services/lyriko_server_client.dart';
+import '../services/macos_system_audio_recognition_service.dart';
 import '../services/system_audio_capture_service.dart';
 import '../services/windows_media_session_service.dart';
 import 'add_song_screen.dart';
@@ -15,25 +17,19 @@ import 'server_settings_screen.dart';
 import 'synced_lyrics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    super.key,
-  });
+  const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() =>
-      _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  final SyncedLyricsService _lyricsService =
-      SyncedLyricsService();
+  final SyncedLyricsService _lyricsService = SyncedLyricsService();
 
-  final FingerprintMatchService _fingerprintService =
-      FingerprintMatchService();
+  final FingerprintMatchService _fingerprintService = FingerprintMatchService();
 
-  final SystemAudioCaptureService _captureService =
-      SystemAudioCaptureService();
+  final SystemAudioCaptureService _captureService = SystemAudioCaptureService();
 
   final WindowsMediaSessionService _windowsMediaSessionService =
       WindowsMediaSessionService();
@@ -65,6 +61,9 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _listenAnimation;
 
   List<SyncedLyricsSong> _songs = [];
+  final LyrikoServerClient _server = LyrikoServerClient();
+  final MacOSAudioRecognitionService _macAudio = MacOSAudioRecognitionService();
+  bool _remoteLibraryMode = false;
 
   FingerprintEngineInfo? _engineInfo;
 
@@ -76,8 +75,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   bool _usingMicrophone = false;
 
-  String _status =
-      'Tap to identify what is playing';
+  String _status = 'Tap to identify what is playing';
 
   String? _error;
 
@@ -85,12 +83,9 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
 
-    _listenAnimation =
-        AnimationController(
+    _listenAnimation = AnimationController(
       vsync: this,
-      duration: const Duration(
-        milliseconds: 1300,
-      ),
+      duration: const Duration(milliseconds: 1300),
     );
 
     _initialize();
@@ -135,9 +130,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _loadLibrary() async {
     try {
-      final songs =
-          await _lyricsService
-              .loadLibrary();
+      final remoteMode = Platform.isIOS && await _server.isConfigured();
+      final songs = await _lyricsService.loadLibrary();
 
       if (!mounted) {
         return;
@@ -145,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       setState(() {
         _songs = songs;
+        _remoteLibraryMode = remoteMode;
 
         _loadingLibrary = false;
       });
@@ -161,9 +156,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  int _windowForAttempt(
-    int second,
-  ) {
+  int _windowForAttempt(int second) {
     if (second <= 4) {
       return 4;
     }
@@ -179,8 +172,7 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _stopRequested = true;
 
-      _status =
-          'Stopping...';
+      _status = 'Stopping...';
     });
   }
 
@@ -193,7 +185,127 @@ class _HomeScreenState extends State<HomeScreen>
       return _tryIdentifyFromWindowsMediaSession();
     }
 
+    if (Platform.isMacOS) {
+      return _tryIdentifyFromMacOSMediaSession();
+    }
+
     return false;
+  }
+
+  Future<bool> _tryIdentifyFromMacOSMediaSession() async {
+    // Audio recognition is handled by the macOS-specific ScreenCaptureKit path.
+    return false;
+  }
+
+  Future<void> _runMacOSSystemAudioRecognition() async {
+    if (_listening) return;
+    setState(() {
+      _listening = true;
+      _stopRequested = false;
+      _error = null;
+      _status = 'Listening to YouTube / system audio...';
+    });
+    _listenAnimation.repeat(reverse: true);
+    try {
+      await _macAudio.start();
+      final startedAt = DateTime.now();
+      while (mounted && !_stopRequested) {
+        await Future.delayed(const Duration(milliseconds: 750));
+        if (!mounted || _stopRequested) break;
+        final state = await _macAudio.status();
+        final phase = (state['phase'] ?? 'unknown').toString();
+        final error = (state['error'] ?? '').toString();
+        final title = (state['title'] ?? '').toString();
+        final artist = (state['artist'] ?? '').toString();
+        final position = (state['positionMs'] as num?)?.toInt() ?? -1;
+        final buffers = (state['audioBuffers'] as num?)?.toInt() ?? 0;
+        final submitted = (state['submittedBuffers'] as num?)?.toInt() ?? 0;
+        final failures = (state['conversionFailures'] as num?)?.toInt() ?? 0;
+        final rms = (state['rms'] as num?)?.toDouble() ?? 0.0;
+        final peak = (state['peak'] as num?)?.toDouble() ?? 0.0;
+        final elapsed = (state['elapsedSeconds'] as num?)?.toInt() ?? 0;
+        final shazamStatus = (state['shazamStatus'] ?? 'waiting').toString();
+        final signatureAttempts =
+            (state['signatureAttempts'] as num?)?.toInt() ?? 0;
+        final noMatchCount = (state['noMatchCount'] as num?)?.toInt() ?? 0;
+        final signatureFrames = (state['signatureFrames'] as num?)?.toInt() ?? 0;
+        final signaturePending = state['signaturePending'] == true;
+        final signatureResponse =
+            (state['signatureResponse'] ?? 'not requested').toString();
+        final streamingResponse =
+            (state['streamingResponse'] ?? 'waiting for audio').toString();
+        final diagnostics =
+            'Audio: $buffers received / $submitted submitted / $failures failures'
+            '\nRMS: ${rms.toStringAsFixed(5)} | Peak: ${peak.toStringAsFixed(5)}'
+            '\nTime: ${elapsed}s | $shazamStatus'
+            '\nSignatures: $signatureAttempts | Pending: $signaturePending | No match: $noMatchCount'
+            '\nSignature: $signatureResponse | Frames: $signatureFrames'
+            '\nStreaming: $streamingResponse';
+        if (title.isNotEmpty && position >= 0) {
+          final song = await _lyricsService.findSongForMediaMetadata(
+            title: title,
+            artist: artist,
+          );
+          if (!mounted || _stopRequested) break;
+          if (song == null) {
+            setState(() {
+              _status = 'Recognized: $artist — $title';
+              _error = 'No matching lyrics in Lyriko library';
+            });
+          } else {
+            await _openDetectedSong(
+              song: song,
+              initialPositionMs: position,
+              lockedTrackName: song.displayName,
+            );
+          }
+          break;
+        }
+        if (phase == 'error') {
+          setState(() {
+            _status = buffers > 0
+                ? 'ShazamKit recognition failed'
+                : 'macOS system audio capture failed';
+            _error = '${error.isEmpty ? 'Native recognition error' : error}\n$diagnostics';
+          });
+          break;
+        }
+        if (DateTime.now().difference(startedAt) > const Duration(seconds: 45)) {
+          setState(() {
+            _status = 'No song recognized yet';
+            _error = buffers == 0
+                ? 'No system audio received. Check Screen & System Audio Recording permission.\n$diagnostics'
+                : signatureAttempts == 0
+                    ? 'No recognition signatures were generated in 45 seconds.\n$diagnostics'
+                    : 'ShazamKit did not identify the song within 45 seconds.\n$diagnostics'
+                        '${error.isNotEmpty ? '\nNative error: $error' : ''}';
+          });
+          break;
+        }
+        setState(() {
+          _status = 'Listening to YouTube audio...\n$diagnostics';
+          _error = error.isNotEmpty ? 'Native: $error' : null;
+        });
+      }
+    } on PlatformException catch (e) {
+      if (mounted) setState(() {
+        _status = 'Could not capture system audio';
+        _error = e.message ?? e.toString();
+      });
+    } catch (e) {
+      if (mounted) setState(() {
+        _status = 'Could not start macOS recognition';
+        _error = '$e';
+      });
+    } finally {
+      try { await _macAudio.stop(); } catch (_) {}
+      _listenAnimation.stop();
+      if (mounted) setState(() {
+        _listening = false;
+        _stopRequested = false;
+        if (_status == 'Stopping...') _status = 'Tap to identify what is playing';
+      });
+    }
   }
 
   Future<bool> _tryIdentifyFromAndroidMediaSession() async {
@@ -309,22 +421,32 @@ class _HomeScreenState extends State<HomeScreen>
     if (Platform.isAndroid) {
       final sessions = await _androidMediaSessionService.getSessions();
       final active = sessions
-          .where((session) => session.available && (session.isPlaying || session.isPaused))
+          .where(
+            (session) =>
+                session.available && (session.isPlaying || session.isPaused),
+          )
           .toList();
 
       if (active.isEmpty) return null;
-      active.sort((a, b) => (a.isPlaying ? 0 : 1).compareTo(b.isPlaying ? 0 : 1));
+      active.sort(
+        (a, b) => (a.isPlaying ? 0 : 1).compareTo(b.isPlaying ? 0 : 1),
+      );
       return active.first.sourceAppId;
     }
 
     if (Platform.isWindows) {
       final sessions = await _windowsMediaSessionService.getSessions();
       final active = sessions
-          .where((session) => session.available && (session.isPlaying || session.isPaused))
+          .where(
+            (session) =>
+                session.available && (session.isPlaying || session.isPaused),
+          )
           .toList();
 
       if (active.isEmpty) return null;
-      active.sort((a, b) => (a.isPlaying ? 0 : 1).compareTo(b.isPlaying ? 0 : 1));
+      active.sort(
+        (a, b) => (a.isPlaying ? 0 : 1).compareTo(b.isPlaying ? 0 : 1),
+      );
       return active.first.sourceAppId;
     }
 
@@ -368,8 +490,9 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  static const MethodChannel _iosProbeChannel =
-      MethodChannel('lyriko/ios_audio_probe');
+  static const MethodChannel _iosProbeChannel = MethodChannel(
+    'lyriko/ios_audio_probe',
+  );
 
   Future<void> _runIOSAudioProbe() async {
     setState(() {
@@ -385,7 +508,9 @@ class _HomeScreenState extends State<HomeScreen>
       while (mounted && !_stopRequested) {
         await Future.delayed(const Duration(seconds: 1));
         if (!mounted || _stopRequested) break;
-        final stats = await _iosProbeChannel.invokeMapMethod<String, dynamic>('stats');
+        final stats = await _iosProbeChannel.invokeMapMethod<String, dynamic>(
+          'stats',
+        );
         if (!mounted) break;
         final phase = stats?['phase'] ?? 'unknown';
         final buffers = stats?['audioBuffers'] ?? 0;
@@ -399,7 +524,8 @@ class _HomeScreenState extends State<HomeScreen>
         final format = stats?['format'] ?? 'unknown';
         final diagnosis = stats?['diagnosis'] ?? '';
         setState(() {
-          _status = 'iOS: $phase | audio: $buffers | bytes: $bytes'
+          _status =
+              'iOS: $phase | audio: $buffers | bytes: $bytes'
               '\nframes: $frames | payload: $payloadBuffers | signal: $signalBuffers'
               '\nRMS: ${rms.toStringAsFixed(5)} | peak: ${peak.toStringAsFixed(5)}'
               '\n$format | $diagnosis';
@@ -411,7 +537,8 @@ class _HomeScreenState extends State<HomeScreen>
         final offset = (stats?['matchedOffset'] as num?)?.toDouble() ?? -1;
         if (title.isNotEmpty && offset >= 0) {
           final song = await _lyricsService.findSongForMediaMetadata(
-            title: title, artist: artist,
+            title: title,
+            artist: artist,
           );
           if (!mounted) break;
           // Keep iOS capture alive while the lyrics page is visible.
@@ -430,19 +557,31 @@ class _HomeScreenState extends State<HomeScreen>
           }
           break;
         }
-        if (mounted) setState(() {
-          _status = 'iOS: $phase | ShazamKit: $shazamStatus'
-              '\naudio: $buffers | bytes: $bytes | signal: $signalBuffers'
-              '\nRMS: ${rms.toStringAsFixed(5)} | peak: ${peak.toStringAsFixed(5)}';
-        });
+        if (mounted)
+          setState(() {
+            _status =
+                'iOS: $phase | ShazamKit: $shazamStatus'
+                '\naudio: $buffers | bytes: $bytes | signal: $signalBuffers'
+                '\nRMS: ${rms.toStringAsFixed(5)} | peak: ${peak.toStringAsFixed(5)}';
+          });
         if (phase == 'error' || phase == 'cancelled') break;
       }
     } catch (e) {
-      if (mounted) setState(() { _status = 'iOS audio test failed'; _error = '$e'; });
+      if (mounted)
+        setState(() {
+          _status = 'iOS audio test failed';
+          _error = '$e';
+        });
     } finally {
-      try { await _iosProbeChannel.invokeMethod<void>('stop'); } catch (_) {}
+      try {
+        await _iosProbeChannel.invokeMethod<void>('stop');
+      } catch (_) {}
       _listenAnimation.stop();
-      if (mounted) setState(() { _listening = false; _stopRequested = false; });
+      if (mounted)
+        setState(() {
+          _listening = false;
+          _stopRequested = false;
+        });
     }
   }
 
@@ -463,7 +602,9 @@ class _HomeScreenState extends State<HomeScreen>
       while (mounted && !_stopRequested) {
         await Future.delayed(const Duration(milliseconds: 850));
         if (!mounted || _stopRequested) break;
-        final stats = await _iosProbeChannel.invokeMapMethod<String, dynamic>('micStats');
+        final stats = await _iosProbeChannel.invokeMapMethod<String, dynamic>(
+          'micStats',
+        );
         if (!mounted) break;
         final phase = (stats?['phase'] ?? 'idle').toString();
         final error = (stats?['error'] ?? '').toString();
@@ -472,7 +613,8 @@ class _HomeScreenState extends State<HomeScreen>
         final offset = (stats?['matchedOffset'] as num?)?.toDouble() ?? -1;
         if (title.isNotEmpty && offset >= 0) {
           final song = await _lyricsService.findSongForMediaMetadata(
-            title: title, artist: artist,
+            title: title,
+            artist: artist,
           );
           if (!mounted || _stopRequested) break;
           if (song == null) {
@@ -499,17 +641,21 @@ class _HomeScreenState extends State<HomeScreen>
         if (phase == 'error' || phase == 'denied' || phase == 'stopped') break;
       }
     } catch (e) {
-      if (mounted) setState(() {
-        _status = 'Discover could not start';
-        _error = '$e';
-      });
+      if (mounted)
+        setState(() {
+          _status = 'Discover could not start';
+          _error = '$e';
+        });
     } finally {
-      try { await _iosProbeChannel.invokeMethod<void>('stopMic'); } catch (_) {}
+      try {
+        await _iosProbeChannel.invokeMethod<void>('stopMic');
+      } catch (_) {}
       _listenAnimation.stop();
-      if (mounted) setState(() {
-        _listening = false;
-        _stopRequested = false;
-      });
+      if (mounted)
+        setState(() {
+          _listening = false;
+          _stopRequested = false;
+        });
     }
   }
 
@@ -519,6 +665,10 @@ class _HomeScreenState extends State<HomeScreen>
     }
     if (Platform.isIOS) {
       await _runIOSAudioProbe();
+      return;
+    }
+    if (Platform.isMacOS) {
+      await _runMacOSSystemAudioRecognition();
       return;
     }
 
@@ -545,7 +695,8 @@ class _HomeScreenState extends State<HomeScreen>
       if (Platform.isAndroid) {
         if (mounted) {
           setState(() {
-            _status = 'No matching lyrics found for the active Android media session';
+            _status =
+                'No matching lyrics found for the active Android media session';
           });
         }
         return;
@@ -558,7 +709,8 @@ class _HomeScreenState extends State<HomeScreen>
         } catch (e) {
           if (mounted) {
             setState(() {
-              _status = 'No metadata match and fingerprint fallback is unavailable';
+              _status =
+                  'No metadata match and fingerprint fallback is unavailable';
               _error = e.toString();
             });
           }
@@ -609,7 +761,8 @@ class _HomeScreenState extends State<HomeScreen>
           final common = result.commonHashes ?? 0;
           final ratio = common > 0 ? aligned / common : 0.0;
 
-          final accepted = result.matched &&
+          final accepted =
+              result.matched &&
               aligned >= _minimumAlignedHashes &&
               ratio >= _minimumHashRatio &&
               result.offsetSeconds != null;
@@ -618,11 +771,13 @@ class _HomeScreenState extends State<HomeScreen>
             return false;
           }
 
-          final song = await _lyricsService.findSongForTrackPath(result.trackPath);
+          final song = await _lyricsService.findSongForTrackPath(
+            result.trackPath,
+          );
 
           final positionMs =
               ((result.offsetSeconds! + result.queryDuration) * 1000).round() +
-                  result.roundTripTime.inMilliseconds;
+              result.roundTripTime.inMilliseconds;
 
           await _captureService.stopContinuousCapture();
           captureStarted = false;
@@ -730,6 +885,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _openAddSong() async {
+    if (_remoteLibraryMode) return;
     if (_listening) {
       return;
     }
@@ -741,10 +897,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const AddSongScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const AddSongScreen()),
     );
 
     if (!mounted) {
@@ -776,17 +929,11 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _openPreview(
-    SyncedLyricsSong song,
-  ) async {
+  Future<void> _openPreview(SyncedLyricsSong song) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            SongPreviewScreen(
-          jsonPath:
-              song.jsonPath,
-        ),
+        builder: (_) => SongPreviewScreen(jsonPath: song.jsonPath),
       ),
     );
 
@@ -800,17 +947,11 @@ class _HomeScreenState extends State<HomeScreen>
   //
   // Unified editor + calibration timeline.
   //
-  Future<void> _openEditor(
-    SyncedLyricsSong song,
-  ) async {
+  Future<void> _openEditor(SyncedLyricsSong song) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            LyricsEditScreen(
-          jsonPath:
-              song.jsonPath,
-        ),
+        builder: (_) => LyricsEditScreen(jsonPath: song.jsonPath),
       ),
     );
 
@@ -821,140 +962,82 @@ class _HomeScreenState extends State<HomeScreen>
     await _loadLibrary();
   }
 
-  Future<void> _deleteSong(
-    SyncedLyricsSong song,
-  ) async {
+  Future<void> _deleteSong(SyncedLyricsSong song) async {
+    if (_remoteLibraryMode) return;
     if (_listening) {
       return;
     }
 
-    final calibratedLines =
-        song.manualCalibrationCount;
+    final calibratedLines = song.manualCalibrationCount;
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (
-        dialogContext,
-      ) {
+      builder: (dialogContext) {
         return AlertDialog(
-          title:
-              const Text(
-            'Delete song?',
-          ),
-          content:
-              Column(
-            mainAxisSize:
-                MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          title: const Text('Delete song?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 song.title,
-                style:
-                    const TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
-                  fontWeight:
-                      FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
-              const SizedBox(
-                height: 3,
-              ),
+              const SizedBox(height: 3),
 
-              Text(
-                song.artist,
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white54,
-                ),
-              ),
+              Text(song.artist, style: const TextStyle(color: Colors.white54)),
 
-              const SizedBox(
-                height: 18,
-              ),
+              const SizedBox(height: 18),
 
               const Text(
                 'This will remove the synchronized lyrics from your Lyriko library.',
               ),
 
               if (calibratedLines > 0) ...[
-                const SizedBox(
-                  height: 14,
-                ),
+                const SizedBox(height: 14),
 
                 Text(
                   'WARNING: $calibratedLines lines have manual calibration.',
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.orangeAccent,
-                    fontWeight:
-                        FontWeight.w700,
+                  style: const TextStyle(
+                    color: Colors.orangeAccent,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
 
-                const SizedBox(
-                  height: 6,
-                ),
+                const SizedBox(height: 6),
 
                 const Text(
                   'Deleting this song will also remove that calibration.',
-                  style:
-                      TextStyle(
-                    color:
-                        Colors.white54,
-                  ),
+                  style: TextStyle(color: Colors.white54),
                 ),
               ],
 
-              const SizedBox(
-                height: 14,
-              ),
+              const SizedBox(height: 14),
 
               const Text(
                 'The audfprint reference will be kept so the audio database is not rebuilt unnecessarily.',
-                style:
-                    TextStyle(
-                  color:
-                      Colors.white38,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.white38, fontSize: 12),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  false,
-                );
+                Navigator.pop(dialogContext, false);
               },
-              child:
-                  const Text(
-                'CANCEL',
-              ),
+              child: const Text('CANCEL'),
             ),
 
             FilledButton(
-              style:
-                  FilledButton.styleFrom(
-                backgroundColor:
-                    Colors.redAccent,
-              ),
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
               onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
+                Navigator.pop(dialogContext, true);
               },
-              child:
-                  const Text(
-                'DELETE',
-              ),
+              child: const Text('DELETE'),
             ),
           ],
         );
@@ -966,28 +1049,18 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     try {
-      final jsonFile =
-          File(
-        song.jsonPath,
-      );
+      final jsonFile = File(song.jsonPath);
 
       if (await jsonFile.exists()) {
         await jsonFile.delete();
       }
 
-      final txtPath =
-          song.jsonPath.replaceFirst(
-        RegExp(
-          r'\.json$',
-          caseSensitive: false,
-        ),
+      final txtPath = song.jsonPath.replaceFirst(
+        RegExp(r'\.json$', caseSensitive: false),
         '.txt',
       );
 
-      final txtFile =
-          File(
-        txtPath,
-      );
+      final txtFile = File(txtPath);
 
       if (await txtFile.exists()) {
         await txtFile.delete();
@@ -999,23 +1072,15 @@ class _HomeScreenState extends State<HomeScreen>
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${song.displayName} deleted',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('${song.displayName} deleted')));
     } catch (e) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _error =
-            'Could not delete song:\n$e';
+        _error = 'Could not delete song:\n$e';
       });
     }
   }
@@ -1070,46 +1135,37 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           const SizedBox(height: 14),
-          Text(label, style: const TextStyle(
-            fontSize: 17, fontWeight: FontWeight.w700,
-          )),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 3),
-          Text(detail, style: const TextStyle(
-            fontSize: 12, color: Colors.white60,
-          )),
+          Text(
+            detail,
+            style: const TextStyle(fontSize: 12, color: Colors.white60),
+          ),
         ],
       ),
     );
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          const Color(
-        0xFF080808,
-      ),
+      backgroundColor: const Color(0xFF080808),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints:
-                const BoxConstraints(
-              maxWidth: 1000,
-            ),
-            child:
-                SingleChildScrollView(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 MediaQuery.sizeOf(context).width < 600 ? 18 : 34,
                 MediaQuery.sizeOf(context).width < 600 ? 22 : 34,
                 MediaQuery.sizeOf(context).width < 600 ? 18 : 34,
                 50,
               ),
-              child:
-                  Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Align(
                     alignment: Alignment.centerRight,
@@ -1129,37 +1185,23 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   const Text(
                     'Lyriko',
-                    textAlign:
-                        TextAlign.center,
-                    style:
-                        TextStyle(
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
                       fontSize: 40,
-                      fontWeight:
-                          FontWeight.w800,
-                      letterSpacing:
-                          -1.6,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.6,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 8,
-                  ),
+                  const SizedBox(height: 8),
 
                   Text(
                     _status,
-                    textAlign:
-                        TextAlign.center,
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.white54,
-                      fontSize: 15,
-                    ),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white54, fontSize: 15),
                   ),
 
-                  const SizedBox(
-                    height: 38,
-                  ),
+                  const SizedBox(height: 38),
 
                   if (Platform.isIOS)
                     Center(
@@ -1194,93 +1236,62 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     )
                   else
-                  Center(
-                    child:
-                        AnimatedBuilder(
-                      animation:
-                          _listenAnimation,
-                      builder: (
-                        context,
-                        child,
-                      ) {
-                        final value =
-                            _listening
-                                ? _listenAnimation
-                                    .value
-                                : 0.0;
+                    Center(
+                      child: AnimatedBuilder(
+                        animation: _listenAnimation,
+                        builder: (context, child) {
+                          final value = _listening
+                              ? _listenAnimation.value
+                              : 0.0;
 
-                        return Transform.scale(
-                          scale:
-                              1 +
-                                  value *
-                                      0.04,
-                          child:
-                              Container(
-                            width: MediaQuery.sizeOf(context).width < 600 ? 126 : 150,
-                            height: MediaQuery.sizeOf(context).width < 600 ? 126 : 150,
-                            decoration:
-                                BoxDecoration(
-                              shape:
-                                  BoxShape.circle,
-                              boxShadow:
-                                  _listening
-                                      ? [
-                                          BoxShadow(
-                                            color:
-                                                Colors.white.withValues(
-                                              alpha:
-                                                  0.10 +
-                                                      value *
-                                                          0.12,
-                                            ),
-                                            blurRadius:
-                                                30 +
-                                                    value *
-                                                        35,
-                                            spreadRadius:
-                                                4 +
-                                                    value *
-                                                        8,
+                          return Transform.scale(
+                            scale: 1 + value * 0.04,
+                            child: Container(
+                              width: MediaQuery.sizeOf(context).width < 600
+                                  ? 126
+                                  : 150,
+                              height: MediaQuery.sizeOf(context).width < 600
+                                  ? 126
+                                  : 150,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: _listening
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.10 + value * 0.12,
                                           ),
-                                        ]
-                                      : null,
-                            ),
-                            child:
-                                Material(
-                              color:
-                                  const Color(
-                                0xFF181818,
+                                          blurRadius: 30 + value * 35,
+                                          spreadRadius: 4 + value * 8,
+                                        ),
+                                      ]
+                                    : null,
                               ),
-                              shape:
-                                  const CircleBorder(),
-                              child:
-                                  InkWell(
-                                customBorder:
-                                    const CircleBorder(),
-                                onTap:
+                              child: Material(
+                                color: const Color(0xFF181818),
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: _listening
+                                      ? _stopListening
+                                      : _startListening,
+                                  child: Icon(
                                     _listening
-                                        ? _stopListening
-                                        : _startListening,
-                                child:
-                                    Icon(
-                                  _listening
-                                      ? Icons
-                                          .stop_rounded
-                                      : Icons
-                                          .graphic_eq_rounded,
-                                  size: MediaQuery.sizeOf(context).width < 600 ? 56 : 66,
+                                        ? Icons.stop_rounded
+                                        : Icons.graphic_eq_rounded,
+                                    size: MediaQuery.sizeOf(context).width < 600
+                                        ? 56
+                                        : 66,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(
-                    height: 48,
-                  ),
+                  const SizedBox(height: 48),
 
                   LayoutBuilder(
                     builder: (context, constraints) {
@@ -1308,7 +1319,9 @@ class _HomeScreenState extends State<HomeScreen>
                       );
 
                       final addButton = FilledButton.icon(
-                        onPressed: _listening ? null : _openAddSong,
+                        onPressed: (_listening || _remoteLibraryMode)
+                            ? null
+                            : _openAddSong,
                         icon: const Icon(Icons.add_rounded),
                         label: const Text('ADD SONG'),
                       );
@@ -1336,70 +1349,39 @@ class _HomeScreenState extends State<HomeScreen>
                     },
                   ),
 
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
 
                   if (_loadingLibrary)
                     const Center(
-                      child:
-                          Padding(
-                        padding:
-                            EdgeInsets.all(
-                          30,
-                        ),
-                        child:
-                            CircularProgressIndicator(),
+                      child: Padding(
+                        padding: EdgeInsets.all(30),
+                        child: CircularProgressIndicator(),
                       ),
                     )
                   else if (_songs.isEmpty)
                     Container(
-                      padding:
-                          const EdgeInsets.all(
-                        30,
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            Colors.white
-                                .withValues(
-                          alpha: 0.03,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(
-                          16,
-                        ),
-                      ),
-                      child:
-                          const Text(
+                      child: const Text(
                         'No synchronized songs yet.',
-                        textAlign:
-                            TextAlign.center,
-                        style:
-                            TextStyle(
-                          color:
-                              Colors.white38,
-                        ),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white38),
                       ),
                     )
                   else
-                    ..._songs.map(
-                      _buildSongCard,
-                    ),
+                    ..._songs.map(_buildSongCard),
 
                   if (_error != null) ...[
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
 
                     SelectableText(
                       _error!,
-                      textAlign:
-                          TextAlign.center,
-                      style:
-                          const TextStyle(
-                        color:
-                            Colors.redAccent,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
                         fontSize: 12,
                       ),
                     ),
@@ -1413,9 +1395,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildSongCard(
-    SyncedLyricsSong song,
-  ) {
+  Widget _buildSongCard(SyncedLyricsSong song) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final mobile = constraints.maxWidth < 600;
@@ -1451,18 +1431,12 @@ class _HomeScreenState extends State<HomeScreen>
                     song.artist,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '${song.lines.length} lyric lines',
-                    style: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 11,
-                    ),
+                    style: const TextStyle(color: Colors.white24, fontSize: 11),
                   ),
                   if (song.hasManualCalibration)
                     Padding(
@@ -1498,7 +1472,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             IconButton(
               tooltip: 'Delete song',
-              onPressed: () => _deleteSong(song),
+              onPressed: _remoteLibraryMode ? null : () => _deleteSong(song),
               icon: const Icon(Icons.delete_outline_rounded),
               color: Colors.white38,
             ),
@@ -1516,18 +1490,12 @@ class _HomeScreenState extends State<HomeScreen>
           decoration: BoxDecoration(
             color: const Color(0xFF121212),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.05),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: mobile
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    info,
-                    const SizedBox(height: 14),
-                    actions,
-                  ],
+                  children: [info, const SizedBox(height: 14), actions],
                 )
               : Row(
                   children: [
@@ -1540,5 +1508,4 @@ class _HomeScreenState extends State<HomeScreen>
       },
     );
   }
-
 }
