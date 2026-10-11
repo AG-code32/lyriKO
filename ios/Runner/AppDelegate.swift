@@ -28,6 +28,10 @@ import ShazamKit
     channel.setMethodCallHandler { [weak probe, weak mic] call, result in
       guard let probe, let mic else { result(FlutterError(code: "UNAVAILABLE", message: "Audio probe unavailable", details: nil)); return }
       switch call.method {
+      case "prepareCatalog":
+        let args = call.arguments as? [String: String] ?? [:]
+        IOSRemoteCatalogStore.shared.prepare(
+          serverURL: args["serverUrl"] ?? "", token: args["token"] ?? "", result: result)
       case "start": probe.start(result: result)
       case "stats": result(probe.stats())
       case "stop": probe.stop(result: result)
@@ -41,11 +45,88 @@ import ShazamKit
 }
 
 
+// The Windows server publishes the authoritative ShazamKit catalog.
+// Download before Listen/Discover; keep the last validated catalog for offline use.
+// This does not upload microphone or system audio to Windows.
+private final class IOSRemoteCatalogStore {
+  static let shared = IOSRemoteCatalogStore()
+  private let lock = NSLock()
+  private var loadedCatalog: SHCustomCatalog?
+
+  private init() {}
+
+  func current() -> SHCustomCatalog? {
+    lock.lock(); defer { lock.unlock() }
+    return loadedCatalog
+  }
+
+  private func store(_ catalog: SHCustomCatalog) {
+    lock.lock(); loadedCatalog = catalog; lock.unlock()
+  }
+
+  private func cacheURL() throws -> URL {
+    let directory = try FileManager.default.url(
+      for: .applicationSupportDirectory, in: .userDomainMask,
+      appropriateFor: nil, create: true)
+    return directory.appendingPathComponent("lyriko_windows_catalog.shazamcatalog")
+  }
+
+  func prepare(serverURL: String, token: String, result: @escaping FlutterResult) {
+    let base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+      .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    guard !token.isEmpty, let url = URL(string: base + "/api/catalog/shazam"),
+          url.scheme == "https" || (url.scheme == "http" && (url.host == "localhost" || url.host == "127.0.0.1")) else {
+      result(FlutterError(code: "CATALOG_SETTINGS", message: "Configure the HTTPS Windows server URL and token in Server Settings", details: nil))
+      return
+    }
+    var request = URLRequest(url: url)
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.timeoutInterval = 20
+    URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+      guard let self else { return }
+      var outcome: Result<SHCustomCatalog, Error>
+      do {
+        if let error { throw error }
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+          let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+          throw NSError(domain: "LyrikoCatalog", code: code, userInfo: [NSLocalizedDescriptionKey: "Windows catalog HTTP \(code)"])
+        }
+        guard let data, !data.isEmpty else {
+          throw NSError(domain: "LyrikoCatalog", code: 1, userInfo: [NSLocalizedDescriptionKey: "Windows catalog is empty"])
+        }
+        let catalog = try SHCustomCatalog(dataRepresentation: data)
+        // Persist only after ShazamKit validates the downloaded catalog.
+        try data.write(to: self.cacheURL(), options: .atomic)
+        outcome = .success(catalog)
+      } catch {
+        // Keep the last verified local copy when Windows is unreachable.
+        if (response as? HTTPURLResponse) == nil,
+           let cached = try? Data(contentsOf: self.cacheURL()),
+           let catalog = try? SHCustomCatalog(dataRepresentation: cached) {
+          outcome = .success(catalog)
+        } else {
+          outcome = .failure(error)
+        }
+      }
+      DispatchQueue.main.async {
+        switch outcome {
+        case .success(let catalog):
+          self.store(catalog)
+          result(true)
+        case .failure(let error):
+          result(FlutterError(code: "CATALOG_UNAVAILABLE", message: error.localizedDescription, details: nil))
+        }
+      }
+    }.resume()
+  }
+}
+
 // Diagnostic-only probe. Audio is not recorded or uploaded.
 @available(iOS 27.0, *)
 private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, SCStreamOutput, SCStreamDelegate, SHSessionDelegate {
   private var stream: SCStream?
   private var shazamSession: SHSession?
+  private var catalog: SHCustomCatalog?
   private var matchedTitle = ""
   private var matchedArtist = ""
   private var matchedOffset = -1.0
@@ -72,20 +153,14 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
   private var phase = "idle"
 
   func begin() {
-    // Load only the 3-song local catalog. No network Shazam lookup.
-    guard let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog") else {
-      fail("Missing lyriko_demo.shazamcatalog in Runner target resources")
+    guard let catalog = IOSRemoteCatalogStore.shared.current() else {
+      fail("Windows ShazamKit catalog has not been prepared")
       return
     }
-    do {
-      let catalog = try SHCustomCatalog(dataRepresentation: Data(contentsOf: url))
-      let session = SHSession(catalog: catalog)
-      session.delegate = self
-      shazamSession = session
-    } catch {
-      fail("Could not load ShazamKit catalog: \(error.localizedDescription)")
-      return
-    }
+    self.catalog = catalog
+    let session = SHSession(catalog: catalog)
+    session.delegate = self
+    shazamSession = session
     lock.lock()
     phase = "picker"
     buffers = 0; bytes = 0; sampleFrames = 0
@@ -347,9 +422,7 @@ private final class IOSAudioCapture: NSObject, SCContentSharingPickerObserver, S
         self.lock.lock()
         defer { self.lock.unlock() }
         guard self.phase == "capturing", self.shazamSession === oldSession else { return }
-        guard let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog"),
-              let data = try? Data(contentsOf: url),
-              let catalog = try? SHCustomCatalog(dataRepresentation: data) else { return }
+        guard let catalog = self.catalog else { return }
         let freshSession = SHSession(catalog: catalog)
         freshSession.delegate = self
         self.shazamSession = freshSession
@@ -440,20 +513,14 @@ private final class IOSMicrophoneRecognition: NSObject, SHSessionDelegate {
   func start(result: @escaping FlutterResult) {
     // Microphone use is foreground-only for now.
     guard engine == nil else { result(true); return }
-    guard let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog") else {
-      result(FlutterError(code: "MISSING_CATALOG", message: "Missing lyriko_demo.shazamcatalog", details: nil))
+    guard let catalog = IOSRemoteCatalogStore.shared.current() else {
+      result(FlutterError(code: "CATALOG_UNAVAILABLE", message: "Windows ShazamKit catalog has not been prepared", details: nil))
       return
     }
-    do {
-      let catalog = try SHCustomCatalog(dataRepresentation: Data(contentsOf: url))
-      self.catalog = catalog
-      let newSession = SHSession(catalog: catalog)
-      newSession.delegate = self
-      session = newSession
-    } catch {
-      result(FlutterError(code: "CATALOG_ERROR", message: error.localizedDescription, details: nil))
-      return
-    }
+    self.catalog = catalog
+    let newSession = SHSession(catalog: catalog)
+    newSession.delegate = self
+    session = newSession
     lock.lock()
     phase = "requesting permission"
     lastError = ""; matchedTitle = ""; matchedArtist = ""; matchedOffset = -1; bufferCount = 0

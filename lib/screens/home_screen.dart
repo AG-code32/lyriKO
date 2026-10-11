@@ -497,6 +497,20 @@ class _HomeScreenState extends State<HomeScreen>
     'lyriko/ios_audio_probe',
   );
 
+  /// Load the same Windows-published acoustic catalog used by macOS.
+  /// ShazamKit still matches audio locally on the iPhone.
+  Future<void> _prepareIOSCatalog() async {
+    final url = await _server.getBaseUrl();
+    final token = await _server.getAuthToken();
+    if (url.isEmpty || token.isEmpty) {
+      throw StateError('Configure the Windows server URL and token in Server Settings.');
+    }
+    await _iosProbeChannel.invokeMethod<bool>('prepareCatalog', {
+      'serverUrl': url,
+      'token': token,
+    });
+  }
+
   Future<void> _runIOSAudioProbe() async {
     setState(() {
       _usingMicrophone = false;
@@ -507,6 +521,10 @@ class _HomeScreenState extends State<HomeScreen>
     });
     _listenAnimation.repeat(reverse: true);
     try {
+      setState(() => _status = 'Loading acoustic catalog from Windows...');
+      await _prepareIOSCatalog();
+      if (!mounted || _stopRequested) return;
+      setState(() => _status = 'Choose full-display capture in the iOS picker');
       await _iosProbeChannel.invokeMethod<void>('start');
       while (mounted && !_stopRequested) {
         await Future.delayed(const Duration(seconds: 1));
@@ -601,6 +619,10 @@ class _HomeScreenState extends State<HomeScreen>
     });
     _listenAnimation.repeat(reverse: true);
     try {
+      setState(() => _status = 'Loading acoustic catalog from Windows...');
+      await _prepareIOSCatalog();
+      if (!mounted || _stopRequested) return;
+      setState(() => _status = 'Discover: requesting microphone access...');
       await _iosProbeChannel.invokeMethod<void>('startMic');
       while (mounted && !_stopRequested) {
         await Future.delayed(const Duration(milliseconds: 850));
