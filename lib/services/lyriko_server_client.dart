@@ -141,14 +141,26 @@ class LyrikoServerClient {
   }
 
   Future<Map<String, dynamic>?> songForPath(String jsonPath) async {
-    final file = jsonPath.replaceAll('\\', '/').split('/').last;
-    final base = file.replaceFirst(
+    final filename = jsonPath.replaceAll('\\', '/').split('/').last;
+    final basename = filename.replaceFirst(
       RegExp(r'\.json$', caseSensitive: false),
       '',
-    );
-    for (final song in await songs()) {
-      final name = '${song['artist'] ?? ''} - ${song['title'] ?? ''}';
-      if (name.toLowerCase() == base.toLowerCase()) return song;
+    ).trim().toLowerCase();
+    final catalog = await songs();
+
+    // macOS stores remote lyrics as <server-song-id>.json. Resolve the ID
+    // directly instead of treating the local cache path as a song title.
+    for (final song in catalog) {
+      final id = song['id']?.toString().trim().toLowerCase() ?? '';
+      if (id.isNotEmpty && id == basename) return song;
+    }
+
+    // Preserve the original lookup for bundled files named
+    // "Artist - Title.json" (including the iOS editor).
+    for (final song in catalog) {
+      final artist = song['artist']?.toString().trim() ?? '';
+      final title = song['title']?.toString().trim() ?? '';
+      if ('$artist - $title'.trim().toLowerCase() == basename) return song;
     }
     return null;
   }
