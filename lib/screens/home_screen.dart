@@ -253,6 +253,8 @@ class _HomeScreenState extends State<HomeScreen>
               _error = 'No matching lyrics in Lyriko library';
             });
           } else {
+            // Keep native capture running while the lyrics page is visible.
+            // _openDetectedSong returns only after that page is closed.
             await _openDetectedSong(
               song: song,
               initialPositionMs: position,
@@ -298,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen>
         _error = '$e';
       });
     } finally {
+      // This finally block runs after the lyrics route closes, not when it opens.
       try { await _macAudio.stop(); } catch (_) {}
       _listenAnimation.stop();
       if (mounted) setState(() {

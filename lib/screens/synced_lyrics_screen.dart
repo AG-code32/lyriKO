@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import '../services/android_media_session_service.dart';
 import '../services/android_native_lyrics_overlay_service.dart';
 import '../services/fingerprint_match_service.dart';
+import '../services/macos_system_audio_recognition_service.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/system_audio_capture_service.dart';
 import '../services/windows_media_session_service.dart';
@@ -49,6 +50,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   final AndroidNativeLyricsOverlayService _androidOverlayService =
       AndroidNativeLyricsOverlayService();
   final FingerprintMatchService _fingerprintService = FingerprintMatchService();
+  final MacOSAudioRecognitionService _macAudio = MacOSAudioRecognitionService();
+  int _macLastMatchSequence = 0;
+  bool _macAudioSeen = false;
   final SystemAudioCaptureService _captureService = SystemAudioCaptureService();
   final ItemScrollController _scrollController = ItemScrollController();
 
@@ -312,8 +316,8 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
 
       // iOS does not expose third-party player's pause/seek state.
       // Wait for captured audio before advancing the local lyric clock.
-      _setAnchor(safePosition, running: !Platform.isIOS, forceScroll: false);
-      if (Platform.isIOS) {
+      _setAnchor(safePosition, running: !Platform.isIOS && !Platform.isMacOS, forceScroll: false);
+      if (Platform.isIOS || Platform.isMacOS) {
         _setTrackingStatus('WAIT AUDIO', Colors.white54);
       }
 
@@ -406,6 +410,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
         await _pollIOSAudio();
         return;
       }
+      if (Platform.isMacOS) {
+        await _pollMacAudio();
+        return;
+      }
       if (Platform.isAndroid) {
         final sessions = await _androidMediaService.getSessions();
         final session = _selectAndroidMediaSession(sessions);
@@ -445,6 +453,82 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
       }
     } finally {
       _mediaPollBusy = false;
+    }
+  }
+
+  // macOS system-audio tracking. A fresh acoustic match corrects seeks and
+  // switches songs; an RMS gate pauses lyrics when playback falls silent.
+  Future<void> _pollMacAudio() async {
+    if (!mounted || _song == null) return;
+    try {
+      final stats = await _macAudio.status();
+      if (!mounted || _openingEditor) return;
+      final song = _song;
+      if (song == null) return;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final phase = (stats['phase'] ?? '').toString();
+      final lastMusic = (stats['lastMusicEpochMs'] as num?)?.toInt() ?? 0;
+      final lastBuffer = (stats['lastBufferEpochMs'] as num?)?.toInt() ?? 0;
+      final active = phase == 'listening' &&
+          stats['musicGateOpen'] == true &&
+          lastBuffer > 0 && now - lastBuffer < 1500 &&
+          lastMusic > 0 && now - lastMusic < 1500;
+      final sequence = (stats['matchSequence'] as num?)?.toInt() ?? 0;
+      final matchedAt = (stats['matchedEpochMs'] as num?)?.toInt() ?? 0;
+      final title = (stats['title'] ?? '').toString();
+      final artist = (stats['artist'] ?? '').toString();
+      final offsetMs = (stats['positionMs'] as num?)?.toInt() ?? -1;
+      if (sequence > _macLastMatchSequence && matchedAt > 0 &&
+          now >= matchedAt && now - matchedAt < 15000 &&
+          offsetMs >= 0 && title.isNotEmpty) {
+        _macLastMatchSequence = sequence;
+        final score = _lyricsService.mediaMetadataScoreForSong(
+          song, title: title, artist: artist, albumArtist: '',
+        );
+        if (score < 70) {
+          final nextSong = await _lyricsService.findSongForMediaMetadata(
+            title: title, artist: artist,
+          );
+          if (!mounted || _openingEditor) return;
+          if (nextSong != null && nextSong.jsonPath != _currentJsonPath) {
+            final lastSwitch = _iosLastTrackSwitch;
+            if (lastSwitch == null ||
+                DateTime.now().difference(lastSwitch) > const Duration(seconds: 3)) {
+              await _switchIOSSong(nextSong, offsetMs / 1000.0);
+              return;
+            }
+          }
+        } else {
+          final measured = _clampPosition(offsetMs, song);
+          final predicted = _estimatedPositionMs(song);
+          final drift = measured - predicted;
+          if (drift.abs() >= _iosHardSeekThresholdMs) {
+            _setAnchor(measured, running: active, forceScroll: true);
+          } else if (drift.abs() >= _iosMinCorrectionMs) {
+            _setAnchor(predicted + (drift * 0.35).round(),
+                running: active, forceScroll: false);
+          }
+        }
+      }
+      if (active) {
+        _macAudioSeen = true;
+        if (!_clockRunning) {
+          _setAnchor(_estimatedPositionMs(song), running: true, forceScroll: false);
+        }
+        _setTrackingStatus('AUDIO', Colors.greenAccent);
+      } else {
+        if (_clockRunning) {
+          _setAnchor(_estimatedPositionMs(song), running: false, forceScroll: false);
+        }
+        _setTrackingStatus(
+          phase == 'error' ? 'CAPTURE ERROR' :
+              (_macAudioSeen ? 'NO AUDIO' : 'WAIT AUDIO'),
+          phase == 'error' ? Colors.redAccent : Colors.orangeAccent,
+        );
+      }
+    } catch (error) {
+      debugPrint('macOS audio tracking failed: $error');
+      _setTrackingStatus('MAC AUDIO ERROR', Colors.orangeAccent);
     }
   }
 
@@ -602,7 +686,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
       _setTrackingStatus('NEW TRACK', Colors.greenAccent);
       _scheduleInitialScroll();
       debugPrint(
-        'iOS auto track switch: ${loaded.displayName} @ ${position}ms',
+        'Auto track switch: ${loaded.displayName} @ ${position}ms',
       );
     } catch (error) {
       debugPrint('iOS auto track switch failed: $error');

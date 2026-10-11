@@ -18,7 +18,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   private var channel: FlutterMethodChannel?
   private let audioQueue = DispatchQueue(label: "lyriko.system.audio", qos: .userInitiated)
   private var stream: SCStream?
-  // Use only finite signatures; do not compete with a streaming session.
+  // Stream first for low-latency matches; retain the proven signature fallback.
+  private var streamingSession: SHSession?
   private var signatureSession: SHSession?
   private var localCatalog: SHCustomCatalog?
   private var catalogBytes = 0
@@ -31,12 +32,22 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   private var shazamState = "waiting for audio"
   private var signatureResponse = "not requested"
   private var streamingResponse = "waiting for audio"
-  private let signatureWindowFrames: Int64 = 44100 * 9
+  private let firstSignatureWindowFrames: Int64 = 44100 * 5
+  private let retrySignatureWindowFrames: Int64 = 44100 * 9
   private var phase = "idle"
   private var errorMessage = ""
   private var title = ""
   private var artist = ""
   private var positionMs = -1
+  private var matchSequence = 0
+  private var matchedEpochMs: Int64 = 0
+  private var musicGateOpen = false
+  private var referenceRms = 0.0
+  private var belowMusicGateSinceMs: Int64 = 0
+  private var aboveMusicGateSinceMs: Int64 = 0
+  private var lastMusicEpochMs: Int64 = 0
+  private var lastBufferEpochMs: Int64 = 0
+  private var hasMatched = false
   private var audioBuffers = 0
   private var submittedBuffers = 0
   private var streamedFrames: Int64 = 0
@@ -94,6 +105,15 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     title = ""
     artist = ""
     positionMs = -1
+    matchSequence = 0
+    matchedEpochMs = 0
+    musicGateOpen = false
+    referenceRms = 0
+    belowMusicGateSinceMs = 0
+    aboveMusicGateSinceMs = 0
+    lastMusicEpochMs = 0
+    lastBufferEpochMs = 0
+    hasMatched = false
     audioBuffers = 0
     submittedBuffers = 0
     streamedFrames = 0
@@ -103,6 +123,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     converter = nil
     converterInputFormat = nil
     signatureSession = nil
+    streamingSession = nil
     localCatalog = nil
     catalogBytes = 0
     signatureGenerator = SHSignatureGenerator()
@@ -146,8 +167,22 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
         NSLocalizedDescriptionKey: "Downloaded acoustic catalog is empty"
       ])
     }
-    localCatalog = try SHCustomCatalog(dataRepresentation: data)
+    if #available(macOS 15.0, *) {
+      localCatalog = try SHCustomCatalog(dataRepresentation: data)
+    } else {
+      throw NSError(domain: "Lyriko", code: 1005, userInfo: [
+        NSLocalizedDescriptionKey: "The custom ShazamKit catalog requires macOS 15 or later"
+      ])
+    }
     catalogBytes = data.count
+
+    // Update automatically when the API song list changes. The existing catalog
+    // remains usable if the refresh fails (for example, temporary network loss).
+    do {
+      try await refreshCatalogIfNeeded(serverUrl: serverUrl, token: token)
+    } catch {
+      print("Lyriko catalog refresh skipped: \(error.localizedDescription)")
+    }
 
     let content = try await SCShareableContent.excludingDesktopWindows(
       false, onScreenWindowsOnly: true)
@@ -166,6 +201,15 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     config.sampleRate = 44100
     config.channelCount = 2
 
+    // Feed ShazamKit immediately rather than waiting for a 5-second signature.
+    if let catalog = localCatalog {
+      let liveSession = SHSession(catalog: catalog)
+      liveSession.delegate = self
+      streamingSession = liveSession
+      streamingResponse = "listening"
+      shazamState = "Streaming recognition active"
+    }
+
     let newStream = SCStream(filter: filter, configuration: config, delegate: nil)
     try newStream.addStreamOutput(self, type: .audio, sampleHandlerQueue: audioQueue)
     stream = newStream
@@ -178,6 +222,86 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     }
   }
 
+  // Rebuild only after a registered song or its version changes. The first
+  // launch establishes the baseline for an already-published catalog.
+  @MainActor
+  private func refreshCatalogIfNeeded(serverUrl: String, token: String) async throws {
+    guard #available(macOS 15.0, *) else { return }
+    let base = serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    func fetch(_ path: String) async throws -> Data {
+      guard let url = URL(string: base + path) else {
+        throw NSError(domain: "Lyriko", code: 2001, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
+      }
+      var request = URLRequest(url: url)
+      request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+      request.timeoutInterval = 60
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+        throw NSError(domain: "Lyriko", code: 2002, userInfo: [NSLocalizedDescriptionKey: "Cannot fetch catalog source: \(path)"])
+      }
+      return data
+    }
+    let listing = try await fetch("/api/songs")
+    guard let object = try JSONSerialization.jsonObject(with: listing) as? [String: Any],
+          let songs = object["songs"] as? [[String: Any]] else { return }
+    let available = songs.filter { ($0["audioAvailable"] as? Bool) == true }
+    guard !available.isEmpty else { return }
+    let fingerprint = available.compactMap { song -> String? in
+      guard let id = song["id"] as? String else { return nil }
+      return id + ":" + String(describing: song["version"] ?? 0)
+    }.sorted().joined(separator: "|")
+    let key = "lyriko.shazam.catalog.source.v1." + base
+    let previous = UserDefaults.standard.string(forKey: key)
+    if previous == nil {
+      // Existing published catalog is already available: don't rebuild 9 songs
+      // merely because this is the first launch with the new code.
+      UserDefaults.standard.set(fingerprint, forKey: key)
+      return
+    }
+    guard previous != fingerprint else { return }
+
+    shazamState = "Updating acoustic catalog"
+    let catalog = SHCustomCatalog()
+    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: temp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: temp) }
+    for song in available {
+      guard let id = song["id"] as? String,
+            let title = song["title"] as? String,
+            let artist = song["artist"] as? String,
+            let encodedId = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { continue }
+      let accessData = try await fetch("/api/songs/" + encodedId + "/audio-access")
+      guard let access = try JSONSerialization.jsonObject(with: accessData) as? [String: Any],
+            let audioPath = access["url"] as? String,
+            audioPath.hasPrefix("/api/songs/") else {
+        throw NSError(domain: "Lyriko", code: 2004, userInfo: [NSLocalizedDescriptionKey: "Missing audio access for catalog song"])
+      }
+      let mp3 = try await fetch(audioPath)
+      let local = temp.appendingPathComponent(id + ".mp3")
+      try mp3.write(to: local, options: .atomic)
+      let signature = try await SHSignatureGenerator.signature(from: AVURLAsset(url: local))
+      try catalog.addReferenceSignature(signature, representing: [
+        SHMediaItem(properties: [.title: title, .artist: artist])
+      ])
+    }
+    let catalogData = catalog.dataRepresentation
+    guard !catalogData.isEmpty else { return }
+    guard let endpoint = URL(string: base + "/api/catalog/shazam") else { return }
+    var publish = URLRequest(url: endpoint)
+    publish.httpMethod = "PUT"
+    publish.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    publish.httpBody = catalogData
+    publish.timeoutInterval = 120
+    let (_, publishResponse) = try await URLSession.shared.data(for: publish)
+    guard (publishResponse as? HTTPURLResponse)?.statusCode == 200 else {
+      throw NSError(domain: "Lyriko", code: 2003, userInfo: [NSLocalizedDescriptionKey: "Cannot publish updated acoustic catalog"])
+    }
+    localCatalog = catalog
+    catalogBytes = catalogData.count
+    UserDefaults.standard.set(fingerprint, forKey: key)
+    print("Lyriko acoustic catalog updated automatically: \(available.count) songs")
+  }
+
   @MainActor
   func stop() async {
     let oldStream = stream
@@ -185,6 +309,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     phase = "idle"
     if let oldStream = oldStream { try? await oldStream.stopCapture() }
     signatureSession = nil
+    streamingSession = nil
     signatureGenerator = SHSignatureGenerator()
     signatureFrames = 0
     signaturePending = false
@@ -202,6 +327,11 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       "title": title,
       "artist": artist,
       "positionMs": positionMs,
+      "matchSequence": matchSequence,
+      "matchedEpochMs": matchedEpochMs,
+      "musicGateOpen": musicGateOpen,
+      "lastMusicEpochMs": lastMusicEpochMs,
+      "lastBufferEpochMs": lastBufferEpochMs,
       "audioBuffers": audioBuffers,
       "submittedBuffers": submittedBuffers,
       "conversionFailures": conversionFailures,
@@ -300,27 +430,61 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     rmsLevel = sqrt(power / Double(output.frameLength))
     peakLevel = peak
     submittedBuffers += 1
-    // Keep a sample count for diagnostics, but send audio only to the signature generator.
-    // Concurrent SHSession streaming and signature requests obscured the actual error.
+    let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+    lastBufferEpochMs = nowMs
+    // Like iOS Discover: arm the music gate only after a verified match.
+    // A sustained drop below the matched music level pauses the lyric clock.
+    if hasMatched {
+      if musicGateOpen {
+        let quietLimit = max(0.0008, referenceRms * 0.35)
+        if rmsLevel < quietLimit {
+          if belowMusicGateSinceMs == 0 { belowMusicGateSinceMs = nowMs }
+          else if nowMs - belowMusicGateSinceMs >= 550 {
+            musicGateOpen = false
+            aboveMusicGateSinceMs = 0
+          }
+        } else {
+          let alpha = rmsLevel > referenceRms ? 0.035 : 0.00015
+          referenceRms = referenceRms * (1 - alpha) + rmsLevel * alpha
+          belowMusicGateSinceMs = 0
+          lastMusicEpochMs = nowMs
+        }
+      } else {
+        let wakeLimit = max(0.001, referenceRms * 0.55)
+        if rmsLevel >= wakeLimit {
+          if aboveMusicGateSinceMs == 0 { aboveMusicGateSinceMs = nowMs }
+          else if nowMs - aboveMusicGateSinceMs >= 250 {
+            musicGateOpen = true
+            belowMusicGateSinceMs = 0
+            lastMusicEpochMs = nowMs
+          }
+        } else { aboveMusicGateSinceMs = 0 }
+      }
+    }
+    // Start streaming on the very first audio buffer. A finite signature remains
+    // as a fallback when streaming does not produce a match quickly enough.
     streamedFrames += Int64(output.frameLength)
-    streamingResponse = "disabled (signature-only recognition)"
+    if let liveSession = streamingSession {
+      liveSession.matchStreamingBuffer(output, at: nil)
+      streamingResponse = "matching live audio"
+    }
 
-    // A second recognition path submits a finite 9-second signature.
-    // This also gives an explicit no-match/error callback if streaming never responds.
-    if signaturePending && Date().timeIntervalSince(signatureRequestedAt) > 16 {
+    // Fallback: preserve the already-working finite-signature path at 5 seconds.
+    if signaturePending && Date().timeIntervalSince(signatureRequestedAt) > 12 {
       signaturePending = false
       signatureSession = nil
       shazamState = "Signature request timed out; retrying"
-      signatureResponse = "no callback within 16s"
+      signatureResponse = "no callback within 12s"
       errorMessage = "ShazamKit: signature request timed out; retrying"
     }
-    if !signaturePending && signatureAttempts < 3 {
+    if !hasMatched && !signaturePending && signatureAttempts < 3 {
       do {
         let timeInWindow = AVAudioTime(sampleTime: signatureFrames,
                                        atRate: recognitionFormat.sampleRate)
         try signatureGenerator.append(output, at: timeInWindow)
         signatureFrames += Int64(output.frameLength)
-        if signatureFrames >= signatureWindowFrames {
+        let targetFrames = signatureAttempts == 0 ? firstSignatureWindowFrames : retrySignatureWindowFrames
+        if signatureFrames >= targetFrames {
           let signature = try signatureGenerator.signature()
           signatureGenerator = SHSignatureGenerator()
           signatureFrames = 0
@@ -329,6 +493,10 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
               NSLocalizedDescriptionKey: "Local acoustic catalog is not loaded"
             ])
           }
+          // Stop streaming before requesting the fallback signature to avoid
+          // simultaneous sessions processing the same audio indefinitely.
+          streamingSession = nil
+          streamingResponse = "fallback to finite signature"
           let newSession = SHSession(catalog: catalog)
           newSession.delegate = self
           signatureSession = newSession
@@ -371,17 +539,36 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     let matchedOffset = item.predictedCurrentMatchOffset
     Task { @MainActor [weak self] in
       guard let self = self, self.phase == "listening", !matchedTitle.isEmpty,
-            self.signatureSession === session else { return }
+            (self.signatureSession === session || self.streamingSession === session) else { return }
+      let wasSignature = self.signatureSession === session
       self.title = matchedTitle
       self.artist = matchedArtist
       self.positionMs = max(0, Int(matchedOffset * 1000))
-      self.phase = "matched"
+      self.matchSequence += 1
+      self.matchedEpochMs = Int64(Date().timeIntervalSince1970 * 1000)
+      self.hasMatched = true
+      self.musicGateOpen = true
+      self.referenceRms = max(0.001, self.rmsLevel)
+      self.lastMusicEpochMs = self.matchedEpochMs
+      self.belowMusicGateSinceMs = 0
+      self.aboveMusicGateSinceMs = 0
+      self.signaturePending = false
+      self.signatureSession = nil
+      self.streamingSession = nil
       self.errorMessage = ""
-      self.shazamState = "Matched: \(matchedArtist) — \(matchedTitle)"
-      if self.signatureSession === session {
-        self.signatureResponse = "matched"
-      } else {
-        self.streamingResponse = "matched"
+      self.shazamState = "Matched #\(self.matchSequence): \(matchedArtist) — \(matchedTitle)"
+      if wasSignature { self.signatureResponse = "matched" }
+      else { self.streamingResponse = "matched" }
+      // A custom-catalog session can stop delivering matches after success.
+      // Keep ScreenCaptureKit running and re-arm a new streaming session.
+      Task { @MainActor [weak self] in
+        try? await Task.sleep(nanoseconds: 2_500_000_000)
+        guard let self = self, self.phase == "listening",
+              self.streamingSession == nil, let catalog = self.localCatalog else { return }
+        let next = SHSession(catalog: catalog)
+        next.delegate = self
+        self.streamingSession = next
+        self.streamingResponse = "tracking playback"
       }
       print("Lyriko ShazamKit match: \(matchedArtist) - \(matchedTitle)")
     }
@@ -393,7 +580,25 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     Task { @MainActor [weak self] in
       guard let self = self, self.phase == "listening" else { return }
       let fromSignature = self.signatureSession === session
-      guard fromSignature else { return }
+      let fromStreaming = self.streamingSession === session
+      guard fromSignature || fromStreaming else { return }
+      if fromStreaming {
+        self.streamingSession = nil
+        self.streamingResponse = error == nil ? "no match; continuing to listen" : "stream error; retrying"
+        // Once the first track was found, keep listening for seeks and changes.
+        if self.hasMatched {
+          Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            guard let self = self, self.phase == "listening",
+                  self.streamingSession == nil, let catalog = self.localCatalog else { return }
+            let next = SHSession(catalog: catalog)
+            next.delegate = self
+            self.streamingSession = next
+            self.streamingResponse = "tracking playback"
+          }
+        }
+        return
+      }
       if fromSignature {
         self.signaturePending = false
         self.signatureSession = nil
