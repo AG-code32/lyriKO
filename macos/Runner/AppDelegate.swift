@@ -21,6 +21,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   // Use only finite signatures; do not compete with a streaming session.
   private var signatureSession: SHSession?
   private var localCatalog: SHCustomCatalog?
+  private var catalogBytes = 0
   private var signatureGenerator = SHSignatureGenerator()
   private var signatureFrames: Int64 = 0
   private var signatureAttempts = 0
@@ -66,7 +67,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       case "start":
         Task { @MainActor in
           do {
-            try await self.start()
+            let arguments = call.arguments as? [String: String] ?? [:]
+            try await self.start(serverUrl: arguments["serverUrl"] ?? "", token: arguments["token"] ?? "")
             result(nil)
           } catch {
             self.phase = "error"
@@ -85,7 +87,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   }
 
   @MainActor
-  func start() async throws {
+  func start(serverUrl: String, token: String) async throws {
     await stop()
     phase = "starting"
     errorMessage = ""
@@ -101,25 +103,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     converter = nil
     converterInputFormat = nil
     signatureSession = nil
-    // Load the same offline custom catalog that already works on iOS.
-    // The dataset is compiled into Assets.car by the existing macOS asset catalog.
-    let catalogData: Data
-    if let asset = NSDataAsset(name: "lyriko_demo") {
-      catalogData = asset.data
-    } else if let url = Bundle.main.url(forResource: "lyriko_demo", withExtension: "shazamcatalog") {
-      catalogData = try Data(contentsOf: url)
-    } else {
-      throw NSError(domain: "Lyriko", code: 2, userInfo: [
-        NSLocalizedDescriptionKey: "Missing lyriko_demo local catalog in macOS assets"
-      ])
-    }
-    do {
-      localCatalog = try SHCustomCatalog(dataRepresentation: catalogData)
-    } catch {
-      throw NSError(domain: "Lyriko", code: 3, userInfo: [
-        NSLocalizedDescriptionKey: "Invalid local ShazamKit catalog: \(error.localizedDescription)"
-      ])
-    }
+    localCatalog = nil
+    catalogBytes = 0
     signatureGenerator = SHSignatureGenerator()
     signatureFrames = 0
     signatureAttempts = 0
@@ -131,6 +116,38 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     streamingResponse = "waiting for audio"
     startTime = Date()
     lastDiagnosticTime = .distantPast
+
+    // Load the centrally published acoustic catalog BEFORE starting capture.
+    // No calls to the Apple Music/Shazam online catalog are made.
+    guard !token.isEmpty else {
+      throw NSError(domain: "Lyriko", code: 1001, userInfo: [
+        NSLocalizedDescriptionKey: "Missing LYRIKO_SERVER_TOKEN. Configure the same token used by the Windows server."
+      ])
+    }
+    guard let base = URL(string: serverUrl),
+          (base.scheme == "https" || base.scheme == "http"),
+          let endpoint = URL(string: serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/api/catalog/shazam") else {
+      throw NSError(domain: "Lyriko", code: 1002, userInfo: [
+        NSLocalizedDescriptionKey: "Invalid LYRIKO_SERVER_URL"
+      ])
+    }
+    var request = URLRequest(url: endpoint)
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.timeoutInterval = 20
+    let (data, response) = try await URLSession.shared.data(for: request)
+    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+      let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+      throw NSError(domain: "Lyriko", code: 1003, userInfo: [
+        NSLocalizedDescriptionKey: "Windows catalog HTTP \(code). Publish the catalog first (404 means missing catalog)."
+      ])
+    }
+    guard !data.isEmpty else {
+      throw NSError(domain: "Lyriko", code: 1004, userInfo: [
+        NSLocalizedDescriptionKey: "Downloaded acoustic catalog is empty"
+      ])
+    }
+    localCatalog = try SHCustomCatalog(dataRepresentation: data)
+    catalogBytes = data.count
 
     let content = try await SCShareableContent.excludingDesktopWindows(
       false, onScreenWindowsOnly: true)
@@ -168,7 +185,6 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     phase = "idle"
     if let oldStream = oldStream { try? await oldStream.stopCapture() }
     signatureSession = nil
-    localCatalog = nil
     signatureGenerator = SHSignatureGenerator()
     signatureFrames = 0
     signaturePending = false
@@ -193,6 +209,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       "peak": peakLevel,
       "elapsedSeconds": Int(Date().timeIntervalSince(startTime)),
       "signatureAttempts": signatureAttempts,
+      "catalogBytes": catalogBytes,
       "noMatchCount": noMatchCount,
       "shazamStatus": shazamState,
       "signatureResponse": signatureResponse,
@@ -308,8 +325,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
           signatureGenerator = SHSignatureGenerator()
           signatureFrames = 0
           guard let catalog = localCatalog else {
-            throw NSError(domain: "Lyriko", code: 4, userInfo: [
-              NSLocalizedDescriptionKey: "Local ShazamKit catalog was not loaded"
+            throw NSError(domain: "Lyriko", code: 1005, userInfo: [
+              NSLocalizedDescriptionKey: "Local acoustic catalog is not loaded"
             ])
           }
           let newSession = SHSession(catalog: catalog)
@@ -319,7 +336,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
           signatureRequestedAt = Date()
           signatureAttempts += 1
           shazamState = "Signature #\(signatureAttempts) submitted"
-          signatureResponse = "matching against Lyriko local catalog"
+          signatureResponse = "matching Windows acoustic catalog"
           errorMessage = ""
           newSession.match(signature)
         }
@@ -396,7 +413,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
         if nativeError.domain == "com.apple.ShazamKit" && nativeError.code == 202 {
           self.phase = "error"
           self.shazamState = "ShazamKit service error 202"
-          self.errorMessage = "ShazamKit local catalog error 202: \(errorDetails)"
+          self.errorMessage = "Local ShazamKit recognition error 202: \(errorDetails)"
         }
       } else {
         self.noMatchCount += 1
@@ -407,8 +424,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
           self.signatureResponse = "no match"
           if self.signatureAttempts >= 3 {
             self.phase = "error"
-            self.shazamState = "No match in Lyriko local catalog after 3 signatures"
-            self.errorMessage = "No match in Lyriko local catalog after 3 signatures."
+            self.shazamState = "No catalog match after 3 signatures"
+            self.errorMessage = "No Shazam catalog match after 3 signatures."
           }
         } else {
           self.streamingResponse = "no match"

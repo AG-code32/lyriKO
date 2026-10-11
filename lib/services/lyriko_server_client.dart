@@ -1,187 +1,97 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
-/// FastAPI client for Lyriko's private Windows server.
-///
-/// Settings are loaded from OS-backed secure storage on EVERY request,
-/// so changing the Cloudflare Quick Tunnel URL never requires a rebuild.
-/// The development --dart-define values remain a fallback only.
+/// Client for the Lyriko FastAPI instance on the Windows PC.
+/// Remote editing is enabled on macOS only; the existing iOS/Android
+/// audio recognition and offline/bundled lyric paths are left untouched.
 class LyrikoServerClient {
-  static const String _defaultUrl = String.fromEnvironment(
+  static const String baseUrl = String.fromEnvironment(
     'LYRIKO_SERVER_URL',
-    defaultValue: '',
+    defaultValue: 'http://192.168.1.28:8000',
   );
-  static const String _defaultToken = String.fromEnvironment(
-    'LYRIKO_SERVER_TOKEN',
-    defaultValue: '',
-  );
+  static const String writeToken = String.fromEnvironment('LYRIKO_SERVER_TOKEN');
 
-  static const FlutterSecureStorage _store = FlutterSecureStorage();
-  static const String _urlKey = 'lyriko.server.url.v1';
-  static const String _tokenKey = 'lyriko.server.token.v1';
+  bool get enabled => Platform.isMacOS;
 
-  // Recognition stays native to iOS; only the library/editor use the server.
-  bool get enabled => Platform.isMacOS || Platform.isIOS;
-
-  Future<bool> isConfigured() async {
-    if (!enabled) return false;
-    final url = await getBaseUrl();
-    final storedToken = (await _store.read(key: _tokenKey))?.trim() ?? '';
-    return url.isNotEmpty &&
-        (storedToken.isNotEmpty || _defaultToken.isNotEmpty);
-  }
-
-  Future<String> getBaseUrl() async {
-    final value = (await _store.read(key: _urlKey))?.trim();
-    return value != null && value.isNotEmpty ? value : _defaultUrl;
-  }
-
-  Future<bool> hasStoredToken() async =>
-      (await _store.read(key: _tokenKey))?.isNotEmpty ?? false;
-
-  Future<void> saveSettings({required String url, String? token}) async {
-    final uri = Uri.tryParse(url.trim());
-    if (uri == null ||
-        !uri.hasAuthority ||
-        !(uri.scheme == 'https' ||
-            (uri.scheme == 'http' &&
-                (uri.host == '127.0.0.1' || uri.host == 'localhost')))) {
-      throw const FormatException(
-        'Usa una URL HTTPS válida (HTTP solo para localhost).',
-      );
-    }
-    if (uri.userInfo.isNotEmpty ||
-        uri.hasQuery ||
-        uri.hasFragment ||
-        (uri.path.isNotEmpty && uri.path != '/')) {
-      throw const FormatException(
-        'Introduce solo la dirección base del servidor.',
-      );
-    }
-    await _store.write(
-      key: _urlKey,
-      value: uri.toString().replaceAll(RegExp(r'/$'), ''),
-    );
-    if (token != null && token.trim().isNotEmpty) {
-      await _store.write(key: _tokenKey, value: token.trim());
-    }
-  }
-
-  Future<void> clearStoredSettings() async {
-    await _store.delete(key: _urlKey);
-    await _store.delete(key: _tokenKey);
-  }
+  Uri _uri(String path) => Uri.parse('$baseUrl$path');
 
   Future<Map<String, dynamic>> _request(
     String method,
     String path, {
     Map<String, dynamic>? body,
+    bool authenticated = false,
   }) async {
-    final base = await getBaseUrl();
-    final token = (await _store.read(key: _tokenKey))?.trim() ?? _defaultToken;
-    if (base.isEmpty) {
-      throw StateError('Configura la URL en Server Settings.');
-    }
-    if (token.isEmpty) {
-      throw StateError('Configura el token en Server Settings.');
-    }
-    final uri = Uri.parse('$base$path');
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
     try {
-      final request = await client.openUrl(method, uri);
-      // Set all headers before writing the body.
+      final request = await client.openUrl(method, _uri(path));
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       if (body != null) {
         request.headers.contentType = ContentType.json;
         request.write(jsonEncode(body));
       }
-      final response = await request.close().timeout(
-        const Duration(seconds: 25),
-      );
+      if (authenticated) {
+        if (writeToken.isEmpty) {
+          throw StateError('Falta LYRIKO_SERVER_TOKEN para guardar en Windows.');
+        }
+        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $writeToken');
+      }
+      final response = await request.close();
       final raw = await response.transform(utf8.decoder).join();
-      if (response.statusCode == 409) {
-        throw StateError(
-          'Conflicto de versión (409). Vuelve a abrir la canción antes de guardar.',
-        );
-      }
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        throw StateError(
-          'Acceso denegado (${response.statusCode}). Revisa el token.',
-        );
-      }
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw HttpException('HTTP ${response.statusCode}: $raw', uri: uri);
+        if (response.statusCode == 409) {
+          throw StateError('Conflicto de versión (409): otra edición se guardó en el servidor. Vuelve a abrir la canción antes de guardar.');
+        }
+        throw HttpException('HTTP ${response.statusCode}: $raw', uri: _uri(path));
       }
-      final result = jsonDecode(raw);
-      if (result is! Map)
-        throw const FormatException('Respuesta API no válida');
-      return Map<String, dynamic>.from(result);
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) throw const FormatException('Respuesta API no válida');
+      return Map<String, dynamic>.from(decoded);
     } finally {
       client.close(force: true);
     }
   }
 
   Future<List<Map<String, dynamic>>> songs() async {
-    final data = await _request('GET', '/api/songs');
-    final entries = data['songs'];
-    if (entries is! List) throw const FormatException('Catálogo inválido');
-    return entries
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
+    final data = await _request('GET', '/api/songs', authenticated: true);
+    final items = data['songs'];
+    if (items is! List) throw const FormatException('Catálogo inválido');
+    return items.whereType<Map>().map((x) => Map<String, dynamic>.from(x)).toList();
   }
 
+  /// Map an asset path, e.g. assets/lyrics/Artist - Song.json,
+  /// to its Windows server song record by title and artist.
   Future<Map<String, dynamic>?> songForPath(String jsonPath) async {
-    final file = jsonPath.replaceAll('\\', '/').split('/').last;
-    final base = file.replaceFirst(
-      RegExp(r'\.json$', caseSensitive: false),
-      '',
-    );
-    for (final song in await songs()) {
-      final name = '${song['artist'] ?? ''} - ${song['title'] ?? ''}';
-      if (name.toLowerCase() == base.toLowerCase()) return song;
+    final filename = jsonPath.replaceAll('\\', '/').split('/').last;
+    final basename = filename.replaceFirst(RegExp(r'\.json$', caseSensitive: false), '');
+    final songsList = await songs();
+    for (final song in songsList) {
+      final artist = song['artist']?.toString() ?? '';
+      final title = song['title']?.toString() ?? '';
+      if ('$artist - $title'.toLowerCase() == basename.toLowerCase()) return song;
     }
     return null;
   }
 
   Future<Map<String, dynamic>> lyrics(String songId) =>
-      _request('GET', '/api/songs/${Uri.encodeComponent(songId)}/lyrics');
+      _request('GET', '/api/songs/${Uri.encodeComponent(songId)}/lyrics', authenticated: true);
 
-  Future<int> saveLyrics(
-    String songId,
-    int version,
-    Map<String, dynamic> json,
-  ) async {
-    final result = await _request(
+  Future<int> saveLyrics(String songId, int version, Map<String, dynamic> json) async {
+    final response = await _request(
       'PUT',
       '/api/songs/${Uri.encodeComponent(songId)}/lyrics',
+      authenticated: true,
       body: {'version': version, 'lyrics': json},
     );
-    return (result['version'] as num).toInt();
+    return (response['version'] as num).toInt();
   }
 
   Future<List<double>> waveform(String songId) async {
-    final result = await _request(
-      'GET',
-      '/api/songs/${Uri.encodeComponent(songId)}/waveform',
-    );
-    final samples = result['samples'];
-    if (samples is! List) throw const FormatException('Waveform inválido');
-    return samples.whereType<num>().map((n) => n.toDouble()).toList();
+    final data = await _request('GET', '/api/songs/${Uri.encodeComponent(songId)}/waveform', authenticated: true);
+    final raw = data['samples'];
+    if (raw is! List) throw const FormatException('Waveform inválido');
+    return raw.whereType<num>().map((n) => n.toDouble()).toList();
   }
 
-  Future<String> audioUrl(String songId) async {
-    final result = await _request(
-      'GET',
-      '/api/songs/${Uri.encodeComponent(songId)}/audio-access',
-    );
-    final path = result['url']?.toString();
-    if (path == null || !path.startsWith('/api/')) {
-      throw const FormatException('Enlace de audio no válido');
-    }
-    return '${await getBaseUrl()}$path';
-  }
+  String audioUrl(String songId) =>
+      _uri('/api/songs/${Uri.encodeComponent(songId)}/audio').toString();
 }
