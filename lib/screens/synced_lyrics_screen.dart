@@ -94,6 +94,12 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   bool _fallbackStarted = false;
   bool _fallbackPaused = false;
   bool _androidOverlayStarted = false;
+  static const MethodChannel _iosPiPChannel = MethodChannel('lyriko/ios_pip_prototype');
+  bool _iosPiPStarted = false;
+  bool _iosPiPOpening = false;
+  String _iosPiPStatus = 'Listo para abrir PiP';
+  int _lastIosPiPBroadcastAtMs = 0;
+
   int _lastAndroidOverlayBroadcastAtMs = 0;
 
   int? _lastMediaRawPositionMs;
@@ -124,6 +130,27 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (Platform.isIOS) {
+      _iosPiPChannel.setMethodCallHandler((call) async {
+        if (!mounted) return;
+        if (call.method == 'pipState') {
+          final details = call.arguments;
+          if (details is Map) {
+            final state = details['state']?.toString() ?? 'unknown';
+            final message = details['message']?.toString() ?? '';
+            debugPrint('Lyriko PiP native: $state — $message');
+            setState(() {
+              _iosPiPStatus = message.isEmpty ? 'iOS PiP: $state' : 'iOS PiP: $state — $message';
+              if (state == 'idle' || state == 'failed') _iosPiPStarted = false;
+              if (state == 'active') _iosPiPStarted = true;
+            });
+          }
+        } else if (call.method == 'closed') {
+          setState(() => _iosPiPStarted = false);
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      });
+    }
     _currentJsonPath = widget.jsonPath;
 
     _anchorPositionMs = widget.initialPositionMs;
@@ -227,6 +254,63 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Floating lyrics error: $e')));
       }
+    }
+  }
+
+  Future<void> _openIosLyricsPiP() async {
+    if (!Platform.isIOS || _iosPiPOpening) return;
+    setState(() {
+      _iosPiPOpening = true;
+      _iosPiPStatus = 'Solicitando apertura a iOS…';
+    });
+    debugPrint('Lyriko PiP: Flutter invoking native start');
+    try {
+      // Prime lyrics without touching the proven native AVPlayer startup path.
+      final song = _song;
+      if (song != null) {
+        await _iosPiPChannel.invokeMethod<bool>('update', {
+          ..._buildAndroidOverlayState(song),
+          'background': _backgroundOpacityPercent,
+        });
+      }
+      final Object? response = await _iosPiPChannel.invokeMethod<Object?>('start');
+      debugPrint('Lyriko PiP: native start response=$response');
+      if (response != true) {
+        throw PlatformException(
+          code: 'PIP_NOT_STARTED',
+          message: 'Respuesta inesperada de iOS: $response',
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _iosPiPStarted = true;
+        _iosPiPStatus = 'PiP iniciado. Letras sincronizadas (experimental).';
+      });
+      final currentSong = _song;
+      if (currentSong != null) await _broadcastIosPiP(currentSong, force: true);
+    } on PlatformException catch (e) {
+      debugPrint('Lyriko PiP start failed: ${e.code}: ${e.message}');
+      if (mounted) setState(() => _iosPiPStatus = 'ERROR ${e.code}: ${e.message ?? "sin detalles"}');
+    } catch (e) {
+      debugPrint('Lyriko PiP unexpected error: $e');
+      if (mounted) setState(() => _iosPiPStatus = 'ERROR: $e');
+    } finally {
+      if (mounted) setState(() => _iosPiPOpening = false);
+    }
+  }
+
+  Future<void> _broadcastIosPiP(SyncedLyricsSong song, {bool force = false}) async {
+    if (!Platform.isIOS || !_iosPiPStarted) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (!force && now - _lastIosPiPBroadcastAtMs < 250) return;
+    _lastIosPiPBroadcastAtMs = now;
+    try {
+      await _iosPiPChannel.invokeMethod<bool>('update', {
+        ..._buildAndroidOverlayState(song),
+        'background': _backgroundOpacityPercent,
+      });
+    } catch (e) {
+      debugPrint('iOS PiP update failed: $e');
     }
   }
 
@@ -387,6 +471,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
 
     if (Platform.isAndroid) {
       unawaited(_broadcastAndroidOverlay(song));
+    }
+    if (Platform.isIOS) {
+      unawaited(_broadcastIosPiP(song));
     }
   }
 
@@ -997,6 +1084,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
     if (Platform.isAndroid && song != null) {
       unawaited(_broadcastAndroidOverlay(song, force: true));
     }
+    if (Platform.isIOS && song != null) {
+      unawaited(_broadcastIosPiP(song, force: true));
+    }
   }
 
   Future<void> _ensureFingerprintFallback() async {
@@ -1282,6 +1372,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (Platform.isIOS) {
+      _iosPiPChannel.setMethodCallHandler(null);
+    }
     _uiTimer?.cancel();
     _mediaTimer?.cancel();
     _fallbackTimer?.cancel();
@@ -1294,6 +1387,9 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
     }
 
     unawaited(_restoreNormalWindowMode());
+    if (Platform.isIOS && _iosPiPStarted) {
+      unawaited(_iosPiPChannel.invokeMethod<String>('stop'));
+    }
 
     super.dispose();
   }
@@ -1301,7 +1397,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   @override
   Widget build(BuildContext context) {
     final song = _song;
-    final backgroundOpacity = (_backgroundOpacityPercent / 100.0)
+    final backgroundOpacity = (Platform.isIOS ? 1.0 : _backgroundOpacityPercent / 100.0)
         .clamp(0.0, 1.0)
         .toDouble();
 
@@ -1435,8 +1531,33 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Row(
+          if (Platform.isIOS) const SizedBox(height: 10),
+          if (Platform.isIOS)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _iosPiPOpening ? null : _openIosLyricsPiP,
+                icon: const Icon(Icons.picture_in_picture_alt_rounded, size: 22),
+                label: Text(_iosPiPOpening ? 'OPENING PiP…' : 'FLOAT LYRICS', style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF7057C5),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          if (Platform.isIOS) ...[
+            const SizedBox(height: 5),
+            Text(
+              _iosPiPStatus,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: Colors.white70),
+            ),
+          ],
+          if (Platform.isAndroid) const SizedBox(height: 6),
+          if (Platform.isAndroid) Row(
             children: [
               const Text(
                 'BACKGROUND',

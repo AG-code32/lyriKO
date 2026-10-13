@@ -1049,6 +1049,21 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   private var didRequestStart = false
   private var audioPrevious: (AVAudioSession.Category, AVAudioSession.Mode, AVAudioSession.CategoryOptions)?
 
+  // Lyric rendering is independent of AVPlayer's 60 FPS H.264 clock.
+  // A single cached CIImage is reused for every decoded frame.
+  private let lyricsLock = NSLock()
+  private var lyricsFrame: CIImage?
+  private var lyricLines: [(text: String, start: Int, end: Int)] = []
+  private var lyricTitle = ""
+  private var lyricArtist = ""
+  private var lyricPositionMs = 0
+  private var lyricPlaying = false
+  private var lyricUpdatedAt = Date()
+  private var lyricRefreshTimer: Timer?
+  private var lastRenderedIndex = -999
+  private var lastRenderedHeading = ""
+  private var lastRenderedText = ""
+
   func start(result: @escaping FlutterResult) {
     DispatchQueue.main.async {
       guard AVPictureInPictureController.isPictureInPictureSupported() else {
@@ -1065,9 +1080,20 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
       }
       do {
         let audio = AVAudioSession.sharedInstance()
-        self.audioPrevious = (audio.category, audio.mode, audio.categoryOptions)
-        try audio.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-        try audio.setActive(true)
+        // Discover runs an AVAudioEngine microphone tap with a playAndRecord
+        // session. Switching to playback while that engine is running can
+        // invalidate its input route and prevent PiP from becoming possible.
+        // playAndRecord is itself a playback-capable category: preserve it.
+        if audio.category == .playAndRecord {
+          self.audioPrevious = nil
+          self.log("preserving Discover playAndRecord session (mode=\(audio.mode.rawValue))")
+          // Do not call setActive/setCategory: Discover owns this live session.
+        } else {
+          self.audioPrevious = (audio.category, audio.mode, audio.categoryOptions)
+          try audio.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+          try audio.setActive(true)
+          self.log("configured playback session for PiP")
+        }
         let clip = try self.videoURL()
         let asset = AVURLAsset(url: clip)
         let item = AVPlayerItem(asset: asset)
@@ -1161,6 +1187,35 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
     }
   }
 
+  // Attach lyrics only after the stable H.264 player has entered PiP.
+  // This avoids changing AVPlayerItem readiness / PiP eligibility during startup.
+  private func enableLyricsRendering() {
+    guard let item = item, item.videoComposition == nil else { return }
+    let asset = item.asset
+    let composition = AVVideoComposition(asset: asset) { [weak self] request in
+      guard let self else {
+        request.finish(with: request.sourceImage, context: nil)
+        return
+      }
+      self.lyricsLock.lock()
+      let overlay = self.lyricsFrame
+      self.lyricsLock.unlock()
+      let background = request.sourceImage
+      if let overlay {
+        request.finish(with: overlay.composited(over: background).cropped(to: background.extent), context: nil)
+      } else {
+        request.finish(with: background, context: nil)
+      }
+    }
+    item.videoComposition = composition
+    log("lyrics compositor attached after PiP didStart")
+    refreshLyricsFrame(force: true)
+    lyricRefreshTimer?.invalidate()
+    lyricRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.20, repeats: true) { [weak self] _ in
+      self?.refreshLyricsFrame(force: false)
+    }
+  }
+
   private func tryStart() {
     guard state == "preparing", itemReady, pipPossible, !didRequestStart,
           let pip = controller else { return }
@@ -1188,9 +1243,82 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   }
 
   func update(arguments: Any?, result: @escaping FlutterResult) {
-    // This is only a playback baseline; no lyric updates are sent to AVPlayer.
-    result(true)
+    DispatchQueue.main.async {
+      guard let data = arguments as? [String: Any] else {
+        result(FlutterError(code: "PIP_DATA", message: "Invalid lyrics state", details: nil))
+        return
+      }
+      if let title = data["title"] as? String { self.lyricTitle = title }
+      if let artist = data["artist"] as? String { self.lyricArtist = artist }
+      if let raw = data["lines"] as? [[String: Any]] {
+        self.lyricLines = raw.compactMap { entry in
+          guard let text = entry["text"] as? String,
+                let start = (entry["startMs"] as? NSNumber)?.intValue,
+                let end = (entry["endMs"] as? NSNumber)?.intValue else { return nil }
+          return (text: text, start: start, end: end)
+        }
+      }
+      if let position = (data["positionMs"] as? NSNumber)?.intValue {
+        self.lyricPositionMs = position
+      }
+      if let playing = data["playing"] as? Bool { self.lyricPlaying = playing }
+      self.lyricUpdatedAt = Date()
+      self.refreshLyricsFrame(force: false)
+      result(true)
+    }
   }
+
+  private func refreshLyricsFrame(force: Bool) {
+    let elapsed = lyricPlaying ? max(0, Int(Date().timeIntervalSince(lyricUpdatedAt) * 1000)) : 0
+    let position = lyricPositionMs + elapsed
+    let index = lyricLines.lastIndex(where: { $0.start <= position }) ?? 0
+    let heading = "\(lyricArtist) — \(lyricTitle)"
+    let current = lyricLines.indices.contains(index) ? lyricLines[index].text : "Waiting for synced lyrics…"
+    let previous = lyricLines.indices.contains(index - 1) ? lyricLines[index - 1].text : ""
+    let next = lyricLines.indices.contains(index + 1) ? lyricLines[index + 1].text : ""
+    let textKey = previous + "\u{001F}" + current + "\u{001F}" + next
+    guard force || index != lastRenderedIndex || heading != lastRenderedHeading || textKey != lastRenderedText else { return }
+    lastRenderedIndex = index
+    lastRenderedHeading = heading
+    lastRenderedText = textKey
+    let size = CGSize(width: 320, height: 180)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let image = renderer.image { ctx in
+      UIColor(red: 0.055, green: 0.045, blue: 0.11, alpha: 1).setFill()
+      ctx.fill(CGRect(origin: .zero, size: size))
+      func draw(_ value: String, y: CGFloat, height: CGFloat, fontSize: CGFloat,
+                color: UIColor, weight: UIFont.Weight) {
+        guard !value.isEmpty else { return }
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        style.lineBreakMode = .byWordWrapping
+        let attributes: [NSAttributedString.Key: Any] = [
+          .font: UIFont.systemFont(ofSize: fontSize, weight: weight),
+          .foregroundColor: color, .paragraphStyle: style
+        ]
+        let rect = CGRect(x: 18, y: y, width: 284, height: height)
+        (value as NSString).draw(in: rect, withAttributes: attributes)
+      }
+      draw(heading, y: 10, height: 22, fontSize: 11,
+           color: UIColor.white.withAlphaComponent(0.72), weight: .medium)
+      draw(previous, y: 43, height: 31, fontSize: 12,
+           color: UIColor.white.withAlphaComponent(0.44), weight: .regular)
+      draw(current, y: 76, height: 62, fontSize: 19,
+           color: .white, weight: .bold)
+      draw(next, y: 143, height: 32, fontSize: 12,
+           color: UIColor.white.withAlphaComponent(0.44), weight: .regular)
+    }
+    guard let cg = image.cgImage else { return }
+    // The AVVideoComposition render pipeline displays the previous overlay
+    // rotated by 180 degrees (both axes inverted) on the iPhone. Correct that
+    // orientation in CI space without changing the H.264 video track or PiP.
+    let frame = CIImage(cgImage: cg)
+      .transformed(by: CGAffineTransform(translationX: size.width, y: 0).scaledBy(x: -1, y: 1))
+    lyricsLock.lock()
+    lyricsFrame = frame
+    lyricsLock.unlock()
+  }
+
 
   private func videoURL() throws -> URL {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("lyriko_pip_avplayer_v12_3_60fps.mp4")
@@ -2427,6 +2555,9 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   private func cleanup() {
     guard controller?.isPictureInPictureActive != true else { return }
     startTimeout?.invalidate(); startTimeout = nil
+    lyricRefreshTimer?.invalidate(); lyricRefreshTimer = nil
+    lyricsLock.lock(); lyricsFrame = nil; lyricsLock.unlock()
+    lastRenderedIndex = -999; lastRenderedHeading = ""; lastRenderedText = ""
     itemObservation?.invalidate(); itemObservation = nil
     possibleObservation?.invalidate(); possibleObservation = nil
     playbackObservation?.invalidate(); playbackObservation = nil
@@ -2456,6 +2587,11 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
     state = "active"
     log("didStart")
     complete()
+    // Defer to the next runloop so PiP's initial AVPlayer transition completes.
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.state == "active", self.controller === pip else { return }
+      self.enableLyricsRendering()
+    }
   }
 
   func pictureInPictureControllerWillStopPictureInPicture(_ pip: AVPictureInPictureController) {
