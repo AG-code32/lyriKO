@@ -109,9 +109,17 @@ class LyrikoServerClient {
       );
       final raw = await response.transform(utf8.decoder).join();
       if (response.statusCode == 409) {
-        throw StateError(
-          'Conflicto de versión (409). Vuelve a abrir la canción antes de guardar.',
-        );
+        String detail = 'Conflict (409)';
+        try {
+          final parsed = jsonDecode(raw);
+          if (parsed is Map && parsed['detail'] != null) {
+            final value = parsed['detail'];
+            detail = value is String ? value : jsonEncode(value);
+          }
+        } catch (_) {
+          if (raw.trim().isNotEmpty) detail = raw.trim();
+        }
+        throw StateError('HTTP 409: $detail');
       }
       if (response.statusCode == 401 || response.statusCode == 403) {
         throw StateError(
@@ -202,4 +210,42 @@ class LyrikoServerClient {
     }
     return '${await getBaseUrl()}$path';
   }
+  Future<Map<String, dynamic>> importedMetadataSuggestion(String id) =>
+      _request('GET', '/api/imported-audio/${Uri.encodeComponent(id)}/metadata-suggestion');
+
+  /// List audio indexed on the Windows server, separately from synchronized songs.
+  Future<Map<String, dynamic>> importedAudio({int limit = 5000, int offset = 0}) =>
+      _request('GET', '/api/imported-audio?limit=$limit&offset=$offset');
+
+  Future<List<Map<String, dynamic>>> newImportedAudio() async {
+    final result = await _request('GET', '/api/imported-audio/inbox');
+    final entries = result['songs'];
+    return entries is List
+        ? entries.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+        : [];
+  }
+
+  Future<void> acknowledgeImportedAudio(List<String> ids, {bool dismiss = false}) async {
+    if (ids.isEmpty) return;
+    await _request('POST', '/api/imported-audio/inbox/ack',
+      body: {'ids': ids, 'state': dismiss ? 'dismissed' : 'seen'});
+  }
+
+  /// Scan a folder relative to LYRIKO_IMPORT_ROOT configured on Windows.
+  Future<Map<String, dynamic>> updateImportedMetadata(
+          String id, String title, String artist) =>
+      _request('PATCH', '/api/imported-audio/${Uri.encodeComponent(id)}/metadata',
+          body: {'title': title, 'artist': artist});
+
+  Future<Map<String, dynamic>> previewImportedLyrics(String id) =>
+      _request('GET', '/api/imported-audio/${Uri.encodeComponent(id)}/lyrics-preview');
+
+  Future<Map<String, dynamic>> approveImportedLyrics(String id, int providerId) =>
+      _request('POST', '/api/imported-audio/${Uri.encodeComponent(id)}/lyrics-approve',
+          body: {'providerId': providerId});
+
+  Future<Map<String, dynamic>> importAudioFolder(String relativeFolder) =>
+      _request('POST', '/api/imported-audio/scan',
+          body: {'folder': relativeFolder});
+
 }

@@ -4,6 +4,7 @@ import AVFoundation
 import CoreMedia
 import ScreenCaptureKit
 import ShazamKit
+import CryptoKit
 
 @main
 class AppDelegate: FlutterAppDelegate {
@@ -23,6 +24,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   private var signatureSession: SHSession?
   private var localCatalog: SHCustomCatalog?
   private var catalogBytes = 0
+  private var catalogGenerationStatus = "not checked"
+  private var catalogReferenceCount = 0
   private var signatureGenerator = SHSignatureGenerator()
   private var signatureFrames: Int64 = 0
   private var signatureAttempts = 0
@@ -32,8 +35,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   private var shazamState = "waiting for audio"
   private var signatureResponse = "not requested"
   private var streamingResponse = "waiting for audio"
-  private let firstSignatureWindowFrames: Int64 = 44100 * 5
-  private let retrySignatureWindowFrames: Int64 = 44100 * 9
+  private let firstSignatureWindowFrames: Int64 = 44100 * 8
+  private let retrySignatureWindowFrames: Int64 = 44100 * 8
   private var phase = "idle"
   private var errorMessage = ""
   private var title = ""
@@ -48,6 +51,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
   private var lastMusicEpochMs: Int64 = 0
   private var lastBufferEpochMs: Int64 = 0
   private var hasMatched = false
+  private var lastRecognizedTitle = ""
+  private var lastRecognizedArtist = ""
+  private var lastRecognizedAt = Date.distantPast
   private var audioBuffers = 0
   private var submittedBuffers = 0
   private var streamedFrames: Int64 = 0
@@ -87,6 +93,28 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
             result(FlutterError(code: "CAPTURE_FAILED", message: error.localizedDescription, details: nil))
           }
         }
+      case "refreshCatalog":
+        Task { @MainActor in
+          let arguments = call.arguments as? [String: String] ?? [:]
+          do {
+            try await self.refreshCatalogNow(serverUrl: arguments["serverUrl"] ?? "", token: arguments["token"] ?? "", force: true)
+            result(["updated": true, "catalogBytes": self.catalogBytes, "referenceCount": self.catalogReferenceCount, "message": self.catalogGenerationStatus])
+          } catch {
+            result(FlutterError(code: "CATALOG_REFRESH_FAILED", message: error.localizedDescription, details: nil))
+          }
+        }
+      case "diagnoseReferences":
+        Task { @MainActor in
+          let arguments = call.arguments as? [String: String] ?? [:]
+          do {
+            let report = try await self.diagnoseReferences(
+              serverUrl: arguments["serverUrl"] ?? "", token: arguments["token"] ?? "")
+            result(report)
+          } catch {
+            result(FlutterError(code: "REFERENCE_DIAGNOSTIC_FAILED",
+                                message: error.localizedDescription, details: nil))
+          }
+        }
       case "status":
         Task { @MainActor in result(self.status()) }
       case "stop":
@@ -114,6 +142,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     lastMusicEpochMs = 0
     lastBufferEpochMs = 0
     hasMatched = false
+    lastRecognizedTitle = ""
+    lastRecognizedArtist = ""
+    lastRecognizedAt = .distantPast
     audioBuffers = 0
     submittedBuffers = 0
     streamedFrames = 0
@@ -126,6 +157,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     streamingSession = nil
     localCatalog = nil
     catalogBytes = 0
+    catalogGenerationStatus = "checking"
     signatureGenerator = SHSignatureGenerator()
     signatureFrames = 0
     signatureAttempts = 0
@@ -146,43 +178,15 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       ])
     }
     guard let base = URL(string: serverUrl),
-          (base.scheme == "https" || base.scheme == "http"),
-          let endpoint = URL(string: serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/api/catalog/shazam") else {
+          (base.scheme == "https" || base.scheme == "http") else {
       throw NSError(domain: "Lyriko", code: 1002, userInfo: [
         NSLocalizedDescriptionKey: "Invalid LYRIKO_SERVER_URL"
       ])
     }
-    var request = URLRequest(url: endpoint)
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-    request.timeoutInterval = 20
-    let (data, response) = try await URLSession.shared.data(for: request)
-    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-      let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-      throw NSError(domain: "Lyriko", code: 1003, userInfo: [
-        NSLocalizedDescriptionKey: "Windows catalog HTTP \(code). Publish the catalog first (404 means missing catalog)."
-      ])
-    }
-    guard !data.isEmpty else {
-      throw NSError(domain: "Lyriko", code: 1004, userInfo: [
-        NSLocalizedDescriptionKey: "Downloaded acoustic catalog is empty"
-      ])
-    }
-    if #available(macOS 15.0, *) {
-      localCatalog = try SHCustomCatalog(dataRepresentation: data)
-    } else {
-      throw NSError(domain: "Lyriko", code: 1005, userInfo: [
-        NSLocalizedDescriptionKey: "The custom ShazamKit catalog requires macOS 15 or later"
-      ])
-    }
-    catalogBytes = data.count
+    // Never use URLSession's cached catalog on a new DISCOVER session.
+    let data = try await downloadCurrentCatalog(serverUrl: serverUrl, token: token)
+    try activateCatalog(data)
 
-    // Update automatically when the API song list changes. The existing catalog
-    // remains usable if the refresh fails (for example, temporary network loss).
-    do {
-      try await refreshCatalogIfNeeded(serverUrl: serverUrl, token: token)
-    } catch {
-      print("Lyriko catalog refresh skipped: \(error.localizedDescription)")
-    }
 
     let content = try await SCShareableContent.excludingDesktopWindows(
       false, onScreenWindowsOnly: true)
@@ -216,23 +220,102 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     do {
       try await newStream.startCapture()
       phase = "listening"
+      // Never block capture on downloading reference MP3s or rebuilding a catalog.
+      // Keep the existing published catalog active while the updated one builds.
+      Task { @MainActor [weak self] in
+        guard let self = self else { return }
+        do {
+          try await self.refreshCatalogNow(serverUrl: serverUrl, token: token)
+        } catch {
+          self.catalogGenerationStatus = "FAILED: \(error.localizedDescription)"
+          print("Lyriko catalog refresh FAILED: \(error.localizedDescription)")
+        }
+      }
     } catch {
       stream = nil
       throw error
     }
   }
 
+  // Called both after successful lyrics approval and when DISCOVER starts.
+  // Idempotent: unchanged song metadata/version does not cause another rebuild.
+  @MainActor
+  private func refreshCatalogNow(serverUrl: String, token: String, force: Bool = false) async throws {
+    guard !serverUrl.isEmpty && !token.isEmpty else {
+      throw NSError(domain: "Lyriko", code: 2100, userInfo: [NSLocalizedDescriptionKey: "Server credentials unavailable"])
+    }
+    while catalogRefreshInProgress {
+      try await Task.sleep(nanoseconds: 500_000_000)
+    }
+    catalogRefreshInProgress = true
+    defer { catalogRefreshInProgress = false }
+    try await refreshCatalogIfNeeded(serverUrl: serverUrl, token: token, force: force)
+  }
+
+  // Always ask Windows for the current published catalog. The nonce also
+  // bypasses intermediary caches in temporary Cloudflare tunnels.
+  @MainActor
+  private func downloadCurrentCatalog(serverUrl: String, token: String) async throws -> Data {
+    let base = serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    guard let url = URL(string: base + "/api/catalog/shazam?revision=" + UUID().uuidString) else {
+      throw NSError(domain: "LyriKO", code: 2301, userInfo: [NSLocalizedDescriptionKey: "Invalid catalog URL"])
+    }
+    var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.setValue("no-store, no-cache, max-age=0", forHTTPHeaderField: "Cache-Control")
+    request.setValue("no-cache", forHTTPHeaderField: "Pragma")
+    request.timeoutInterval = 40
+    let (data, response) = try await URLSession.shared.data(for: request)
+    guard let http = response as? HTTPURLResponse, http.statusCode == 200, !data.isEmpty else {
+      let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+      throw NSError(domain: "LyriKO", code: 2302, userInfo: [NSLocalizedDescriptionKey: "Catalog download failed: HTTP \(status)"])
+    }
+    return data
+  }
+
+  @MainActor
+  private func activateCatalog(_ data: Data, referenceCount: Int? = nil) throws {
+    guard #available(macOS 15.0, *) else {
+      throw NSError(domain: "LyriKO", code: 2303, userInfo: [NSLocalizedDescriptionKey: "macOS 15 or newer is required"])
+    }
+    let incomingHash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    let newCatalog = try SHCustomCatalog(dataRepresentation: data)
+    localCatalog = newCatalog
+    catalogBytes = data.count
+    if let count = referenceCount { catalogReferenceCount = count }
+    catalogGenerationStatus = "active catalog SHA256 " + String(incomingHash.prefix(12))
+    if phase == "listening" {
+      // Swap both sessions atomically on MainActor, without stopping capture.
+      signatureSession = nil
+      streamingSession = nil
+      signaturePending = false
+      signatureAttempts = 0
+      noMatchCount = 0
+      signatureFrames = 0
+      signatureGenerator = SHSignatureGenerator()
+      let session = SHSession(catalog: newCatalog)
+      session.delegate = self
+      streamingSession = session
+      streamingResponse = "new published catalog active"
+      shazamState = "Catalog updated without restarting DISCOVER"
+    }
+  }
+
+  private var catalogRefreshInProgress = false
+
   // Rebuild only after a registered song or its version changes. The first
   // launch establishes the baseline for an already-published catalog.
   @MainActor
-  private func refreshCatalogIfNeeded(serverUrl: String, token: String) async throws {
+  private func refreshCatalogIfNeeded(serverUrl: String, token: String, force: Bool = false) async throws {
     guard #available(macOS 15.0, *) else { return }
     let base = serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     func fetch(_ path: String) async throws -> Data {
-      guard let url = URL(string: base + path) else {
+      let separator = path.contains("?") ? "&" : "?"
+      guard let url = URL(string: base + path + separator + "revision=" + UUID().uuidString) else {
         throw NSError(domain: "Lyriko", code: 2001, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
       }
-      var request = URLRequest(url: url)
+      var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
+      request.setValue("no-cache, no-store", forHTTPHeaderField: "Cache-Control")
       request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
       request.timeoutInterval = 60
       let (data, response) = try await URLSession.shared.data(for: request)
@@ -246,60 +329,301 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
           let songs = object["songs"] as? [[String: Any]] else { return }
     let available = songs.filter { ($0["audioAvailable"] as? Bool) == true }
     guard !available.isEmpty else { return }
-    let fingerprint = available.compactMap { song -> String? in
-      guard let id = song["id"] as? String else { return nil }
-      return id + ":" + String(describing: song["version"] ?? 0)
-    }.sorted().joined(separator: "|")
-    let key = "lyriko.shazam.catalog.source.v1." + base
+    // Build a catalog revision from BOTH lyric versions and actual server MP3s.
+    var audioAccess: [String: (path: String, revision: String)] = [:]
+    var fingerprintParts: [String] = []
+    for song in available {
+      guard let id = song["id"] as? String,
+            let encodedId = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { continue }
+      let accessData = try await fetch("/api/songs/" + encodedId + "/audio-access")
+      guard let access = try JSONSerialization.jsonObject(with: accessData) as? [String: Any],
+            let path = access["url"] as? String, path.hasPrefix("/api/songs/") else {
+        throw NSError(domain: "LyriKO", code: 2004, userInfo: [NSLocalizedDescriptionKey: "Missing audio access for catalog song"])
+      }
+      let revision = access["audioRevision"] as? String ?? "unversioned"
+      audioAccess[id] = (path, revision)
+      fingerprintParts.append(id + ":" + String(describing: song["version"] ?? 0) + ":" + revision)
+    }
+    let fingerprint = fingerprintParts.sorted().joined(separator: "|")
+    let key = "lyriko.shazam.catalog.source.v5.full-rebuild." + base
     let previous = UserDefaults.standard.string(forKey: key)
-    if previous == nil {
-      // Existing published catalog is already available: don't rebuild 9 songs
-      // merely because this is the first launch with the new code.
-      UserDefaults.standard.set(fingerprint, forKey: key)
+    // A missing baseline does NOT prove the published catalog contains the
+    // newly imported songs. Build once and persist the baseline only after
+    // a successful upload; otherwise future recognition silently misses them.
+    guard force || previous != fingerprint else {
+      let remoteData = try await downloadCurrentCatalog(serverUrl: serverUrl, token: token)
+      let activeHash = UserDefaults.standard.string(forKey: key + ".sha256")
+      let remoteHash = SHA256.hash(data: remoteData).map { String(format: "%02x", $0) }.joined()
+      if activeHash != remoteHash || catalogBytes != remoteData.count {
+        // An external repair or old cached response must not strand DISCOVER.
+        try activateCatalog(remoteData, referenceCount: available.count)
+      }
+      catalogGenerationStatus = "catalog verified (\(available.count) references expected)"
       return
     }
-    guard previous != fingerprint else { return }
 
-    shazamState = "Updating acoustic catalog"
+    print("LyriKO: rebuilding complete acoustic catalog for \(available.count) audio-ready songs")
+    catalogGenerationStatus = "building 0/\(available.count)"
     let catalog = SHCustomCatalog()
-    let temp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: temp, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: temp) }
+    var verificationSamples: [(id: String, title: String, signature: SHSignature)] = []
     for song in available {
       guard let id = song["id"] as? String,
             let title = song["title"] as? String,
             let artist = song["artist"] as? String,
             let encodedId = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { continue }
-      let accessData = try await fetch("/api/songs/" + encodedId + "/audio-access")
-      guard let access = try JSONSerialization.jsonObject(with: accessData) as? [String: Any],
-            let audioPath = access["url"] as? String,
-            audioPath.hasPrefix("/api/songs/") else {
-        throw NSError(domain: "Lyriko", code: 2004, userInfo: [NSLocalizedDescriptionKey: "Missing audio access for catalog song"])
+      guard let info = audioAccess[id] else {
+        throw NSError(domain: "LyriKO", code: 2004, userInfo: [NSLocalizedDescriptionKey: "Missing audio revision for song"])
       }
-      let mp3 = try await fetch(audioPath)
-      let local = temp.appendingPathComponent(id + ".mp3")
-      try mp3.write(to: local, options: .atomic)
+      let audioPath = info.path
+      // Reuse unchanged reference MP3s between catalog rebuilds.
+      let cacheFolder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("LyriKO/ShazamReferences", isDirectory: true)
+      try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+      let version = String(describing: song["version"] ?? 0)
+      // IDs and versions originate from the authenticated private server.
+      let safeName = (id + "_" + version + "_" + info.revision).replacingOccurrences(
+        of: "[^a-zA-Z0-9_-]", with: "_", options: .regularExpression)
+      let local = cacheFolder.appendingPathComponent(safeName + ".mp3")
+      if !FileManager.default.fileExists(atPath: local.path) {
+        let mp3 = try await fetch(audioPath)
+        try mp3.write(to: local, options: .atomic)
+      }
+      print("LyriKO: generating ShazamKit signature \(id) — \(title)")
       let signature = try await SHSignatureGenerator.signature(from: AVURLAsset(url: local))
       try catalog.addReferenceSignature(signature, representing: [
         SHMediaItem(properties: [.title: title, .artist: artist])
       ])
+      verificationSamples.append((id: id, title: title, signature: signature))
+      catalogGenerationStatus = "building \(verificationSamples.count)/\(available.count): \(title)"
     }
+    // A complete, nonempty set of reference signatures is required before publish.
+    // Self-matching a full reference signature is not a reliable validation of
+    // recognition against an independent excerpt; do not block publication on it.
+    guard verificationSamples.count == available.count else {
+      throw NSError(domain: "Lyriko", code: 2201, userInfo: [
+        NSLocalizedDescriptionKey: "Only \(verificationSamples.count) of \(available.count) references generated"
+      ])
+    }
+    catalogGenerationStatus = "publishing \(verificationSamples.count) references"
     let catalogData = catalog.dataRepresentation
-    guard !catalogData.isEmpty else { return }
+    guard !catalogData.isEmpty else {
+      throw NSError(domain: "Lyriko", code: 2206, userInfo: [NSLocalizedDescriptionKey: "Generated catalog is empty"])
+    }
     guard let endpoint = URL(string: base + "/api/catalog/shazam") else { return }
     var publish = URLRequest(url: endpoint)
     publish.httpMethod = "PUT"
     publish.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     publish.httpBody = catalogData
     publish.timeoutInterval = 120
-    let (_, publishResponse) = try await URLSession.shared.data(for: publish)
+    let (receiptData, publishResponse) = try await URLSession.shared.data(for: publish)
     guard (publishResponse as? HTTPURLResponse)?.statusCode == 200 else {
       throw NSError(domain: "Lyriko", code: 2003, userInfo: [NSLocalizedDescriptionKey: "Cannot publish updated acoustic catalog"])
     }
-    localCatalog = catalog
-    catalogBytes = catalogData.count
+    // A HTTP 200 alone does not prove that the intended catalog was stored.
+    guard let receipt = try JSONSerialization.jsonObject(with: receiptData) as? [String: Any],
+          (receipt["bytes"] as? Int) == catalogData.count else {
+      throw NSError(domain: "LyriKO", code: 2208, userInfo: [NSLocalizedDescriptionKey: "Catalog publication receipt does not match uploaded data"])
+    }
+    // Windows hashes the bytes read back from the published file. Compare
+    // that receipt instead of a second GET that may return a stale cached copy.
+    let localSHA = SHA256.hash(data: catalogData)
+      .map { String(format: "%02x", $0) }.joined()
+    guard let serverSHA = receipt["sha256"] as? String,
+          serverSHA.lowercased() == localSHA else {
+      throw NSError(domain: "LyriKO", code: 2209, userInfo: [
+        NSLocalizedDescriptionKey: "Published catalog SHA-256 mismatch (local: \(localSHA), Windows returned a different hash)"
+      ])
+    }
+    // The server verified the saved file by SHA-256. Switch the active
+    // ShazamKit session immediately; no UI restart or DISCOVER toggle.
+    try activateCatalog(catalogData, referenceCount: verificationSamples.count)
+    catalogGenerationStatus = "published and activated \(verificationSamples.count) references"
+    UserDefaults.standard.set(localSHA, forKey: key + ".sha256")
     UserDefaults.standard.set(fingerprint, forKey: key)
-    print("Lyriko acoustic catalog updated automatically: \(available.count) songs")
+    print("LyriKO: published regenerated catalog containing \(verificationSamples.count) reference signatures (matching still requires live test)")
+  }
+
+  // Isolated reference test. Does not rebuild, publish or alter DISCOVER sessions.
+  // A duration-validated excerpt from the SAME MP3 is independently fingerprinted and
+  // queried against the serialized catalog currently published on Windows.
+  // Decode real audio samples and build a query through the same PCM signature
+  // generator used by live DISCOVER. No composition or reference signature reuse.
+  private func makePCMQuerySignature(file: URL, startSeconds: Double,
+                                     querySeconds: Double) throws -> SHSignature {
+    let audio = try AVAudioFile(forReading: file)
+    let sourceFormat = audio.processingFormat
+    let targetFormat = recognitionFormat
+    let startFrame = AVAudioFramePosition(startSeconds * sourceFormat.sampleRate)
+    audio.framePosition = min(max(0, startFrame), audio.length)
+    let generator = SHSignatureGenerator()
+    let converter = sourceFormat.isEqual(targetFormat) ? nil : AVAudioConverter(from: sourceFormat, to: targetFormat)
+    if !sourceFormat.isEqual(targetFormat) && converter == nil {
+      throw NSError(domain: "LyriKO", code: 3120, userInfo: [NSLocalizedDescriptionKey: "Cannot convert MP3 PCM to 44.1 kHz mono"])
+    }
+    let requiredFrames = Int64(querySeconds * targetFormat.sampleRate)
+    var written: Int64 = 0
+    while written < requiredFrames {
+      let buffer = AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: 4096)!
+      try audio.read(into: buffer)
+      if buffer.frameLength == 0 { break }
+      let normalized: AVAudioPCMBuffer
+      if let converter = converter {
+        let capacity = AVAudioFrameCount(ceil(Double(buffer.frameLength) * targetFormat.sampleRate / sourceFormat.sampleRate) + 256)
+        guard let resultBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: max(capacity, 1024)) else {
+          throw NSError(domain: "LyriKO", code: 3121, userInfo: [NSLocalizedDescriptionKey: "Cannot allocate converted PCM"])
+        }
+        var supplied = false
+        var error: NSError?
+        let status = converter.convert(to: resultBuffer, error: &error) { _, inputStatus in
+          if supplied { inputStatus.pointee = .noDataNow; return nil }
+          supplied = true
+          inputStatus.pointee = .haveData
+          return buffer
+        }
+        if let error = error { throw error }
+        if status == .error { throw NSError(domain: "LyriKO", code: 3122, userInfo: [NSLocalizedDescriptionKey: "PCM converter failed"]) }
+        normalized = resultBuffer
+      } else {
+        normalized = buffer
+      }
+      guard normalized.frameLength > 0 else { continue }
+      // Limit query length to catalog's allowed window, including last buffer.
+      let remaining = requiredFrames - written
+      if Int64(normalized.frameLength) > remaining {
+        normalized.frameLength = AVAudioFrameCount(remaining)
+      }
+      try generator.append(normalized, at: AVAudioTime(sampleTime: written, atRate: targetFormat.sampleRate))
+      written += Int64(normalized.frameLength)
+    }
+    if written < Int64(3 * targetFormat.sampleRate) {
+      throw NSError(domain: "LyriKO", code: 3123, userInfo: [NSLocalizedDescriptionKey: "Not enough decoded PCM for ShazamKit query"])
+    }
+    return generator.signature()
+  }
+
+  @MainActor
+  private func diagnoseReferences(serverUrl: String, token: String) async throws -> String {
+    guard #available(macOS 15.0, *) else {
+      throw NSError(domain: "LyriKO", code: 3099, userInfo: [
+        NSLocalizedDescriptionKey: "Direct ShazamKit catalog diagnostics require macOS 15 or newer"
+      ])
+    }
+    guard !serverUrl.isEmpty && !token.isEmpty else {
+      throw NSError(domain: "LyriKO", code: 3100, userInfo: [NSLocalizedDescriptionKey: "Configure server URL/token first"])
+    }
+    let base = serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    func get(_ path: String) async throws -> Data {
+      guard let url = URL(string: base + path) else {
+        throw NSError(domain: "LyriKO", code: 3101, userInfo: [NSLocalizedDescriptionKey: "Invalid URL: " + path])
+      }
+      var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
+      req.setValue("no-cache, no-store", forHTTPHeaderField: "Cache-Control")
+      req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+      req.timeoutInterval = 90
+      let (body, response) = try await URLSession.shared.data(for: req)
+      guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+        throw NSError(domain: "LyriKO", code: 3102, userInfo: [NSLocalizedDescriptionKey: "HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1): " + path])
+      }
+      return body
+    }
+
+    let catalogData = try await downloadCurrentCatalog(serverUrl: serverUrl, token: token)
+    let testCatalog = try SHCustomCatalog(dataRepresentation: catalogData)
+    let minQuery = testCatalog.minimumQuerySignatureDuration
+    let maxQuery = testCatalog.maximumQuerySignatureDuration
+    guard minQuery.isFinite, maxQuery.isFinite, minQuery > 0, maxQuery > minQuery else {
+      throw NSError(domain: "LyriKO", code: 3106, userInfo: [
+        NSLocalizedDescriptionKey: "Unexpected catalog signature duration limits: \(minQuery)–\(maxQuery) seconds"
+      ])
+    }
+    // Stay strictly within the catalog's limits. An 18-second query can fail
+    // with ShazamKit error 201 even if the reference audio is valid.
+    let querySeconds = min(max(8.0, minQuery + 1.0), maxQuery - 0.5)
+    guard querySeconds > minQuery, querySeconds < maxQuery else {
+      throw NSError(domain: "LyriKO", code: 3107, userInfo: [
+        NSLocalizedDescriptionKey: "Catalog query duration window is too narrow"
+      ])
+    }
+    let listingData = try await get("/api/songs")
+    guard let listing = try JSONSerialization.jsonObject(with: listingData) as? [String: Any],
+          let songs = listing["songs"] as? [[String: Any]] else {
+      throw NSError(domain: "LyriKO", code: 3103, userInfo: [NSLocalizedDescriptionKey: "Invalid song listing"])
+    }
+    let testNames = ["Mattel", "Helena", "Give 'Em Hell, Kid", "To the End", "You Know What They Do to Guys Lik"]
+    var lines = [
+      "Published catalog: \(catalogData.count) bytes",
+      String(format: "Allowed query duration: %.2f–%.2f s; target: %.2f s", minQuery, maxQuery, querySeconds),
+      "Direct MP3 excerpt test (no YouTube capture):"
+    ]
+    for wanted in testNames {
+      guard let song = songs.first(where: {
+        ($0["title"] as? String ?? "").caseInsensitiveCompare(wanted) == .orderedSame
+      }), let id = song["id"] as? String else {
+        lines.append("\(wanted): NOT REGISTERED")
+        continue
+      }
+      let title = song["title"] as? String ?? wanted
+      guard let encodedId = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { continue }
+      do {
+        let accessBytes = try await get("/api/songs/\(encodedId)/audio-access")
+        guard let access = try JSONSerialization.jsonObject(with: accessBytes) as? [String: Any],
+              let audioPath = access["url"] as? String, audioPath.hasPrefix("/api/songs/") else {
+          throw NSError(domain: "LyriKO", code: 3104, userInfo: [NSLocalizedDescriptionKey: "Audio URL missing"])
+        }
+        let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+          .appendingPathComponent("LyriKO/ShazamReferences", isDirectory: true)
+        try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+        let version = String(describing: song["version"] ?? 0)
+        let safeName = (id + "_" + version).replacingOccurrences(
+          of: "[^a-zA-Z0-9_-]", with: "_", options: .regularExpression)
+        let revision = access["audioRevision"] as? String ?? "unversioned"
+        let freshName = (safeName + "_" + revision).replacingOccurrences(
+          of: "[^a-zA-Z0-9_-]", with: "_", options: .regularExpression)
+        let file = cache.appendingPathComponent(freshName + ".mp3")
+        if !FileManager.default.fileExists(atPath: file.path) {
+          try await get(audioPath).write(to: file, options: .atomic)
+        }
+        let asset = AVURLAsset(url: file)
+        let duration = CMTimeGetSeconds(try await asset.load(.duration))
+        guard duration.isFinite && duration > querySeconds + 0.5 else {
+          throw NSError(domain: "LyriKO", code: 3105, userInfo: [NSLocalizedDescriptionKey: "MP3 is shorter than the required query duration"])
+        }
+        // Read the actual MP3 as decoded PCM, just like DISCOVER's audio pipeline.
+        // AVMutableComposition.signature(from:) generated invalid diagnostic queries.
+        let preferredStart = duration > 65 ? 35.0 : (duration > 35 ? 12.0 : 0.0)
+        let start = min(preferredStart, duration - querySeconds - 0.25)
+        let excerpt = try makePCMQuerySignature(file: file, startSeconds: start,
+                                                 querySeconds: querySeconds)
+        let actualSeconds = excerpt.duration
+        let details = String(format: "MP3 %.1fs, PCM at %.1fs, signature %.2fs", duration, start, actualSeconds)
+        guard actualSeconds.isFinite,
+              actualSeconds >= minQuery,
+              actualSeconds <= maxQuery else {
+          lines.append("\(title): INVALID QUERY SIGNATURE (\(details); allowed \(String(format: "%.2f–%.2f", minQuery, maxQuery))s)")
+          continue
+        }
+        let session = SHSession(catalog: testCatalog)
+        let outcome = await session.result(from: excerpt)
+        switch outcome {
+        case .match(let match):
+          let observed = match.mediaItems.first?.title ?? "(unknown)"
+          let ok = observed.caseInsensitiveCompare(title) == .orderedSame
+          lines.append("\(title): \(ok ? "MATCH" : "WRONG SONG") → \(observed) [\(details)]")
+        case .noMatch:
+          lines.append("\(title): NO MATCH [\(details)]")
+        case .error(let error, _):
+          let native = error as NSError
+          lines.append("\(title): SHAZAM ERROR \(native.domain) \(native.code): \(native.localizedDescription) [\(details)]")
+        @unknown default:
+          lines.append("\(title): UNKNOWN RESULT")
+        }
+      } catch {
+        lines.append("\(title): FAILED: \(error.localizedDescription)")
+      }
+    }
+    let report = lines.joined(separator: "\n")
+    print("LyriKO reference diagnostic:\n" + report)
+    return report
   }
 
   @MainActor
@@ -313,6 +637,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     signatureGenerator = SHSignatureGenerator()
     signatureFrames = 0
     signaturePending = false
+    lastRecognizedTitle = ""
+    lastRecognizedArtist = ""
+    lastRecognizedAt = .distantPast
     streamedFrames = 0
     converter = nil
     converterInputFormat = nil
@@ -340,6 +667,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       "elapsedSeconds": Int(Date().timeIntervalSince(startTime)),
       "signatureAttempts": signatureAttempts,
       "catalogBytes": catalogBytes,
+      "catalogGenerationStatus": catalogGenerationStatus,
+      "catalogReferenceCount": catalogReferenceCount,
       "noMatchCount": noMatchCount,
       "shazamStatus": shazamState,
       "signatureResponse": signatureResponse,
@@ -477,7 +806,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       signatureResponse = "no callback within 12s"
       errorMessage = "ShazamKit: signature request timed out; retrying"
     }
-    if !hasMatched && !signaturePending && signatureAttempts < 3 {
+    // Continue periodic PCM queries after a match as well: this detects track
+    // changes without stopping DISCOVER or waiting for a new button press.
+    if !signaturePending {
       do {
         let timeInWindow = AVAudioTime(sampleTime: signatureFrames,
                                        atRate: recognitionFormat.sampleRate)
@@ -485,7 +816,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
         signatureFrames += Int64(output.frameLength)
         let targetFrames = signatureAttempts == 0 ? firstSignatureWindowFrames : retrySignatureWindowFrames
         if signatureFrames >= targetFrames {
-          let signature = try signatureGenerator.signature()
+          let signature = signatureGenerator.signature()
           signatureGenerator = SHSignatureGenerator()
           signatureFrames = 0
           guard let catalog = localCatalog else {
@@ -493,10 +824,10 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
               NSLocalizedDescriptionKey: "Local acoustic catalog is not loaded"
             ])
           }
-          // Stop streaming before requesting the fallback signature to avoid
-          // simultaneous sessions processing the same audio indefinitely.
-          streamingSession = nil
-          streamingResponse = "fallback to finite signature"
+          // Keep streaming active. A finite PCM query is an independent fallback,
+          // and its callbacks are filtered by session identity.
+          streamingResponse = streamingSession == nil
+            ? "streaming restarting" : "streaming + PCM signature fallback"
           let newSession = SHSession(catalog: catalog)
           newSession.delegate = self
           signatureSession = newSession
@@ -541,6 +872,18 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       guard let self = self, self.phase == "listening", !matchedTitle.isEmpty,
             (self.signatureSession === session || self.streamingSession === session) else { return }
       let wasSignature = self.signatureSession === session
+      let isSameSong = self.hasMatched &&
+        self.lastRecognizedTitle.caseInsensitiveCompare(matchedTitle) == .orderedSame &&
+        self.lastRecognizedArtist.caseInsensitiveCompare(matchedArtist) == .orderedSame
+      self.lastRecognizedTitle = matchedTitle
+      self.lastRecognizedArtist = matchedArtist
+      self.lastRecognizedAt = Date()
+      if isSameSong {
+        self.signaturePending = false
+        self.signatureSession = nil
+        self.signatureResponse = "same song confirmed"
+        return
+      }
       self.title = matchedTitle
       self.artist = matchedArtist
       self.positionMs = max(0, Int(matchedOffset * 1000))
@@ -553,6 +896,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       self.belowMusicGateSinceMs = 0
       self.aboveMusicGateSinceMs = 0
       self.signaturePending = false
+      self.signatureAttempts = 0
+      self.signatureFrames = 0
+      self.signatureGenerator = SHSignatureGenerator()
       self.signatureSession = nil
       self.streamingSession = nil
       self.errorMessage = ""
@@ -585,8 +931,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       if fromStreaming {
         self.streamingSession = nil
         self.streamingResponse = error == nil ? "no match; continuing to listen" : "stream error; retrying"
-        // Once the first track was found, keep listening for seeks and changes.
-        if self.hasMatched {
+        // Re-arm the streaming session after any no-match, including before
+        // the first successful identification.
+        if self.phase == "listening" {
           Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             guard let self = self, self.phase == "listening",
@@ -627,15 +974,15 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
           : "Streaming: no match yet"
         if fromSignature {
           self.signatureResponse = "no match"
-          if self.signatureAttempts >= 3 {
-            self.phase = "error"
-            self.shazamState = "No catalog match after 3 signatures"
-            self.errorMessage = "No Shazam catalog match after 3 signatures."
-          }
+          // No arbitrary attempt limit: keep identifying as long as DISCOVER is on.
+          // The next 8-second PCM window begins automatically.
+          self.shazamState = "No match yet; continuing to listen"
+          self.errorMessage = ""
         } else {
           self.streamingResponse = "no match"
         }
-        self.errorMessage = "ShazamKit: \(self.shazamState)"
+        // A non-match is not an error: leave DISCOVER active without a red warning.
+        self.errorMessage = ""
       }
       print(self.errorMessage)
     }

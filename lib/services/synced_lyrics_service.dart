@@ -169,6 +169,33 @@ class SyncedLyricsService {
 
   String get lyricsRoot => '$projectRoot\\assets\\lyrics';
 
+  /// Read previously downloaded macOS JSON files without network access.
+  /// This is presentation cache only; loadLibrary() remains authoritative.
+  Future<List<SyncedLyricsSong>> loadCachedMacLibrary() async {
+    if (!Platform.isMacOS) return const [];
+    final directory = Directory(
+      '${(await getApplicationDocumentsDirectory()).path}/lyriko_remote_lyrics',
+    );
+    if (!await directory.exists()) return const [];
+    final songs = <SyncedLyricsSong>[];
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is! File || !entity.path.toLowerCase().endsWith('.json')) {
+        continue;
+      }
+      try {
+        final song = await loadSong(entity.path);
+        if (song.lines.isNotEmpty) songs.add(song);
+      } catch (_) {
+        // Ignore partial/obsolete cache files.
+      }
+    }
+    songs.sort((a, b) {
+      final artist = a.artist.toLowerCase().compareTo(b.artist.toLowerCase());
+      return artist != 0 ? artist : a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
+    return songs;
+  }
+
   Future<List<SyncedLyricsSong>> _loadMacOSRemoteLibrary() async {
     final entries = await _server.songs();
     final directory = Directory(

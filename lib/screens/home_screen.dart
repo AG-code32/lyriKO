@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,7 @@ import 'add_song_screen.dart';
 import 'lyrics_edit_screen.dart';
 import 'song_preview_screen.dart';
 import 'server_settings_screen.dart';
+import 'music_library_screen.dart';
 import 'synced_lyrics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -61,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _listenAnimation;
 
   List<SyncedLyricsSong> _songs = [];
+  final ValueNotifier<List<SyncedLyricsSong>> _librarySongs = ValueNotifier([]);
+  final ValueNotifier<bool> _libraryLoading = ValueNotifier(true);
   final LyrikoServerClient _server = LyrikoServerClient();
   final MacOSAudioRecognitionService _macAudio = MacOSAudioRecognitionService();
   bool _remoteLibraryMode = false;
@@ -92,7 +96,21 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _initialize() async {
-    await _loadLibrary();
+    if (Platform.isMacOS) {
+      // Show existing downloaded songs first, then refresh independently.
+      try {
+        final cached = await _lyricsService.loadCachedMacLibrary();
+        if (mounted && cached.isNotEmpty) {
+          setState(() => _songs = cached);
+          _librarySongs.value = cached;
+        }
+      } catch (error) {
+        debugPrint('LyriKO cached library unavailable: $error');
+      }
+      unawaited(_loadLibrary());
+    } else {
+      await _loadLibrary();
+    }
 
     if (Platform.isWindows) {
       // Windows Media Session is optional. If it is available, it becomes
@@ -129,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _loadLibrary() async {
+    _libraryLoading.value = true;
     try {
       final remoteMode = Platform.isIOS && await _server.isConfigured();
       final songs = await _lyricsService.loadLibrary();
@@ -143,6 +162,8 @@ class _HomeScreenState extends State<HomeScreen>
 
         _loadingLibrary = false;
       });
+      _librarySongs.value = songs;
+      _libraryLoading.value = false;
     } catch (e) {
       if (!mounted) {
         return;
@@ -153,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen>
 
         _error = e.toString();
       });
+      _libraryLoading.value = false;
     }
   }
 
@@ -496,6 +518,7 @@ class _HomeScreenState extends State<HomeScreen>
   static const MethodChannel _iosProbeChannel = MethodChannel(
     'lyriko/ios_audio_probe',
   );
+
 
   /// Load the same Windows-published acoustic catalog used by macOS.
   /// ShazamKit still matches audio locally on the iPhone.
@@ -909,6 +932,28 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _openMusicLibrary() async {
+    // Show the cached library immediately. Refresh is available in the
+    // library screen and mutations continue to reload their data.
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => MusicLibraryScreen(
+          songs: _songs,
+          songsListenable: _librarySongs,
+          loadingListenable: _libraryLoading,
+          remoteLibraryMode: _remoteLibraryMode,
+          onAddSong: _openAddSong,
+          onPreview: _openPreview,
+          onEdit: _openEditor,
+          onDelete: _deleteSong,
+          onReload: _loadLibrary,
+          currentSongs: () => _songs,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openAddSong() async {
     if (_remoteLibraryMode) return;
     if (_listening) {
@@ -966,7 +1011,8 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    await _loadLibrary();
+    // Retain the existing library snapshot when returning from preview.
+    // Explicit refresh or a lyrics mutation will reconcile remote changes.
   }
 
   //
@@ -984,7 +1030,8 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    await _loadLibrary();
+    // Keep cached entries available when returning from the editor;
+    // refresh manually if metadata was edited. No 207-song reload here.
   }
 
   Future<void> _deleteSong(SyncedLyricsSong song) async {
@@ -1115,6 +1162,8 @@ class _HomeScreenState extends State<HomeScreen>
     _stopRequested = true;
 
     _listenAnimation.dispose();
+    _librarySongs.dispose();
+    _libraryLoading.dispose();
 
     if (Platform.isWindows) {
       _captureService.stopContinuousCapture();
@@ -1316,88 +1365,34 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
 
-                  const SizedBox(height: 48),
-
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final mobile = constraints.maxWidth < 600;
-
-                      final heading = const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Your Songs',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            'Preview or edit synchronization visually',
-                            style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      );
-
-                      final addButton = FilledButton.icon(
-                        onPressed: (_listening || _remoteLibraryMode)
-                            ? null
-                            : _openAddSong,
-                        icon: const Icon(Icons.add_rounded),
-                        label: const Text('ADD SONG'),
-                      );
-
-                      if (mobile) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            heading,
-                            const SizedBox(height: 14),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: addButton,
-                            ),
-                          ],
-                        );
-                      }
-
-                      return Row(
-                        children: [
-                          Expanded(child: heading),
-                          addButton,
-                        ],
-                      );
-                    },
+                  const SizedBox(height: 52),
+                  Card(
+                    color: const Color(0xFF17151C),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 13,
+                      ),
+                      leading: const Icon(Icons.library_music_rounded,
+                          size: 32, color: Color(0xFFD4BAFF)),
+                      title: const Text('Music Library',
+                          style: TextStyle(fontSize: 19,
+                              fontWeight: FontWeight.bold)),
+                      subtitle: Text(_loadingLibrary
+                          ? 'Loading songs...'
+                          : '${_songs.length} synced songs · Preview & edit'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: _openMusicLibrary,
+                    ),
                   ),
 
-                  const SizedBox(height: 20),
-
-                  if (_loadingLibrary)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(30),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  else if (_songs.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(30),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Text(
-                        'No synchronized songs yet.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white38),
-                      ),
-                    )
-                  else
-                    ..._songs.map(_buildSongCard),
+                  if (Platform.isMacOS && !_listening) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _checkNewAcousticReferences,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('CHECK NEW SONG REFERENCES'),
+                    ),
+                  ],
 
                   if (_error != null) ...[
                     const SizedBox(height: 20),
@@ -1418,6 +1413,60 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _checkNewAcousticReferences() async {
+    if (!Platform.isMacOS || _listening) return;
+    try {
+      final serverUrl = await _server.getBaseUrl();
+      final token = await _server.getAuthToken();
+      if (serverUrl.isEmpty || token.isEmpty) {
+        throw StateError('Configure the server URL and token first.');
+      }
+      if (!mounted) return;
+      final report = await const MethodChannel('lyriko/macos_audio_recognition')
+          .invokeMethod<String>('diagnoseReferences', <String, String>{
+        'serverUrl': serverUrl,
+        'token': token,
+      });
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Acoustic reference check'),
+          content: SingleChildScrollView(
+            child: SelectableText(report ?? 'No diagnostic result'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Clipboard.setData(
+                ClipboardData(text: report ?? ''),
+              ),
+              child: const Text('COPY RESULT'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Acoustic reference check failed'),
+          content: SelectableText(error.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildSongCard(SyncedLyricsSong song) {
