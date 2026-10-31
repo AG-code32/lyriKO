@@ -16,6 +16,7 @@ import 'lyrics_edit_screen.dart';
 import 'song_preview_screen.dart';
 import 'server_settings_screen.dart';
 import 'music_library_screen.dart';
+import 'my_music_screen.dart';
 import 'synced_lyrics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -68,6 +69,11 @@ class _HomeScreenState extends State<HomeScreen>
   final LyrikoServerClient _server = LyrikoServerClient();
   final MacOSAudioRecognitionService _macAudio = MacOSAudioRecognitionService();
   bool _remoteLibraryMode = false;
+  final ValueNotifier<MusicPlaybackSnapshot?> _musicPlayback = ValueNotifier(null);
+  bool _musicVisible = false;
+  final Stream<int> _miniClockTicks = Stream<int>.periodic(
+    const Duration(milliseconds: 250), (tick) => tick).asBroadcastStream();
+
 
   FingerprintEngineInfo? _engineInfo;
 
@@ -106,6 +112,19 @@ class _HomeScreenState extends State<HomeScreen>
         }
       } catch (error) {
         debugPrint('LyriKO cached library unavailable: $error');
+      }
+      unawaited(_loadLibrary());
+    } else if (Platform.isIOS) {
+      // Show downloaded songs immediately, refresh online without blocking Home.
+      try {
+        final cached = await _lyricsService.loadCachedIOSLibrary();
+        if (mounted && cached.isNotEmpty) {
+          setState(() => _songs = cached);
+          _librarySongs.value = cached;
+          _loadingLibrary = false;
+        }
+      } catch (error) {
+        debugPrint('LyriKO iOS cached library unavailable: $error');
       }
       unawaited(_loadLibrary());
     } else {
@@ -164,6 +183,8 @@ class _HomeScreenState extends State<HomeScreen>
       });
       _librarySongs.value = songs;
       _libraryLoading.value = false;
+      // Warm the small ID index once; My Music reuses this in memory.
+      unawaited(MyMusicScreen.preloadCatalog());
     } catch (e) {
       if (!mounted) {
         return;
@@ -932,6 +953,16 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _openMyMusic() async {
+    if (_listening) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Stop DISCOVER before opening MY MUSIC.')),
+      );
+      return;
+    }
+    if (mounted) setState(() => _musicVisible = true);
+  }
+
   Future<void> _openMusicLibrary() async {
     // Show the cached library immediately. Refresh is available in the
     // library screen and mutations continue to reload their data.
@@ -1170,6 +1201,7 @@ class _HomeScreenState extends State<HomeScreen>
       _fingerprintService.dispose();
     }
 
+    _musicPlayback.dispose();
     super.dispose();
   }
 
@@ -1227,8 +1259,10 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF080808),
-      body: SafeArea(
-        child: Center(
+      body: Stack(children: [
+        Offstage(
+          offstage: _musicVisible,
+          child: SafeArea(child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1000),
             child: SingleChildScrollView(
@@ -1385,14 +1419,23 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
 
-                  if (Platform.isMacOS && !_listening) ...[
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _checkNewAcousticReferences,
-                      icon: const Icon(Icons.fact_check_outlined),
-                      label: const Text('CHECK NEW SONG REFERENCES'),
+                  const SizedBox(height: 12),
+                  Card(
+                    color: const Color(0xFF17151C),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 13,
+                      ),
+                      leading: const Icon(Icons.headphones_rounded,
+                          size: 32, color: Color(0xFFD4BAFF)),
+                      title: const Text('MY MUSIC',
+                          style: TextStyle(fontSize: 19,
+                              fontWeight: FontWeight.bold)),
+                      subtitle: const Text('Private player · Grouped by artist'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: _openMyMusic,
                     ),
-                  ],
+                  ),
 
                   if (_error != null) ...[
                     const SizedBox(height: 20),
@@ -1410,176 +1453,66 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
+        )),
         ),
-      ),
-    );
-  }
-
-  Future<void> _checkNewAcousticReferences() async {
-    if (!Platform.isMacOS || _listening) return;
-    try {
-      final serverUrl = await _server.getBaseUrl();
-      final token = await _server.getAuthToken();
-      if (serverUrl.isEmpty || token.isEmpty) {
-        throw StateError('Configure the server URL and token first.');
-      }
-      if (!mounted) return;
-      final report = await const MethodChannel('lyriko/macos_audio_recognition')
-          .invokeMethod<String>('diagnoseReferences', <String, String>{
-        'serverUrl': serverUrl,
-        'token': token,
-      });
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Acoustic reference check'),
-          content: SingleChildScrollView(
-            child: SelectableText(report ?? 'No diagnostic result'),
+        Offstage(
+          offstage: !_musicVisible,
+          child: MyMusicScreen(
+            songsListenable: _librarySongs,
+            nowPlaying: _musicPlayback,
+            onExit: () { if (mounted) setState(() => _musicVisible = false); },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Clipboard.setData(
-                ClipboardData(text: report ?? ''),
-              ),
-              child: const Text('COPY RESULT'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('OK'),
-            ),
-          ],
         ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Acoustic reference check failed'),
-          content: SelectableText(error.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  Widget _buildSongCard(SyncedLyricsSong song) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final mobile = constraints.maxWidth < 600;
-
-        final info = Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: mobile ? 42 : 48,
-              height: mobile ? 42 : 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.music_note_rounded),
-            ),
-            SizedBox(width: mobile ? 12 : 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    song.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    song.artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white54, fontSize: 13),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${song.lines.length} lyric lines',
-                    style: const TextStyle(color: Colors.white24, fontSize: 11),
-                  ),
-                  if (song.hasManualCalibration)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        '${song.manualCalibrationCount} manually adjusted lines',
-                        style: const TextStyle(
-                          color: Colors.greenAccent,
-                          fontSize: 10,
+        if (!_musicVisible)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ValueListenableBuilder<MusicPlaybackSnapshot?>(
+              valueListenable: _musicPlayback,
+              builder: (context, snapshot, _) {
+                if (snapshot == null) return const SizedBox.shrink();
+                // iOS can suspend Flutter's position events while native audio
+                // continues. Refresh the mini player's clock independently.
+                return StreamBuilder<int>(
+                  stream: _miniClockTicks,
+                  builder: (context, _) => SafeArea(
+                  top: false,
+                  child: Card(
+                    margin: const EdgeInsets.all(12),
+                    color: const Color(0xFF29232F),
+                    child: ListTile(
+                      onTap: () {
+                        MyMusicScreen.showLyricsCommand?.call();
+                        setState(() => _musicVisible = true);
+                      },
+                      leading: const Icon(Icons.music_note_rounded),
+                      title: Text(snapshot.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      subtitle: Text('${snapshot.artist}  ·  ${_musicTime(snapshot.displayedPosition)} / ${_musicTime(snapshot.duration)}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                        IconButton(
+                          icon: const Icon(Icons.skip_previous_rounded),
+                          onPressed: () => MyMusicScreen.playbackCommand?.call('previous'),
                         ),
-                      ),
+                        IconButton(
+                          icon: Icon(snapshot.playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                          onPressed: () => MyMusicScreen.playbackCommand?.call('toggle'),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.skip_next_rounded),
+                          onPressed: () => MyMusicScreen.playbackCommand?.call('next'),
+                        ),
+                      ]),
                     ),
-                ],
-              ),
-            ),
-          ],
-        );
-
-        final actions = Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: mobile ? WrapAlignment.start : WrapAlignment.end,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _openPreview(song),
-              icon: const Icon(Icons.play_arrow_rounded, size: 18),
-              label: const Text('PREVIEW'),
-            ),
-            FilledButton.tonalIcon(
-              onPressed: () => _openEditor(song),
-              icon: const Icon(Icons.timeline_rounded, size: 18),
-              label: const Text('EDIT'),
-            ),
-            IconButton(
-              tooltip: 'Delete song',
-              onPressed: _remoteLibraryMode ? null : () => _deleteSong(song),
-              icon: const Icon(Icons.delete_outline_rounded),
-              color: Colors.white38,
-            ),
-          ],
-        );
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: EdgeInsets.fromLTRB(
-            mobile ? 14 : 20,
-            15,
-            mobile ? 12 : 10,
-            15,
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFF121212),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          child: mobile
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [info, const SizedBox(height: 14), actions],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: info),
-                    const SizedBox(width: 16),
-                    actions,
-                  ],
+                  ),
                 ),
-        );
-      },
+                );
+              },
+            ),
+          ),
+      ]),
     );
   }
+
+  String _musicTime(Duration value) =>
+    '${value.inMinutes}:${(value.inSeconds % 60).toString().padLeft(2, '0')}';
 }

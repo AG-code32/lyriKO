@@ -237,6 +237,15 @@ class LyrikoServerClient {
       _request('PATCH', '/api/imported-audio/${Uri.encodeComponent(id)}/metadata',
           body: {'title': title, 'artist': artist});
 
+  Future<Map<String, dynamic>> updateImportedMetadataFields(
+          String id, Map<String, dynamic> fields) =>
+      _request('PATCH', '/api/imported-audio/${Uri.encodeComponent(id)}/metadata', body: fields);
+
+  /// Save manually supplied lyrics against an existing imported MP3.
+  Future<Map<String, dynamic>> addManualImportedLyrics(String id, String text) =>
+      _request('POST', '/api/imported-audio/${Uri.encodeComponent(id)}/lyrics-manual',
+          body: {'text': text});
+
   Future<Map<String, dynamic>> previewImportedLyrics(String id) =>
       _request('GET', '/api/imported-audio/${Uri.encodeComponent(id)}/lyrics-preview');
 

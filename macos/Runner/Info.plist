@@ -23,7 +23,7 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSAppDataUsageDescription</key>
-	<string></string>
+	<string>LyriKO stores music library metadata, synchronized lyrics and playback preferences on this Mac.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Lyriko reads the current track from Spotify or Apple Music to display synchronized lyrics.</string>
 	<key>NSHumanReadableCopyright</key>

@@ -47,7 +47,6 @@ class TimelineLyricLine {
 
   bool get isInstrumental =>
       data['lineType'] == 'instrumental' ||
-      data['manualLine'] == true ||
       text.trim() == '♪';
 
   bool get isCalibrated =>

@@ -5,6 +5,7 @@ import CoreMedia
 import AudioToolbox
 import AVFoundation
 import AVKit
+import MediaPlayer
 import ShazamKit
 
 @main
@@ -21,6 +22,33 @@ import ShazamKit
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    // LYRIKO_SCREEN_AWAKE_CHANNEL_V1
+    // Register on the active Flutter engine, and report actual UIKit state.
+    let awakeRegistrar = engineBridge.pluginRegistry.registrar(forPlugin: "LyrikoScreenAwake")!
+    let awakeChannel = FlutterMethodChannel(
+      name: "lyriko/screen_awake", binaryMessenger: awakeRegistrar.messenger())
+    awakeChannel.setMethodCallHandler { call, result in
+      guard call.method == "enable" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      DispatchQueue.main.async {
+        UIApplication.shared.isIdleTimerDisabled = true
+        result(UIApplication.shared.isIdleTimerDisabled)
+      }
+    }
+    // Shared iOS Now Playing/lock screen and Bluetooth remote controls.
+    let mediaRegistrar = engineBridge.pluginRegistry.registrar(forPlugin: "LyrikoMediaControls")!
+    let mediaChannel = FlutterMethodChannel(name: "lyriko/media_controls", binaryMessenger: mediaRegistrar.messenger())
+    LyrikoMediaControls.shared.register(mediaChannel)
+    mediaChannel.setMethodCallHandler { call, result in
+      if call.method == "update", let values = call.arguments as? [String: Any] {
+        LyrikoMediaControls.shared.update(values)
+        result(nil)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     // Isolated iOS PiP feasibility test. Recognition channels remain unchanged.
     let pipPrototype = IOSLyricsVideoPiPTest()
@@ -1286,34 +1314,26 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
     let image = renderer.image { ctx in
       UIColor(red: 0.055, green: 0.045, blue: 0.11, alpha: 1).setFill()
       ctx.fill(CGRect(origin: .zero, size: size))
-      func draw(_ value: String, y: CGFloat, height: CGFloat, fontSize: CGFloat,
-                color: UIColor, weight: UIFont.Weight) {
-        guard !value.isEmpty else { return }
+      func draw(_ value: String, y: CGFloat, fontSize: CGFloat, color: UIColor, weight: UIFont.Weight) {
         let style = NSMutableParagraphStyle()
         style.alignment = .center
-        style.lineBreakMode = .byWordWrapping
+        style.lineBreakMode = .byTruncatingTail
         let attributes: [NSAttributedString.Key: Any] = [
           .font: UIFont.systemFont(ofSize: fontSize, weight: weight),
           .foregroundColor: color, .paragraphStyle: style
         ]
-        let rect = CGRect(x: 18, y: y, width: 284, height: height)
+        let rect = CGRect(x: 18, y: y, width: 284, height: 38)
         (value as NSString).draw(in: rect, withAttributes: attributes)
       }
-      draw(heading, y: 10, height: 22, fontSize: 11,
-           color: UIColor.white.withAlphaComponent(0.72), weight: .medium)
-      draw(previous, y: 43, height: 31, fontSize: 12,
-           color: UIColor.white.withAlphaComponent(0.44), weight: .regular)
-      draw(current, y: 76, height: 62, fontSize: 19,
-           color: .white, weight: .bold)
-      draw(next, y: 143, height: 32, fontSize: 12,
-           color: UIColor.white.withAlphaComponent(0.44), weight: .regular)
+      draw(heading, y: 12, fontSize: 11, color: UIColor.white.withAlphaComponent(0.72), weight: .medium)
+      draw(previous, y: 56, fontSize: 13, color: UIColor.white.withAlphaComponent(0.42), weight: .regular)
+      draw(current, y: 87, fontSize: 18, color: .white, weight: .bold)
+      draw(next, y: 131, fontSize: 13, color: UIColor.white.withAlphaComponent(0.42), weight: .regular)
     }
     guard let cg = image.cgImage else { return }
-    // The AVVideoComposition render pipeline displays the previous overlay
-    // rotated by 180 degrees (both axes inverted) on the iPhone. Correct that
-    // orientation in CI space without changing the H.264 video track or PiP.
+    // UIKit images are top-left origin; CI video frames are bottom-left.
     let frame = CIImage(cgImage: cg)
-      .transformed(by: CGAffineTransform(translationX: size.width, y: 0).scaledBy(x: -1, y: 1))
+      .transformed(by: CGAffineTransform(translationX: 0, y: size.height).scaledBy(x: 1, y: -1))
     lyricsLock.lock()
     lyricsFrame = frame
     lyricsLock.unlock()
@@ -2618,5 +2638,57 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   func pictureInPictureController(_ pip: AVPictureInPictureController,
     restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
     completionHandler(true)
+  }
+}
+
+
+// Keeps the system's media controls pointed at the one Flutter music session.
+private final class LyrikoMediaControls {
+  static let shared = LyrikoMediaControls()
+  private var channel: FlutterMethodChannel?
+  private var configured = false
+  private var sessionConfigured = false
+
+  func register(_ channel: FlutterMethodChannel) {
+    self.channel = channel
+    guard !configured else { return }
+    configured = true
+    let commands = MPRemoteCommandCenter.shared()
+    commands.playCommand.addTarget { [weak self] _ in self?.send("play"); return .success }
+    commands.pauseCommand.addTarget { [weak self] _ in self?.send("pause"); return .success }
+    commands.togglePlayPauseCommand.addTarget { [weak self] _ in self?.send("toggle"); return .success }
+    commands.nextTrackCommand.addTarget { [weak self] _ in self?.send("next"); return .success }
+    commands.previousTrackCommand.addTarget { [weak self] _ in self?.send("previous"); return .success }
+  }
+
+  private func send(_ name: String) {
+    DispatchQueue.main.async { self.channel?.invokeMethod(name, arguments: nil) }
+  }
+
+  func update(_ values: [String: Any]) {
+    DispatchQueue.main.async {
+      if !self.sessionConfigured {
+        do {
+          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+          try AVAudioSession.sharedInstance().setActive(true)
+          self.sessionConfigured = true
+        } catch {
+          NSLog("LyriKO audio session error: %@", error.localizedDescription)
+        }
+      }
+      let playing = values["playing"] as? Bool ?? false
+      var info: [String: Any] = [
+        MPMediaItemPropertyTitle: values["title"] as? String ?? "LyriKO",
+        MPMediaItemPropertyArtist: values["artist"] as? String ?? "",
+        MPNowPlayingInfoPropertyElapsedPlaybackTime: values["position"] as? Double ?? 0,
+        MPNowPlayingInfoPropertyPlaybackRate: playing ? 1.0 : 0.0,
+      ]
+      let duration = values["duration"] as? Double ?? 0
+      if duration > 0 { info[MPMediaItemPropertyPlaybackDuration] = duration }
+      MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+      if #available(iOS 13.0, *) {
+        MPNowPlayingInfoCenter.default().playbackState = playing ? .playing : .paused
+      }
+    }
   }
 }

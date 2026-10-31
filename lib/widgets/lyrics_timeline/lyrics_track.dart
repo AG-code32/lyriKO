@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/timeline_lyric_line.dart';
 import 'lyric_clip.dart';
@@ -57,6 +58,8 @@ class LyricsTrack extends StatefulWidget {
     DragUpdateDetails details,
   ) onResizeRight;
 
+  final void Function(int index, String edge)? onDoubleTapEdge;
+
   const LyricsTrack({
     super.key,
     required this.width,
@@ -77,6 +80,7 @@ class LyricsTrack extends StatefulWidget {
     required this.onMoveEnd,
     required this.onResizeLeft,
     required this.onResizeRight,
+    this.onDoubleTapEdge,
   });
 
   @override
@@ -391,12 +395,18 @@ class _LyricsTrackState
                                 .hoveredIndex ==
                             i,
 
-                    onTap:
-                        () =>
-                            widget
-                                .onSelect(
-                      i,
-                    ),
+                    onTap: () {
+                      final keys = HardwareKeyboard.instance;
+                      if (keys.isShiftPressed || keys.isControlPressed || keys.isMetaPressed) {
+                        final selected = Set<int>.from(widget.selectedIndices);
+                        if (keys.isShiftPressed && selected.isNotEmpty) {
+                          final sorted = selected.toList()..sort();
+                          for (var j = math.min(sorted.first, i);
+                              j <= math.max(sorted.first, i); j++) { selected.add(j); }
+                        } else if (!selected.add(i)) { selected.remove(i); }
+                        widget.onSelectionChanged(selected);
+                      } else { widget.onSelect(i); }
+                    },
 
                     onEnter:
                         (_) =>
@@ -421,6 +431,9 @@ class _LyricsTrackState
                     onMoveEnd: (_) {
                       if (!_marqueeActive) widget.onMoveEnd();
                     },
+
+                    onDoubleTapLeft: () => widget.onDoubleTapEdge?.call(i, 'start'),
+                    onDoubleTapRight: () => widget.onDoubleTapEdge?.call(i, 'end'),
 
                     onResizeLeft:
                         (

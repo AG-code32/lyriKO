@@ -34,6 +34,9 @@ class LyricClip extends StatelessWidget {
   final GestureDragUpdateCallback
       onResizeRight;
 
+  final VoidCallback? onDoubleTapLeft;
+  final VoidCallback? onDoubleTapRight;
+
   const LyricClip({
     super.key,
     required this.line,
@@ -47,6 +50,8 @@ class LyricClip extends StatelessWidget {
     required this.onMoveEnd,
     required this.onResizeLeft,
     required this.onResizeRight,
+    this.onDoubleTapLeft,
+    this.onDoubleTapRight,
   });
 
   @override
@@ -160,6 +165,7 @@ class LyricClip extends StatelessWidget {
                         HitTestBehavior.opaque,
                     onHorizontalDragUpdate:
                         onResizeLeft,
+                    onDoubleTap: onDoubleTapLeft,
                     child:
                         _ResizeHandle(
                       left: true,
@@ -227,6 +233,7 @@ class LyricClip extends StatelessWidget {
                         HitTestBehavior.opaque,
                     onHorizontalDragUpdate:
                         onResizeRight,
+                    onDoubleTap: onDoubleTapRight,
                     child:
                         _ResizeHandle(
                       left: false,

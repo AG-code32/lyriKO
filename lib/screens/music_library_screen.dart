@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/lyriko_server_client.dart';
+import 'library_layouts/library_mac_layout.dart';
+import 'library_layouts/library_ios_layout.dart';
+import 'library_processing_session.dart';
 
 /// Library presentation only. Song operations remain owned by HomeScreen,
 /// preserving existing editor, preview, deletion and recognition behavior.
@@ -38,6 +41,9 @@ class MusicLibraryScreen extends StatefulWidget {
 
 class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
   String _query = '';
+  int _section = 0; // 0 pending, 1 review, 2 completed
+  final Map<String, String> _reviewReasons = {};
+  final Set<String> _inFlight = {};
   bool _busy = false;
   late List<SyncedLyricsSong> _songs;
   final LyrikoServerClient _server = LyrikoServerClient();
@@ -49,18 +55,45 @@ class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
   bool _processingBatch = false;
   int _batchCompleted = 0;
   int _batchTotal = 0;
+  int? _selectionAnchor;
+  bool _updatingArtists = false;
   final List<String> _batchFailures = [];
+  final LibraryProcessingSession _job = LibraryProcessingSession.instance;
+
+  bool _wasJobRunning = false;
+  void _onJobChange() {
+    if (mounted) {
+      final justFinished = _wasJobRunning && !_job.running;
+      _wasJobRunning = _job.running;
+      setState(() {
+        _processingBatch = _job.running;
+        _batchCompleted = _job.completed;
+        _batchTotal = _job.total;
+        _reviewReasons..clear()..addAll(_job.failures);
+        _selectedImports.removeAll(_job.completedIds);
+      });
+      if (justFinished) {
+        _reloadImports();
+      }
+    }
+  }
+
 
 
   @override
   void initState() {
     super.initState();
     _songs = widget.songs;
+    _job.addListener(_onJobChange);
+    _processingBatch = _job.running;
+    _wasJobRunning = _job.running;
+    _batchCompleted = _job.completed;
+    _batchTotal = _job.total;
+    _reviewReasons.addAll(_job.failures);
+    _job.restore();
     widget.songsListenable.addListener(_syncSongs);
-    if (defaultTargetPlatform == TargetPlatform.macOS) {
-      _reloadImports();
-      _loadInbox();
-    }
+    _reloadImports();
+    _loadInbox();
   }
 
   void _syncSongs() {
@@ -69,6 +102,7 @@ class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
 
   @override
   void dispose() {
+    _job.removeListener(_onJobChange);
     widget.songsListenable.removeListener(_syncSongs);
     super.dispose();
   }
@@ -128,76 +162,112 @@ class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
     }
   }
 
+  // Shift-click selects a continuous range in the current visible order.
+  void _toggleImportSelection(int index, List<Map<String, dynamic>> visible) {
+    if (index < 0 || index >= visible.length || _processingBatch) return;
+    final id = (visible[index]['id'] ?? '').toString();
+    if (id.isEmpty) return;
+    final shift = HardwareKeyboard.instance.isShiftPressed;
+    setState(() {
+      if (shift && _selectionAnchor != null && visible.isNotEmpty) {
+        final start = _selectionAnchor!.clamp(0, visible.length - 1);
+        final low = start < index ? start : index;
+        final high = start > index ? start : index;
+        for (var i = low; i <= high; i++) {
+          final row = visible[i];
+          if (row['lyricsReady'] != true) {
+            final rowId = (row['id'] ?? '').toString();
+            if (rowId.isNotEmpty) _selectedImports.add(rowId);
+          }
+        }
+      } else {
+        if (!_selectedImports.add(id)) _selectedImports.remove(id);
+      }
+      _selectionAnchor = index;
+    });
+  }
+
+  bool _looksLikeTrackNumber(String value) =>
+      RegExp(r'^\s*\d{1,3}\s*$').hasMatch(value);
+
+  Future<void> _editSelectedArtist() async {
+    if (_selectedImports.isEmpty || _processingBatch || _updatingArtists) return;
+    final artistController = TextEditingController();
+    final count = _selectedImports.length;
+    final proposed = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Set artist for $count tracks'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('This changes only the artist field. Titles, audio and lyrics remain unchanged.'),
+          const SizedBox(height: 12),
+          TextField(controller: artistController, autofocus: true,
+            decoration: const InputDecoration(labelText: 'Artist name')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, artistController.text.trim()),
+            child: const Text('UPDATE')),
+        ],
+      ),
+    );
+    artistController.dispose();
+    if (!mounted || proposed == null || proposed.isEmpty) return;
+    setState(() => _updatingArtists = true);
+    var success = 0;
+    final errors = <String>[];
+    final selected = _selectedImports.toList();
+    // Preserve existing titles, never attempt lyric lookups during metadata edits.
+    final byId = {for (final row in _imports) (row['id'] ?? '').toString(): row};
+    for (final id in selected) {
+      final row = byId[id];
+      if (row == null) {
+        errors.add('$id: missing from server index');
+        continue;
+      }
+      final title = (row['title'] ?? '').toString().trim();
+      if (title.isEmpty) {
+        errors.add('$id: missing title');
+        continue;
+      }
+      try {
+        await _server.updateImportedMetadata(id, title, proposed);
+        success++;
+      } catch (e) {
+        errors.add('$id: $e');
+      }
+    }
+    if (mounted) setState(() {
+      _updatingArtists = false;
+      for (final id in selected) {
+        if (!errors.any((err) => err.startsWith('$id:'))) _selectedImports.remove(id);
+      }
+    });
+    await _reloadImports();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+      'Artist updated for $success / $count tracks. ${errors.length} failed.')));
+  }
+
   Future<void> _lookupBatch() async {
-    if (_selectedImports.isEmpty || _processingBatch) return;
+    if (_selectedImports.isEmpty || _job.running) return;
     final ids = _selectedImports.toList();
     final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
       title: Text('Find lyrics for ${ids.length} songs?'),
-      content: const Text('Only matching synchronized lyrics will be saved. Failed or ambiguous tracks remain pending. Please verify each recording later in Preview.'),
+      content: const Text('Tracks are processed individually. Failures remain available for review. You can leave Music Library and return without interrupting the job.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
         FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('START')),
       ],
     ));
     if (confirm != true || !mounted) return;
-    setState(() { _processingBatch = true; _batchCompleted = 0; _batchTotal = ids.length; _batchFailures.clear(); });
-    final processed = <String>[];
-    for (final id in ids) {
-      if (!mounted) break;
-      try {
-        final song = _imports.firstWhere((e) => e['id'].toString() == id,
-          orElse: () => _newArrivals.firstWhere((e) => e['id'].toString() == id));
-        if ((song['lyricsReady'] == true)) {
-          processed.add(id);
-        } else {
-          String title = (song['title'] ?? '').toString().replaceFirst(RegExp(r'^\s*\d{1,3}\s*[-._ ]+\s*'), '').trim();
-          String artist = (song['artist'] ?? '').toString().trim();
-          if (artist.isEmpty) {
-            final suggestion = await _server.importedMetadataSuggestion(id);
-            artist = (suggestion['artist'] ?? '').toString().trim();
-          }
-          if (artist.isEmpty || title.isEmpty) throw StateError('Artist or title unresolved');
-          await _server.updateImportedMetadata(id, title, artist);
-          final preview = await _server.previewImportedLyrics(id);
-          final providerId = (preview['providerId'] as num?)?.toInt();
-          if (providerId == null || (preview['lineCount'] as num? ?? 0) < 2) {
-            throw StateError('No reliable timed lyrics');
-          }
-          await _server.approveImportedLyrics(id, providerId);
-          processed.add(id);
-        }
-      } catch (error) {
-        _batchFailures.add('$id: $error');
-      }
-      if (mounted) setState(() => _batchCompleted++);
-    }
-    try {
-      if (processed.isNotEmpty) {
-        await widget.onReload();
-        // Do not acknowledge imported audio until recognition is registered.
-        // This keeps a failed song in Pending so it can be retried.
-        final published = await _refreshAcousticCatalog();
-        if (published != null) {
-          await _server.acknowledgeImportedAudio(processed);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
-              'Acoustic catalog published: $published references.')));
-          }
-        } else {
-          throw StateError('Acoustic catalog was not confirmed. Imported audio remains pending for retry.');
-        }
-      }
-      await _reloadImports();
-      await _loadInbox();
-    } catch (error) {
-      _batchFailures.add('Refresh: $error');
-    } finally {
-      if (mounted) {
-        setState(() { _processingBatch = false; if (!_batchFailures.any((e) => e.startsWith('Refresh:'))) _selectedImports.removeAll(processed); });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
-          '${processed.length} completed · ${_batchFailures.length} need review')));
-      }
-    }
+    // The singleton owns the future and does not depend on this route staying mounted.
+    _job.start(
+      ids: ids,
+      imports: [..._imports, ..._newArrivals],
+      reloadLibrary: widget.onReload,
+      currentSongs: widget.currentSongs,
+    );
   }
 
   Future<void> _importFolder() async {
@@ -301,7 +371,8 @@ class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
     final titleController = TextEditingController(text: suggestedTitle);
     var suggestedArtist = entry['artist']?.toString() ?? '';
     var suggestionSource = '';
-    if (suggestedArtist.trim().isEmpty) {
+    if (suggestedArtist.trim().isEmpty || _looksLikeTrackNumber(suggestedArtist)) {
+      suggestedArtist = '';
       setState(() => _busy = true);
       try {
         final suggestion = await _server.importedMetadataSuggestion(entry['id'].toString());
@@ -372,6 +443,7 @@ class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
       );
       if (approved == true && providerId != null) {
         await _server.approveImportedLyrics(id, providerId);
+        _job.resolveFailure(id);
         await widget.onReload();
         if (mounted) setState(() => _songs = widget.currentSongs());
         // Surface registration failure instead of silently claiming readiness.
@@ -389,235 +461,391 @@ class _MusicLibraryScreenState extends State<MusicLibraryScreen> {
     }
   }
 
+  bool get _isMac => defaultTargetPlatform == TargetPlatform.macOS;
+
+  Future<void> _refreshAll() async {
+    if (_busy || _processingBatch) return;
+    await Future.wait([_reloadImports(), _loadInbox(), widget.onReload()]);
+  }
+
+
+  Future<void> _editInfo(Map<String, dynamic> entry) async {
+    final id = (entry['id'] ?? '').toString();
+    final title = TextEditingController(text: (entry['title'] ?? '').toString());
+    final artist = TextEditingController(text: (entry['artist'] ?? '').toString());
+    final album = TextEditingController(text: (entry['album'] ?? '').toString());
+    final year = TextEditingController(text: entry['year']?.toString() ?? '');
+    final genre = TextEditingController(text: (entry['genre'] ?? '').toString());
+    final track = TextEditingController(text: (entry['track_number'] ?? '').toString());
+    final inputs = [title, artist, album, year, genre, track];
+    final values = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit song information'),
+        content: SizedBox(width: 450, child: SingleChildScrollView(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: title, decoration: const InputDecoration(labelText: 'Title')),
+            TextField(controller: artist, decoration: const InputDecoration(labelText: 'Artist')),
+            TextField(controller: album, decoration: const InputDecoration(labelText: 'Album (optional)')),
+            TextField(controller: year, keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Year (optional)')),
+            TextField(controller: genre, decoration: const InputDecoration(labelText: 'Genre (optional)')),
+            TextField(controller: track, keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Track number (optional)')),
+          ],
+        ))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () {
+            final y = year.text.trim();
+            final n = track.text.trim();
+            final parsedYear = int.tryParse(y);
+            final parsedTrack = int.tryParse(n);
+            if (title.text.trim().isEmpty || artist.text.trim().isEmpty ||
+                (y.isNotEmpty && (parsedYear == null || parsedYear < 1850 || parsedYear > 2200)) ||
+                (n.isNotEmpty && (parsedTrack == null || parsedTrack < 1 || parsedTrack > 999))) {
+              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                content: Text('Enter title, artist, and valid optional numbers.')));
+              return;
+            }
+            Navigator.pop(ctx, {
+              'title': title.text.trim(), 'artist': artist.text.trim(),
+              'album': album.text.trim(), 'genre': genre.text.trim(),
+              'year': parsedYear, 'trackNumber': parsedTrack,
+            });
+          }, child: const Text('SAVE')),
+        ],
+      ),
+    );
+    for (final c in inputs) { c.dispose(); }
+    if (values == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await _server.updateImportedMetadataFields(id, values);
+      await _reloadImports();
+      await widget.onReload();
+      if (mounted) setState(() => _songs = widget.currentSongs());
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Metadata saved on Windows server.')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot save metadata: $error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _addManualLyrics(Map<String, dynamic> entry) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Add lyrics · ${entry['title'] ?? ''}'),
+        content: SizedBox(width: 570, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Paste one lyric phrase per line. Times will be provisional; calibrate in Lyrics Timeline afterward.'),
+          const SizedBox(height: 12),
+          TextField(controller: controller, autofocus: true, minLines: 7, maxLines: 14,
+            decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Paste lyrics here…')),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () {
+            if (controller.text.trim().isEmpty) return;
+            Navigator.pop(ctx, controller.text.trim());
+          }, child: const Text('SAVE PROVISIONAL LYRICS')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final id = (entry['id'] ?? '').toString();
+      await _server.addManualImportedLyrics(id, result);
+      _job.resolveFailure(id);
+      await widget.onReload();
+      await _reloadImports();
+      if (mounted) setState(() => _songs = widget.currentSongs());
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Lyrics saved. Open Completed → EDIT to calibrate timings.')));
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot save manual lyrics: $error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restoreReviewToPending(List<Map<String, dynamic>> review) async {
+    if (_job.running || review.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Return to Pending?'),
+        content: Text('Move ${review.length} tracks from Review to Pending? '
+            'This only clears local error markers. No MP3, lyrics, or server records are changed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false),
+              child: const Text('CANCEL')),
+          FilledButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text('MOVE TO PENDING')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final ids = review.map((e) => (e['id'] ?? '').toString())
+        .where((id) => id.isNotEmpty).toSet();
+    _job.returnFailuresToPending(ids);
+    setState(() {
+      _reviewReasons.removeWhere((id, _) => ids.contains(id));
+      _selectedImports.removeAll(ids);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Returned ${ids.length} tracks to Pending')));
+  }
+
+  Widget _importRow(Map<String, dynamic> entry, int index, List<Map<String, dynamic>> visible) {
+    final id = (entry['id'] ?? '').toString();
+    final failed = _reviewReasons[id];
+    final title = (entry['title'] ?? '').toString();
+    final artist = (entry['artist'] ?? '').toString();
+    final ready = entry['lyricsReady'] == true;
+    final shownArtist = _looksLikeTrackNumber(artist) ? 'Artist not assigned' : artist;
+    return InkWell(
+      onTap: !_isMac || ready || _processingBatch || _updatingArtists ? null
+          : () => _toggleImportSelection(index, visible),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        leading: Checkbox(
+          value: _selectedImports.contains(id),
+          onChanged: !_isMac || ready || _processingBatch || _updatingArtists ? null
+              : (_) => _toggleImportSelection(index, visible),
+        ),
+        title: Text(title.isEmpty ? '(Unknown title)' : title,
+          maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text(failed == null
+            ? '$shownArtist · ${entry['album'] ?? ''}'
+            : '$shownArtist · $failed',
+          maxLines: 2, overflow: TextOverflow.ellipsis,
+          style: failed == null ? null : const TextStyle(color: Colors.orangeAccent)),
+        trailing: _isMac ? Wrap(spacing: 2, children: [
+          IconButton(
+            tooltip: 'Edit metadata', icon: const Icon(Icons.tune_rounded),
+            onPressed: _busy || _updatingArtists ? null : () => _editInfo(entry)),
+          IconButton(
+            tooltip: 'Add lyrics manually', icon: const Icon(Icons.edit_note_rounded),
+            onPressed: _busy || _processingBatch ? null : () => _addManualLyrics(entry)),
+          TextButton(
+            onPressed: _processingBatch || _busy || ready || _updatingArtists
+                ? null : () => _findLyrics(entry),
+            child: const Text('FIND LYRICS')),
+        ]) : null,
+      ),
+    );
+  }
+
+  Widget _completedRow(SyncedLyricsSong song) => Card(
+    color: const Color(0xFF151515),
+    margin: const EdgeInsets.only(bottom: 10),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ListTile(
+          leading: const Icon(Icons.music_note_rounded),
+          title: Text(song.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text('${song.artist} · ${song.lines.length} lyric lines'
+              '${song.hasManualCalibration ? ' · ${song.manualCalibrationCount} manually adjusted' : ''}'),
+        ),
+        Wrap(spacing: 8, children: [
+          OutlinedButton.icon(
+            onPressed: _busy ? null : () => _run(() => widget.onPreview(song)),
+            icon: const Icon(Icons.play_arrow_rounded), label: const Text('PREVIEW')),
+          if (_imports.any((entry) => entry['lyricsReady'] == true &&
+              (entry['artist']?.toString().toLowerCase() == song.artist.toLowerCase()) &&
+              (entry['title']?.toString().toLowerCase() == song.title.toLowerCase())))
+            OutlinedButton.icon(
+              onPressed: _busy ? null : () => _editInfo(_imports.firstWhere((entry) =>
+                entry['lyricsReady'] == true &&
+                entry['artist']?.toString().toLowerCase() == song.artist.toLowerCase() &&
+                entry['title']?.toString().toLowerCase() == song.title.toLowerCase())),
+              icon: const Icon(Icons.tune_rounded), label: const Text('EDIT INFO')),
+          FilledButton.tonalIcon(
+            onPressed: _busy ? null : () => _run(() => widget.onEdit(song)),
+            icon: const Icon(Icons.timeline_rounded), label: const Text('EDIT')),
+          IconButton(
+            tooltip: 'Delete song',
+            onPressed: _busy || widget.remoteLibraryMode
+                ? null : () => _run(() => widget.onDelete(song)),
+            icon: const Icon(Icons.delete_outline_rounded)),
+        ]),
+      ]),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final needle = _query.trim().toLowerCase();
-    final filtered = _songs.where((s) =>
+    final completed = _songs.where((s) =>
         s.title.toLowerCase().contains(needle) ||
         s.artist.toLowerCase().contains(needle)).toList();
-    return Scaffold(
-      backgroundColor: const Color(0xFF080808),
-      appBar: AppBar(
-        title: const Text('Music Library'),
-        backgroundColor: const Color(0xFF080808),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh library',
-            onPressed: _busy ? null : () => _run(widget.onReload),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-            children: [
-              Text('${_songs.length} synchronized songs',
-                  style: const TextStyle(color: Colors.white54)),
-              const SizedBox(height: 20),
-              TextField(
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: 'Search title or artist',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  filled: true,
-                  fillColor: const Color(0xFF191919),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.icon(
-                  onPressed: _busy || widget.remoteLibraryMode
-                      ? null : () => _run(widget.onAddSong),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('ADD SONG'),
-                ),
-              ),
-              const SizedBox(height: 18),
-              if (defaultTargetPlatform == TargetPlatform.macOS) ...[
-                Row(children: [
-                  FilledButton.tonalIcon(
-                    onPressed: _loadingImports ? null : _importFolder,
-                    icon: const Icon(Icons.create_new_folder_outlined),
-                    label: const Text('IMPORT FOLDER (WINDOWS)'),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(onPressed: _loadingImports ? null : _reloadImports,
-                    tooltip: 'Refresh imported audio', icon: const Icon(Icons.sync)),
-                ]),
-                if (_loadingImports) const LinearProgressIndicator(minHeight: 2),
-                if (_importError != null) Text('Imported audio unavailable: $_importError',
-                    style: const TextStyle(color: Colors.orangeAccent)),
-                const SizedBox(height: 10),
-                if (_newArrivals.isNotEmpty) Card(
-                  color: const Color(0xFF211B2C),
-                  child: Padding(padding: const EdgeInsets.all(12), child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('NEW MUSIC · ${_newArrivals.length} tracks', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      const Text('Choose tracks or albums to find synchronized lyrics.'),
-                      TextButton(onPressed: _processingBatch ? null : () => setState(() {
-                        if (_selectedImports.length == _newArrivals.length) {
-                          _selectedImports.clear();
-                        } else {
-                          _selectedImports.addAll(_newArrivals.map((e) => e['id'].toString()));
-                        }
-                      }), child: const Text('SELECT / CLEAR ALL')),
-                      for (final album in (_newArrivals.map((e) => (e['album'] ?? '').toString()).toSet().toList()..sort())) ...[
-                        Text(album.isEmpty ? 'Singles / Unknown album' : album,
-                          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
-                        TextButton(onPressed: _processingBatch ? null : () => setState(() {
-                          for (final e in _newArrivals.where((e) => (e['album'] ?? '').toString() == album)) {
-                            _selectedImports.add(e['id'].toString());
-                          }
-                        }), child: const Text('Select album')),
-                        for (final e in _newArrivals.where((e) => (e['album'] ?? '').toString() == album))
-                          CheckboxListTile(
-                            dense: true,
-                            value: _selectedImports.contains(e['id'].toString()),
-                            onChanged: _processingBatch ? null : (v) => setState(() {
-                              if (v == true) { _selectedImports.add(e['id'].toString()); }
-                              else { _selectedImports.remove(e['id'].toString()); }
-                            }),
-                            title: Text(e['title']?.toString() ?? ''),
-                            subtitle: Text(e['artist']?.toString() ?? ''),
-                          ),
-                      ],
-                      Row(children: [
-                        FilledButton(onPressed: _processingBatch || _selectedImports.isEmpty ? null : _lookupBatch,
-                          child: Text('FIND LYRICS (${_selectedImports.length})')),
-                        const SizedBox(width: 8),
-                        TextButton(onPressed: _processingBatch || _selectedImports.isEmpty ? null : _dismissSelected,
-                          child: const Text('LATER / DISMISS')),
-                      ]),
-                    ],
-                  )),
-                ),
-                if (_processingBatch) ...[
-                  Text('Processing $_batchCompleted / $_batchTotal'),
-                  LinearProgressIndicator(value: _batchTotal == 0 ? null : _batchCompleted / _batchTotal),
-                ],
-                if (_batchFailures.isNotEmpty && !_processingBatch)
-                  Text('${_batchFailures.length} tracks need manual review',
-                      style: const TextStyle(color: Colors.orangeAccent)),
-                Wrap(spacing: 10, children: [
-                  OutlinedButton(onPressed: _processingBatch ? null : () => setState(() {
-                    final eligible = _imports.where((e) => e['lyricsReady'] != true)
-                        .map((e) => e['id'].toString()).toSet();
-                    if (_selectedImports.containsAll(eligible)) {
-                      _selectedImports.removeAll(eligible);
-                    } else {
-                      _selectedImports.addAll(eligible);
-                    }
-                  }), child: const Text('SELECT / CLEAR ALL PENDING')),
-                  FilledButton(onPressed: _processingBatch || _selectedImports.isEmpty ? null : _lookupBatch,
-                    child: Text('PROCESS SELECTED (${_selectedImports.length})')),
-                ]),
-                Text('Imported MP3s awaiting lyrics: ${_imports.length}', 
-                    style: const TextStyle(color: Colors.white70)),
-                for (final entry in _imports.where((s) =>
-                  (s['title']?.toString().toLowerCase() ?? '').contains(needle) ||
-                  (s['artist']?.toString().toLowerCase() ?? '').contains(needle)))
-                  ListTile(
-                    dense: true,
-                    leading: Checkbox(
-                      value: _selectedImports.contains(entry['id'].toString()),
-                      onChanged: entry['lyricsReady'] == true || _processingBatch ? null : (v) => setState(() {
-                        if (v == true) { _selectedImports.add(entry['id'].toString()); }
-                        else { _selectedImports.remove(entry['id'].toString()); }
-                      }),
-                    ),
-                    title: Text(entry['title']?.toString() ?? ''),
-                    subtitle: Text("${entry['artist'] ?? ''} · ${entry['album'] ?? ''} · ${entry['lyricsReady'] == true ? 'Lyrics ready' : 'Lyrics pending'}"),
-                    trailing: TextButton.icon(
-                      onPressed: _busy || entry['lyricsReady'] == true ? null : () => _findLyrics(entry),
-                      icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-                      label: const Text('FIND LYRICS'),
-                    ),
-                  ),
-                const Divider(),
-              ],
-              if (defaultTargetPlatform == TargetPlatform.macOS) ...[
-                const SizedBox(height: 6),
-                OutlinedButton.icon(
-                  onPressed: (_busy || _processingBatch) ? null : _repairAcousticCatalog,
-                  icon: const Icon(Icons.build_circle_outlined),
-                  label: const Text('REPAIR ACOUSTIC CATALOG (ALL SONGS)'),
-                ),
-              ],
-              if (_busy) const LinearProgressIndicator(),
-              ValueListenableBuilder<bool>(
-                valueListenable: widget.loadingListenable,
-                builder: (context, loading, _) => loading
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: LinearProgressIndicator(minHeight: 2),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              if (filtered.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(30),
-                  child: Text(
-                    _songs.isEmpty && widget.loadingListenable.value ? 'Loading songs from server...' : _songs.isEmpty ? 'No synchronized songs yet.'
-                        : 'No songs match your search.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white54),
-                  ),
-                ),
-              for (final song in filtered)
-                Card(
-                  color: const Color(0xFF151515),
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.music_note_rounded),
-                          title: Text(song.title,
-                              style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${song.artist} · ${song.lines.length} lyric lines'
-                              '${song.hasManualCalibration ? ' · ${song.manualCalibrationCount} manually adjusted' : ''}'),
-                        ),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _busy ? null : () => _run(() => widget.onPreview(song)),
-                              icon: const Icon(Icons.play_arrow_rounded),
-                              label: const Text('PREVIEW'),
-                            ),
-                            FilledButton.tonalIcon(
-                              onPressed: _busy ? null : () => _run(() => widget.onEdit(song)),
-                              icon: const Icon(Icons.timeline_rounded),
-                              label: const Text('EDIT'),
-                            ),
-                            IconButton(
-                              tooltip: 'Delete song',
-                              onPressed: _busy || widget.remoteLibraryMode
-                                  ? null : () => _run(() => widget.onDelete(song)),
-                              icon: const Icon(Icons.delete_outline_rounded),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+    final filteredImports = _imports.where((s) =>
+        (s['title']?.toString().toLowerCase() ?? '').contains(needle) ||
+        (s['artist']?.toString().toLowerCase() ?? '').contains(needle)).toList();
+    final pending = filteredImports.where((e) =>
+        e['lyricsReady'] != true && !_reviewReasons.containsKey((e['id'] ?? '').toString())).toList();
+    final review = filteredImports.where((e) =>
+        e['lyricsReady'] != true && _reviewReasons.containsKey((e['id'] ?? '').toString())).toList();
+    final selectedList = _section == 0 ? pending : review;
+    if (_selectionAnchor != null && _selectionAnchor! >= selectedList.length) {
+      _selectionAnchor = null;
+    }
+    final tabs = ['Pending (${pending.length})', 'Review (${review.length})',
+      'Completed (${completed.length})'];
+    final isMac = _isMac;
+
+    final controls = Column(mainAxisSize: MainAxisSize.min, children: [
+      TextField(
+        onChanged: (value) => setState(() => _query = value),
+        decoration: InputDecoration(
+          hintText: 'Search title or artist',
+          prefixIcon: const Icon(Icons.search_rounded),
+          filled: true, fillColor: const Color(0xFF191919),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
         ),
       ),
+      const SizedBox(height: 10),
+      Row(children: [
+        if (isMac) ...[
+          OutlinedButton.icon(onPressed: _processingBatch ? null : _importFolder,
+            icon: const Icon(Icons.create_new_folder_outlined), label: const Text('SCAN WINDOWS FOLDER')),
+          const SizedBox(width: 8),
+        ],
+        TextButton.icon(onPressed: _refreshAll, icon: const Icon(Icons.refresh), label: const Text('Sync')),
+      ]),
+      const SizedBox(height: 6),
+      isMac
+        ? LibraryMacLayout(
+            tabs: tabs, selected: _section, onSelect: (v) => setState(() => _section = v))
+        : LibraryIosLayout(
+            tabs: tabs, selected: _section, onSelect: (v) => setState(() => _section = v)),
+      if (_importError != null) Text('Server: $_importError',
+        style: const TextStyle(color: Colors.orangeAccent)),
+      if (_loadingImports) const LinearProgressIndicator(minHeight: 2),
+      if (_job.acousticRunning || _job.acousticPhase.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 9),
+          child: Text(
+            _job.acousticRunning
+                ? 'Acoustic catalog updating in background — lyrics are already saved'
+                : _job.acousticPhase,
+            style: TextStyle(color: _job.acousticError == null
+                ? Theme.of(context).colorScheme.onSurfaceVariant
+                : Theme.of(context).colorScheme.error),
+          ),
+        ),
+      if (_job.running || _job.total > 0) ...[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+          decoration: BoxDecoration(color: const Color(0xFF23202C),
+            borderRadius: BorderRadius.circular(8)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_job.running
+              ? 'Processing ${_job.completed} / ${_job.total} · ${_job.phase}'
+              : 'Last batch: ${_job.succeeded} completed · ${_job.failures.length} failed${_job.lastError == null ? '' : ' · Action needed'}',
+              style: const TextStyle(color: Colors.white)),
+            if (_job.currentTitle.isNotEmpty)
+              Text(_job.currentTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            if (_job.running)
+              LinearProgressIndicator(value: _job.total == 0 ? null : _job.completed / _job.total),
+            if (_job.lastError != null)
+              Text(_job.lastError!, style: const TextStyle(color: Colors.orangeAccent)),
+            if (_job.failures.isNotEmpty)
+              Text('${_job.failures.length} tracks need review',
+                style: const TextStyle(color: Colors.orangeAccent, fontSize: 12)),
+          ]),
+        ),
+      ],
+      if (_section == 1 && review.isNotEmpty && !_job.running)
+        Align(alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => _restoreReviewToPending(review),
+            icon: const Icon(Icons.undo_rounded),
+            label: Text('MOVE ${review.length} TO PENDING'),
+          )),
+      if (_section != 2) ...[
+        Row(children: [
+          Text('${selectedList.length} tracks', style: const TextStyle(color: Colors.white70)),
+          const Spacer(),
+          if (isMac) TextButton(
+            onPressed: _processingBatch ? null : () => setState(() {
+              final eligible = selectedList.map((e) => (e['id'] ?? '').toString()).toSet();
+              if (_selectedImports.containsAll(eligible)) {
+                _selectedImports.removeAll(eligible);
+              } else { _selectedImports.addAll(eligible); }
+            }), child: const Text('Select / clear visible')),
+        ]),
+        if (isMac) Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(children: [
+            OutlinedButton.icon(
+              onPressed: _selectedImports.isEmpty || _processingBatch || _updatingArtists
+                  ? null : _editSelectedArtist,
+              icon: const Icon(Icons.edit_outlined),
+              label: Text('SET ARTIST (${_selectedImports.length})'),
+            ),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Shift + click: select range',
+              style: TextStyle(fontSize: 11, color: Colors.white54))),
+          ]),
+        ),
+        if (isMac) SizedBox(width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: _processingBatch || _selectedImports.isEmpty ? null : _lookupBatch,
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: Text('PROCESS SELECTED (${_selectedImports.length})'),
+          ))
+        else const Padding(padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text('Review and playback are available on iPhone. Import processing remains on macOS.',
+            style: TextStyle(color: Colors.white54))),
+      ],
+    ]);
+
+    final list = _section == 2
+        ? ListView.builder(
+            padding: const EdgeInsets.only(top: 10, bottom: 24),
+            itemCount: completed.length,
+            itemBuilder: (context, i) => _completedRow(completed[i]),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.only(top: 10, bottom: 24),
+            itemCount: selectedList.length,
+            itemBuilder: (context, i) => _importRow(selectedList[i], i, selectedList),
+          );
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF080808),
+      appBar: AppBar(title: const Text('Music Library'),
+        actions: [
+          const Center(child: Text(
+            String.fromEnvironment('LYRIKO_BUILD', defaultValue: 'local'),
+            style: TextStyle(fontSize: 11, color: Colors.white54),
+          )),
+          IconButton(onPressed: _refreshAll, icon: const Icon(Icons.refresh_rounded)),
+        ]),
+      body: Center(child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: isMac ? 1080 : 600),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: isMac ? 24 : 14, vertical: 12),
+          child: Column(children: [
+            controls, // stays fixed while the list scrolls
+            const Divider(height: 18),
+            Expanded(child: list),
+          ]),
+        ),
+      )),
     );
   }
 }

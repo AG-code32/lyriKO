@@ -13,6 +13,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../services/lyriko_server_client.dart';
 import '../services/synced_lyrics_service.dart';
+import '../services/lyric_sweep_curve.dart';
 import 'lyrics_edit_screen.dart';
 
 class MyMusicScreen extends StatefulWidget {
@@ -1571,12 +1572,28 @@ class _VoiceTimedLyric extends StatelessWidget {
   final bool compact;
   final int distance;
 
+  double _curve(double fraction, {String? word}) => LyricSweepCurve.transform(
+    fraction, line.sweepCurve,
+    text: word ?? line.text.trim(),
+    syllables: line.sweepSyllables,
+    weights: line.sweepWeights,
+    points: line.sweepPoints,
+  );
+
   double _progressFor(String text) {
     final duration = line.endMs - line.startMs;
-    if (positionMs <= line.startMs) return 0.0;
-    if (duration <= 0 || positionMs >= line.endMs) return 1.0;
+    if (text == '♪') return positionMs >= line.startMs && positionMs < line.endMs ? 1.0 : 0.0;
+    final isAutomation = line.sweepCurve == 'automation';
+    final effectivePositionMs = isAutomation && duration > 0 &&
+        positionMs > line.startMs && positionMs < line.endMs
+        ? line.startMs + (duration * LyricSweepCurve.transform(
+            (positionMs - line.startMs) / duration, 'automation',
+            points: line.sweepPoints)).round()
+        : positionMs;
+    if (effectivePositionMs <= line.startMs) return 0.0;
+    if (duration <= 0 || effectivePositionMs >= line.endMs) return 1.0;
     if (text.isEmpty || line.words.isEmpty) {
-      return ((positionMs - line.startMs) / duration).clamp(0.0, 1.0);
+      return isAutomation ? (effectivePositionMs - line.startMs) / duration : _curve((effectivePositionMs - line.startMs) / duration);
     }
     // WORDS edited in Lyrics Timeline are already absolute song timestamps.
     // Only unedited CTC words need their original->calibrated mapping.
@@ -1605,17 +1622,18 @@ class _VoiceTimedLyric extends StatelessWidget {
       matches++;
       final start = adjusted(word.startMs);
       final end = adjusted(word.endMs);
-      if (positionMs < start) return previous;
-      if (positionMs <= end) {
-        final fraction = ((positionMs - start) /
+      if (effectivePositionMs < start) return previous;
+      if (effectivePositionMs <= end) {
+        final fraction = ((effectivePositionMs - start) /
             (end - start).clamp(1, 100000000)).clamp(0.0, 1.0);
-        return ((index + length * fraction) / text.length).clamp(0.0, 1.0);
+        return ((index + length * (isAutomation ? fraction : _curve(fraction,
+            word: text.substring(index, index + length)))) / text.length).clamp(0.0, 1.0);
       }
       cursor = index + length;
       previous = cursor / text.length;
     }
     if (matches == 0) {
-      return ((positionMs - line.startMs) / duration).clamp(0.0, 1.0);
+      return isAutomation ? (effectivePositionMs - line.startMs) / duration : _curve((effectivePositionMs - line.startMs) / duration);
     }
     // The last sung word completes the whole phrase, including punctuation.
     // Never leave a dark suffix while waiting for the next line to begin.

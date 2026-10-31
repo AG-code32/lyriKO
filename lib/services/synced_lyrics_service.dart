@@ -36,6 +36,11 @@ class SyncedLyricLine {
   final String text;
 
   final List<SyncedLyricWord> words;
+  final bool wordsEdited;
+  final String sweepCurve;
+  final String sweepSyllables;
+  final List<double> sweepWeights;
+  final List<List<double>> sweepPoints;
 
   const SyncedLyricLine({
     required this.startMs,
@@ -44,6 +49,11 @@ class SyncedLyricLine {
     required this.originalEndMs,
     required this.text,
     required this.words,
+    this.wordsEdited = false,
+    this.sweepCurve = 'linear',
+    this.sweepSyllables = '',
+    this.sweepWeights = const [],
+    this.sweepPoints = const [],
   });
 
   bool get manuallyCalibrated => startMs != originalStartMs;
@@ -61,6 +71,15 @@ class SyncedLyricLine {
       originalStartMs: (json['originalStartMs'] as num?)?.toInt() ?? startMs,
       originalEndMs: (json['originalEndMs'] as num?)?.toInt() ?? endMs,
       text: json['text']?.toString() ?? '',
+      wordsEdited: json['wordsEdited'] == true,
+      sweepCurve: json['sweepCurve']?.toString() ?? 'linear',
+      sweepSyllables: json['sweepSyllables']?.toString() ?? '',
+      sweepWeights: (json['sweepWeights'] is List)
+          ? (json['sweepWeights'] as List).whereType<num>().map((v) => v.toDouble()).toList()
+          : const [],
+      sweepPoints: (json['sweepPoints'] is List)
+          ? (json['sweepPoints'] as List).whereType<List>().where((p) => p.length >= 2 && p[0] is num && p[1] is num).map((p) => [(p[0] as num).toDouble(), (p[1] as num).toDouble()]).toList()
+          : const [],
       words: rawWords
           .whereType<Map>()
           .map(
@@ -225,6 +244,119 @@ class SyncedLyricsService {
     return result;
   }
 
+  // iOS: stable cache keyed by server ID, not mutable artist/title metadata.
+  Future<Directory> _iosCacheDirectory() async {
+    final base = await getApplicationDocumentsDirectory();
+    final directory = Directory('${base.path}/lyriko_remote_lyrics_ios');
+    await directory.create(recursive: true);
+    return directory;
+  }
+
+  // ID-based cache is authoritative. A legacy copy is only used when it has
+  // no matching server ID or normalized artist/title in the new cache.
+  Future<List<SyncedLyricsSong>> loadCachedIOSLibrary() async {
+    if (!Platform.isIOS) return const [];
+    final directory = await _iosCacheDirectory();
+    final byKey = <String, SyncedLyricsSong>{};
+    final identities = <String>{};
+    final serverIds = <String>{};
+
+    Future<void> add(File file, {required bool legacy}) async {
+      try {
+        final song = await loadSong(file.path);
+        if (song.lines.isEmpty) return;
+        final normalized = identityKey(song.artist, song.title);
+        if (legacy && (identities.contains(normalized) || serverIds.contains(song.songId))) return;
+        final key = normalized.isNotEmpty ? normalized : song.songId;
+        byKey.putIfAbsent(key, () => song);
+        identities.add(normalized);
+        serverIds.add(song.songId);
+      } catch (_) {}
+    }
+
+    await for (final entry in directory.list(followLinks: false)) {
+      if (entry is File && entry.path.toLowerCase().endsWith('.json')) {
+        await add(entry, legacy: false);
+      }
+    }
+    final docs = await getApplicationDocumentsDirectory();
+    final legacyDir = Directory('${docs.path}/lyriko_edited');
+    if (await legacyDir.exists()) {
+      await for (final entry in legacyDir.list(followLinks: false)) {
+        if (entry is File && entry.path.toLowerCase().endsWith('.json')) {
+          await add(entry, legacy: true);
+        }
+      }
+    }
+    return byKey.values.toList()
+      ..sort((a, b) => '${a.artist} ${a.title}'.toLowerCase()
+          .compareTo('${b.artist} ${b.title}'.toLowerCase()));
+  }
+
+  // Server version invalidates edited lyrics. No long-lived duplicate copies
+  // are appended: every remote song replaces its previous snapshot by ID.
+  Future<List<SyncedLyricsSong>> _loadIOSRemoteLibrary() async {
+    final previous = await loadCachedIOSLibrary();
+    final entries = await _server.songs();
+    final directory = await _iosCacheDirectory();
+    final byIdentity = <String, SyncedLyricsSong>{
+      for (final song in previous) identityKey(song.artist, song.title): song,
+    };
+    final missing = <Map<String, dynamic>>[];
+    for (final entry in entries) {
+      final id = entry['id']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      final file = File('${directory.path}/$id.json');
+      final version = entry['version']?.toString() ?? '';
+      final revisionFile = File('${directory.path}/$id.version');
+      if (await file.exists()) {
+        try {
+          final song = await loadSong(file.path);
+          byIdentity[identityKey(song.artist, song.title)] = song;
+          if (version.isNotEmpty && await revisionFile.exists() &&
+              await revisionFile.readAsString() == version) continue;
+        } catch (_) {}
+      }
+      missing.add(entry);
+    }
+    var cursor = 0;
+    Future<void> worker() async {
+      while (cursor < missing.length) {
+        final entry = missing[cursor++];
+        final id = entry['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        try {
+          final envelope = await _server.lyrics(id);
+          final payload = envelope['lyrics'];
+          if (payload is! Map || payload['lines'] is! List) continue;
+          final document = Map<String, dynamic>.from(payload);
+          document['songId'] = id;
+          document['title'] = entry['title']?.toString() ?? document['title'] ?? '';
+          document['artist'] = entry['artist']?.toString() ?? document['artist'] ?? '';
+          final file = File('${directory.path}/$id.json');
+          final tmp = File('${file.path}.tmp');
+          await tmp.writeAsString(jsonEncode(document), encoding: utf8, flush: true);
+          if (await file.exists()) await file.delete();
+          await tmp.rename(file.path);
+          final version = entry['version']?.toString() ?? '';
+          if (version.isNotEmpty) {
+            await File('${directory.path}/$id.version').writeAsString(version, flush: true);
+          }
+          final song = await loadSong(file.path);
+          if (song.lines.isNotEmpty) {
+            byIdentity[identityKey(song.artist, song.title)] = song;
+          }
+        } catch (error) {
+          print('LyriKO iOS lyrics fetch failed for $id: $error');
+        }
+      }
+    }
+    await Future.wait(List.generate(6, (_) => worker()));
+    return byIdentity.values.toList()
+      ..sort((a, b) => '${a.artist} ${a.title}'.toLowerCase()
+          .compareTo('${b.artist} ${b.title}'.toLowerCase()));
+  }
+
   Future<List<SyncedLyricsSong>> loadLibrary() async {
     if (Platform.isMacOS && await _server.isConfigured()) {
       try {
@@ -234,40 +366,17 @@ class SyncedLyricsService {
         print('Lyriko: macOS remote library unavailable: $error');
       }
     }
-    if (Platform.isIOS && await _server.isConfigured()) {
-      try {
-        final remoteEntries = await _server.songs();
-        final remoteSongs = <SyncedLyricsSong>[];
-        for (final entry in remoteEntries) {
-          final id = entry['id']?.toString() ?? '';
-          final artist = entry['artist']?.toString() ?? '';
-          final title = entry['title']?.toString() ?? '';
-          if (id.isEmpty || title.isEmpty) continue;
-          final assetPath = 'assets/lyrics/$artist - $title.json';
-          try {
-            await _refreshRemoteSong(id, assetPath);
-            final song = await loadSong(assetPath);
-            if (song.lines.isNotEmpty) remoteSongs.add(song);
-          } catch (error) {
-            // Keep other songs available if one document is temporarily bad.
-            print('Lyriko: unable to cache $title: $error');
-          }
+    if (Platform.isIOS) {
+      final cached = await loadCachedIOSLibrary();
+      if (await _server.isConfigured()) {
+        try {
+          final remote = await _loadIOSRemoteLibrary();
+          if (remote.isNotEmpty) return remote;
+        } catch (error) {
+          print('LyriKO: using cached iOS library: $error');
         }
-        if (remoteSongs.isNotEmpty) {
-          remoteSongs.sort((a, b) {
-            final artist = a.artist.toLowerCase().compareTo(
-              b.artist.toLowerCase(),
-            );
-            return artist != 0
-                ? artist
-                : a.title.toLowerCase().compareTo(b.title.toLowerCase());
-          });
-          return remoteSongs;
-        }
-      } catch (error) {
-        // Quick Tunnel URLs can expire; use saved lyrics as offline fallback.
-        print('Lyriko: server unavailable; loading cached library: $error');
       }
+      if (cached.isNotEmpty) return cached;
     }
     final discoveredSongs = <SyncedLyricsSong>[];
 
