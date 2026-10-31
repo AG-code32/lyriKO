@@ -260,7 +260,13 @@ class _HomeScreenState extends State<HomeScreen>
         final error = (state['error'] ?? '').toString();
         final title = (state['title'] ?? '').toString();
         final artist = (state['artist'] ?? '').toString();
-        final position = (state['positionMs'] as num?)?.toInt() ?? -1;
+        final rawPosition = (state['positionMs'] as num?)?.toInt() ?? -1;
+        final matchedAt = (state['matchedEpochMs'] as num?)?.toInt() ?? 0;
+        final receivedAt = DateTime.now().millisecondsSinceEpoch;
+        final ageMs = matchedAt > 0 && receivedAt >= matchedAt
+            ? receivedAt - matchedAt
+            : 0;
+        final position = rawPosition < 0 ? -1 : rawPosition + ageMs;
         final buffers = (state['audioBuffers'] as num?)?.toInt() ?? 0;
         final submitted = (state['submittedBuffers'] as num?)?.toInt() ?? 0;
         final failures = (state['conversionFailures'] as num?)?.toInt() ?? 0;
@@ -285,10 +291,15 @@ class _HomeScreenState extends State<HomeScreen>
             '\nSignature: $signatureResponse | Frames: $signatureFrames'
             '\nStreaming: $streamingResponse';
         if (title.isNotEmpty && position >= 0) {
+          final lookupWatch = Stopwatch()..start();
           final song = await _lyricsService.findSongForMediaMetadata(
             title: title,
             artist: artist,
           );
+          lookupWatch.stop();
+          debugPrint('macOS Detect: recognition offset=${rawPosition}ms, '
+              'match age=${ageMs}ms, lyrics lookup=${lookupWatch.elapsedMilliseconds}ms, '
+              'total=${DateTime.now().difference(startedAt).inMilliseconds}ms');
           if (!mounted || _stopRequested) break;
           if (song == null) {
             setState(() {
@@ -300,7 +311,8 @@ class _HomeScreenState extends State<HomeScreen>
             // _openDetectedSong returns only after that page is closed.
             await _openDetectedSong(
               song: song,
-              initialPositionMs: position,
+              initialPositionMs: position +
+                  (DateTime.now().millisecondsSinceEpoch - receivedAt),
               lockedTrackName: song.displayName,
             );
           }

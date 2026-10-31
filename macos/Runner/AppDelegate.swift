@@ -184,8 +184,25 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       ])
     }
     // Never use URLSession's cached catalog on a new DISCOVER session.
-    let data = try await downloadCurrentCatalog(serverUrl: serverUrl, token: token)
-    try activateCatalog(data)
+    // Fast path: a previously validated catalog is reusable between sessions.
+    // Recognition must not depend on network latency on every Detect press.
+    let cacheURL = catalogCacheURL(serverUrl: serverUrl)
+    if let cached = try? Data(contentsOf: cacheURL), !cached.isEmpty {
+      do {
+        try activateCatalog(cached)
+        catalogGenerationStatus = "cached catalog active (offline-ready)"
+      } catch {
+        // Corrupted or incompatible cache: fall back to the published catalog.
+        try? FileManager.default.removeItem(at: cacheURL)
+        let data = try await downloadCurrentCatalog(serverUrl: serverUrl, token: token)
+        try activateCatalog(data)
+        try? data.write(to: cacheURL, options: .atomic)
+      }
+    } else {
+      let data = try await downloadCurrentCatalog(serverUrl: serverUrl, token: token)
+      try activateCatalog(data)
+      try? data.write(to: cacheURL, options: .atomic)
+    }
 
 
     let content = try await SCShareableContent.excludingDesktopWindows(
@@ -220,17 +237,8 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     do {
       try await newStream.startCapture()
       phase = "listening"
-      // Never block capture on downloading reference MP3s or rebuilding a catalog.
-      // Keep the existing published catalog active while the updated one builds.
-      Task { @MainActor [weak self] in
-        guard let self = self else { return }
-        do {
-          try await self.refreshCatalogNow(serverUrl: serverUrl, token: token)
-        } catch {
-          self.catalogGenerationStatus = "FAILED: \(error.localizedDescription)"
-          print("Lyriko catalog refresh FAILED: \(error.localizedDescription)")
-        }
-      }
+      // Do not rebuild 100+ reference signatures while recognizing live audio.
+      // Explicit refreshCatalog is the only operation that updates the catalog.
     } catch {
       stream = nil
       throw error
@@ -250,6 +258,17 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     catalogRefreshInProgress = true
     defer { catalogRefreshInProgress = false }
     try await refreshCatalogIfNeeded(serverUrl: serverUrl, token: token, force: force)
+  }
+
+  // Catalog cache is scoped to the configured server, never to the song.
+  // It contains only ShazamKit reference signatures, not authentication tokens.
+  private func catalogCacheURL(serverUrl: String) -> URL {
+    let base = serverUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    let key = SHA256.hash(data: Data(base.utf8)).map { String(format: "%02x", $0) }.joined()
+    let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+      .appendingPathComponent("LyriKO/PublishedCatalog", isDirectory: true)
+    try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    return directory.appendingPathComponent(key + ".shazamcatalog")
   }
 
   // Always ask Windows for the current published catalog. The nonce also
@@ -437,6 +456,7 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
     // The server verified the saved file by SHA-256. Switch the active
     // ShazamKit session immediately; no UI restart or DISCOVER toggle.
     try activateCatalog(catalogData, referenceCount: verificationSamples.count)
+    try? catalogData.write(to: catalogCacheURL(serverUrl: serverUrl), options: .atomic)
     catalogGenerationStatus = "published and activated \(verificationSamples.count) references"
     UserDefaults.standard.set(localSHA, forKey: key + ".sha256")
     UserDefaults.standard.set(fingerprint, forKey: key)
@@ -879,10 +899,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
       self.lastRecognizedArtist = matchedArtist
       self.lastRecognizedAt = Date()
       if isSameSong {
-        self.signaturePending = false
-        self.signatureSession = nil
-        self.signatureResponse = "same song confirmed"
-        return
+        // Do not discard same-track matches: a fresh offset is required to
+        // detect YouTube seeks and recalibrate the lyric clock.
+        self.signatureResponse = "same song position updated"
       }
       self.title = matchedTitle
       self.artist = matchedArtist
@@ -916,6 +935,9 @@ final class LyrikoMacAudioRecognizer: NSObject, SCStreamOutput, SHSessionDelegat
         self.streamingSession = next
         self.streamingResponse = "tracking playback"
       }
+      print(String(format: "LyriKO Detect macOS: match after %.2fs, raw offset %.3fs, source %@",
+                   Date().timeIntervalSince(self.startTime), matchedOffset,
+                   wasSignature ? "signature" : "streaming"))
       print("Lyriko ShazamKit match: \(matchedArtist) - \(matchedTitle)")
     }
   }

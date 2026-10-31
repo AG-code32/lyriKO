@@ -38,9 +38,9 @@ class SyncedLyricLine {
   final List<SyncedLyricWord> words;
   final bool wordsEdited;
   final String sweepCurve;
-  final String sweepSyllables;
-  final List<double> sweepWeights;
-  final List<List<double>> sweepPoints;
+  final List<dynamic>? sweepPoints;
+  final dynamic sweepSyllables;
+  final dynamic sweepWeights;
 
   const SyncedLyricLine({
     required this.startMs,
@@ -51,9 +51,9 @@ class SyncedLyricLine {
     required this.words,
     this.wordsEdited = false,
     this.sweepCurve = 'linear',
-    this.sweepSyllables = '',
-    this.sweepWeights = const [],
-    this.sweepPoints = const [],
+    this.sweepPoints,
+    this.sweepSyllables,
+    this.sweepWeights,
   });
 
   bool get manuallyCalibrated => startMs != originalStartMs;
@@ -73,13 +73,9 @@ class SyncedLyricLine {
       text: json['text']?.toString() ?? '',
       wordsEdited: json['wordsEdited'] == true,
       sweepCurve: json['sweepCurve']?.toString() ?? 'linear',
-      sweepSyllables: json['sweepSyllables']?.toString() ?? '',
-      sweepWeights: (json['sweepWeights'] is List)
-          ? (json['sweepWeights'] as List).whereType<num>().map((v) => v.toDouble()).toList()
-          : const [],
-      sweepPoints: (json['sweepPoints'] is List)
-          ? (json['sweepPoints'] as List).whereType<List>().where((p) => p.length >= 2 && p[0] is num && p[1] is num).map((p) => [(p[0] as num).toDouble(), (p[1] as num).toDouble()]).toList()
-          : const [],
+      sweepPoints: json['sweepPoints'] is List ? List<dynamic>.from(json['sweepPoints'] as List) : null,
+      sweepSyllables: json['sweepSyllables'],
+      sweepWeights: json['sweepWeights'],
       words: rawWords
           .whereType<Map>()
           .map(
