@@ -11,6 +11,7 @@ import '../services/android_media_session_service.dart';
 import '../services/android_native_lyrics_overlay_service.dart';
 import '../services/fingerprint_match_service.dart';
 import '../services/macos_system_audio_recognition_service.dart';
+import '../services/lyric_sweep_curve.dart';
 import '../services/synced_lyrics_service.dart';
 import '../services/system_audio_capture_service.dart';
 import '../services/windows_media_session_service.dart';
@@ -53,6 +54,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   final MacOSAudioRecognitionService _macAudio = MacOSAudioRecognitionService();
   int _macLastMatchSequence = 0;
   bool _macAudioSeen = false;
+  bool _macPollBusy = false;
   final SystemAudioCaptureService _captureService = SystemAudioCaptureService();
   final ItemScrollController _scrollController = ItemScrollController();
 
@@ -94,11 +96,89 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   bool _fallbackStarted = false;
   bool _fallbackPaused = false;
   bool _androidOverlayStarted = false;
-  static const MethodChannel _iosPiPChannel = MethodChannel('lyriko/ios_pip_prototype');
+  static const MethodChannel _iosPiPChannel = MethodChannel(
+    'lyriko/ios_pip_prototype',
+  );
   bool _iosPiPStarted = false;
+  bool _iosVideoCallExperiment = false;
   bool _iosPiPOpening = false;
+  bool _iosPiPStopping = false;
+  Timer? _iosPiPStatePoll;
+  bool _iosPiPStateQueryBusy = false;
   String _iosPiPStatus = 'Listo para abrir PiP';
   int _lastIosPiPBroadcastAtMs = 0;
+  bool _iosPiPBroadcastBusy = false;
+  // TEMPORARY PiP DIAGNOSTICS — remove after resolving the issue.
+  final List<String> _pipDiagnosticEvents = <String>[];
+  String _pipLastSnapshot = '';
+  DateTime? _pipLastPollAt;
+  int _pipDiagnosticRun = 0;
+
+  void _pipTrace(String event) {
+    if (!Platform.isIOS) return;
+    final entry = '${DateTime.now().toIso8601String()} | $event';
+    _pipDiagnosticEvents.add(entry);
+    if (_pipDiagnosticEvents.length > 350) {
+      _pipDiagnosticEvents.removeRange(0, _pipDiagnosticEvents.length - 350);
+    }
+    debugPrint('LYRIKO_PIP_DIAG $entry');
+  }
+
+  String _pipDiagnosticReport() => <String>[
+    'LyriKO temporary PiP diagnostic',
+    'Generated: ${DateTime.now().toIso8601String()}',
+    'Track: ${widget.lockedTrackName}',
+    'Events: ${_pipDiagnosticEvents.length}',
+    '----',
+    ..._pipDiagnosticEvents,
+  ].join('\n');
+
+  void _showPipDiagnostics() {
+    _pipTrace('DIAGNOSTICS_PANEL_OPEN');
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Diagnóstico temporal PiP'),
+        content: SizedBox(
+          width: 600,
+          height: 360,
+          child: SingleChildScrollView(
+            child: SelectableText(_pipDiagnosticReport(),
+                style: const TextStyle(fontSize: 11)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _pipDiagnosticEvents.clear();
+              _pipLastSnapshot = '';
+              _pipTrace('TRACE_RESET');
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Limpiar registro'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(
+                ClipboardData(text: _pipDiagnosticReport()),
+              );
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: const Text('Copiar informe'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Temporary live calibration in milliseconds; never changes audio playback.
+  // Perceptual calibration for iOS capture/render latency (audio is untouched).
+  // Keep adjustable; do not apply to macOS/Android.
+  int _iosSyncAdjustmentMs = 180;
 
   int _lastAndroidOverlayBroadcastAtMs = 0;
 
@@ -131,6 +211,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (Platform.isIOS) {
+      _pipTrace('SCREEN_INIT; both native controllers will be polled');
+      _iosPiPStatePoll = Timer.periodic(const Duration(milliseconds: 450), (_) {
+        if (mounted) unawaited(_refreshIosPiPState());
+      });
       _iosPiPChannel.setMethodCallHandler((call) async {
         if (!mounted) return;
         if (call.method == 'pipState') {
@@ -139,13 +223,27 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
             final state = details['state']?.toString() ?? 'unknown';
             final message = details['message']?.toString() ?? '';
             debugPrint('Lyriko PiP native: $state — $message');
+            _pipTrace('NATIVE_EVENT state=$state message=$message');
             setState(() {
-              _iosPiPStatus = message.isEmpty ? 'iOS PiP: $state' : 'iOS PiP: $state — $message';
-              if (state == 'idle' || state == 'failed') _iosPiPStarted = false;
-              if (state == 'active') _iosPiPStarted = true;
+              _iosPiPStatus = message.isEmpty
+                  ? 'iOS PiP: $state'
+                  : 'iOS PiP: $state — $message';
+              if (state == 'stopping') _iosPiPStopping = true;
+              if (state == 'idle' || state == 'stopped') _iosPiPStopping = false;
+              if (state == 'idle' ||
+                  state == 'failed' ||
+                  state == 'stopped' ||
+                  state == 'stopping') {
+                _iosPiPStarted = false;
+                // Keep the chosen PiP backend during UIKit's stopping phase.
+                // The next launch is selected explicitly by its TEST button.
+              }
+              if (state == 'active' || state == 'started')
+                _iosPiPStarted = true;
             });
           }
         } else if (call.method == 'closed') {
+          _pipTrace('NATIVE_EVENT closed');
           setState(() => _iosPiPStarted = false);
           Navigator.of(context).popUntil((route) => route.isFirst);
         }
@@ -185,6 +283,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
+    if (Platform.isIOS) _pipTrace('APP_LIFECYCLE $state');
+    if (Platform.isIOS && state == AppLifecycleState.resumed) {
+      unawaited(_refreshIosPiPState());
+    }
     if (!Platform.isAndroid || state != AppLifecycleState.resumed) {
       return;
     }
@@ -197,6 +299,71 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
         unawaited(_startAndroidFloatingOverlay(song, requestIfNeeded: false));
       }
     });
+  }
+
+  Future<void> _refreshIosPiPState() async {
+    if (!Platform.isIOS || _iosPiPStateQueryBusy) return;
+    _iosPiPStateQueryBusy = true;
+    try {
+      // Each PiP implementation has its own native controller and lifecycle.
+      final video = await _iosPiPChannel.invokeMapMethod<String, dynamic>(
+        'state',
+      );
+      final call = await _iosPiPChannel.invokeMapMethod<String, dynamic>(
+        'stateVideoCallExperiment',
+      );
+      final now = DateTime.now();
+      if (_pipLastPollAt != null) {
+        final gap = now.difference(_pipLastPollAt!).inMilliseconds;
+        if (gap > 1500) _pipTrace('POLL_GAP ${gap}ms (possible suspension)');
+      }
+      _pipLastPollAt = now;
+      final snapshot = 'AVPLAYER=$video VIDEOCALL=$call';
+      if (snapshot != _pipLastSnapshot) {
+        _pipLastSnapshot = snapshot;
+        _pipTrace('NATIVE_SNAPSHOT $snapshot');
+      }
+      if (!mounted || video == null || call == null) return;
+      final videoActive = video['active'] == true;
+      final callActive = call['active'] == true;
+      final opening = video['opening'] == true || call['opening'] == true;
+      final stopping = video['stopping'] == true || call['stopping'] == true;
+      final active = videoActive || callActive;
+      final ready = video['ready'] == true &&
+          !callActive && call['opening'] != true && call['stopping'] != true;
+      setState(() {
+        _iosPiPStarted = active;
+        _iosPiPOpening = opening;
+        _iosPiPStopping = stopping || (!active && !opening && !ready);
+        if (callActive) _iosVideoCallExperiment = true;
+        if (videoActive) _iosVideoCallExperiment = false;
+        if (stopping) {
+          _iosPiPStatus = 'iOS está cerrando la sesión PiP anterior…';
+        } else if (opening) {
+          _iosPiPStatus = 'iOS está preparando el controlador PiP…';
+        } else if (active) {
+          _iosPiPStatus = 'PiP activo';
+        } else if (ready) {
+          _iosVideoCallExperiment = false;
+          _iosPiPStatus = 'Listo para abrir PiP';
+        } else {
+          _iosPiPStatus = 'Esperando disponibilidad del PiP…';
+        }
+      });
+      debugPrint('LyriKO PiP state: video=${video['phase']} '
+          'active=$videoActive callActive=$callActive ready=$ready');
+    } catch (e) {
+      debugPrint('iOS PiP state refresh: $e');
+      _pipTrace('POLL_ERROR $e');
+      if (mounted) {
+        setState(() {
+          _iosPiPStopping = true;
+          _iosPiPStatus = 'No se pudo confirmar la disponibilidad del PiP: $e';
+        });
+      }
+    } finally {
+      _iosPiPStateQueryBusy = false;
+    }
   }
 
   Future<void> _ensureAndroidFloatingOverlay(SyncedLyricsSong song) async {
@@ -257,24 +424,34 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
     }
   }
 
-  Future<void> _openIosLyricsPiP() async {
-    if (!Platform.isIOS || _iosPiPOpening) return;
+  Future<void> _openIosLyricsPiP({bool experimental = false}) async {
+    if (!Platform.isIOS || _iosPiPOpening || _iosPiPStopping || _iosPiPStarted) return;
     setState(() {
       _iosPiPOpening = true;
-      _iosPiPStatus = 'Solicitando apertura a iOS…';
+      _iosPiPStatus = experimental
+          ? 'Probando PiP alternativo…'
+          : 'Solicitando apertura a iOS…';
     });
+    _pipDiagnosticRun++;
+    _pipTrace('START_REQUEST #$_pipDiagnosticRun backend=${experimental ? 'VIDEOCALL' : 'AVPLAYER'}');
     debugPrint('Lyriko PiP: Flutter invoking native start');
     try {
       // Prime lyrics without touching the proven native AVPlayer startup path.
       final song = _song;
       if (song != null) {
-        await _iosPiPChannel.invokeMethod<bool>('update', {
-          ..._buildAndroidOverlayState(song),
-          'background': _backgroundOpacityPercent,
-        });
+        await _iosPiPChannel.invokeMethod<bool>(
+          experimental ? 'updateVideoCallExperiment' : 'update',
+          {
+            ..._buildAndroidOverlayState(song),
+            'background': _backgroundOpacityPercent,
+          },
+        );
       }
-      final Object? response = await _iosPiPChannel.invokeMethod<Object?>('start');
+      final Object? response = await _iosPiPChannel.invokeMethod<Object?>(
+        experimental ? 'startVideoCallExperiment' : 'start',
+      );
       debugPrint('Lyriko PiP: native start response=$response');
+      _pipTrace('START_RESPONSE #$_pipDiagnosticRun $response');
       if (response != true) {
         throw PlatformException(
           code: 'PIP_NOT_STARTED',
@@ -284,33 +461,51 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
       if (!mounted) return;
       setState(() {
         _iosPiPStarted = true;
-        _iosPiPStatus = 'PiP iniciado. Letras sincronizadas (experimental).';
+        _iosVideoCallExperiment = experimental;
+        _iosPiPStatus = experimental
+            ? 'PiP alternativo iniciado (experimental).'
+            : 'PiP de video iniciado.';
       });
       final currentSong = _song;
       if (currentSong != null) await _broadcastIosPiP(currentSong, force: true);
     } on PlatformException catch (e) {
       debugPrint('Lyriko PiP start failed: ${e.code}: ${e.message}');
-      if (mounted) setState(() => _iosPiPStatus = 'ERROR ${e.code}: ${e.message ?? "sin detalles"}');
+      _pipTrace('START_FAILURE code=${e.code} message=${e.message}');
+      if (mounted)
+        setState(() {
+          _iosPiPStarted = false;
+          _iosPiPStatus = 'ERROR ${e.code}: ${e.message ?? "sin detalles"}';
+        });
     } catch (e) {
       debugPrint('Lyriko PiP unexpected error: $e');
+      _pipTrace('START_EXCEPTION $e');
       if (mounted) setState(() => _iosPiPStatus = 'ERROR: $e');
     } finally {
       if (mounted) setState(() => _iosPiPOpening = false);
     }
   }
 
-  Future<void> _broadcastIosPiP(SyncedLyricsSong song, {bool force = false}) async {
-    if (!Platform.isIOS || !_iosPiPStarted) return;
+  Future<void> _broadcastIosPiP(
+    SyncedLyricsSong song, {
+    bool force = false,
+  }) async {
+    if (!Platform.isIOS || !_iosPiPStarted || _iosPiPBroadcastBusy) return;
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (!force && now - _lastIosPiPBroadcastAtMs < 250) return;
+    if (!force && now - _lastIosPiPBroadcastAtMs < 100) return;
     _lastIosPiPBroadcastAtMs = now;
+    _iosPiPBroadcastBusy = true;
     try {
-      await _iosPiPChannel.invokeMethod<bool>('update', {
-        ..._buildAndroidOverlayState(song),
-        'background': _backgroundOpacityPercent,
-      });
+      await _iosPiPChannel.invokeMethod<bool>(
+        _iosVideoCallExperiment ? 'updateVideoCallExperiment' : 'update',
+        {
+          ..._buildAndroidOverlayState(song),
+          'background': _backgroundOpacityPercent,
+        },
+      );
     } catch (e) {
       debugPrint('iOS PiP update failed: $e');
+    } finally {
+      _iosPiPBroadcastBusy = false;
     }
   }
 
@@ -325,7 +520,12 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
     return {
       'title': song.title,
       'artist': song.artist,
-      'positionMs': _currentPositionMs,
+      'positionMs': Platform.isIOS
+          ? _clampPosition(
+              _estimatedPositionMs(song) + _iosSyncAdjustmentMs,
+              song,
+            )
+          : _currentPositionMs,
       'playing': _clockRunning,
       'tracking': _trackingLabel,
       'lines': song.lines
@@ -334,6 +534,14 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
               'text': line.text,
               'startMs': line.startMs,
               'endMs': line.endMs,
+              if (Platform.isIOS)
+                'sweepSamples': List<double>.generate(61, (index) {
+                  final duration = line.endMs - line.startMs;
+                  if (duration <= 0) return 0.0;
+                  final at = line.startMs + (duration * index / 60).round();
+                  // iOS live detection uses complete phrases, not partial words.
+                  return at >= line.startMs ? 1.0 : 0.0;
+                }),
             },
           )
           .toList(),
@@ -400,7 +608,11 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
 
       // iOS does not expose third-party player's pause/seek state.
       // Wait for captured audio before advancing the local lyric clock.
-      _setAnchor(safePosition, running: !Platform.isIOS && !Platform.isMacOS, forceScroll: false);
+      _setAnchor(
+        safePosition,
+        running: !Platform.isIOS && !Platform.isMacOS,
+        forceScroll: false,
+      );
       if (Platform.isIOS || Platform.isMacOS) {
         _setTrackingStatus('WAIT AUDIO', Colors.white54);
       }
@@ -429,6 +641,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   }
 
   void _startUiTimer() {
+    _iosPiPStatePoll?.cancel();
     _uiTimer?.cancel();
 
     _uiTimer = Timer.periodic(
@@ -451,7 +664,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
 
     if (song == null || !mounted || _openingEditor) return;
 
-    final position = _estimatedPositionMs(song);
+    final position = _clampPosition(
+      _estimatedPositionMs(song) + (Platform.isIOS ? _iosSyncAdjustmentMs : 0),
+      song,
+    );
 
     if (position == _currentPositionMs) return;
 
@@ -546,7 +762,8 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   // macOS system-audio tracking. A fresh acoustic match corrects seeks and
   // switches songs; an RMS gate pauses lyrics when playback falls silent.
   Future<void> _pollMacAudio() async {
-    if (!mounted || _song == null) return;
+    if (_macPollBusy || !mounted || _song == null) return;
+    _macPollBusy = true;
     try {
       final stats = await _macAudio.status();
       if (!mounted || _openingEditor) return;
@@ -556,31 +773,46 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
       final phase = (stats['phase'] ?? '').toString();
       final lastMusic = (stats['lastMusicEpochMs'] as num?)?.toInt() ?? 0;
       final lastBuffer = (stats['lastBufferEpochMs'] as num?)?.toInt() ?? 0;
-      final active = phase == 'listening' &&
+      final active =
+          phase == 'listening' &&
           stats['musicGateOpen'] == true &&
-          lastBuffer > 0 && now - lastBuffer < 1500 &&
-          lastMusic > 0 && now - lastMusic < 1500;
+          lastBuffer > 0 &&
+          now - lastBuffer < 1500 &&
+          lastMusic > 0 &&
+          now - lastMusic < 1500;
       final sequence = (stats['matchSequence'] as num?)?.toInt() ?? 0;
       final matchedAt = (stats['matchedEpochMs'] as num?)?.toInt() ?? 0;
       final title = (stats['title'] ?? '').toString();
       final artist = (stats['artist'] ?? '').toString();
-      final offsetMs = (stats['positionMs'] as num?)?.toInt() ?? -1;
-      if (sequence > _macLastMatchSequence && matchedAt > 0 &&
-          now >= matchedAt && now - matchedAt < 15000 &&
-          offsetMs >= 0 && title.isNotEmpty) {
+      final rawOffsetMs = (stats['positionMs'] as num?)?.toInt() ?? -1;
+      final offsetMs = rawOffsetMs < 0
+          ? -1
+          : rawOffsetMs +
+                (matchedAt > 0 && now >= matchedAt ? now - matchedAt : 0);
+      if (sequence > _macLastMatchSequence &&
+          matchedAt > 0 &&
+          now >= matchedAt &&
+          now - matchedAt < 15000 &&
+          offsetMs >= 0 &&
+          title.isNotEmpty) {
         _macLastMatchSequence = sequence;
         final score = _lyricsService.mediaMetadataScoreForSong(
-          song, title: title, artist: artist, albumArtist: '',
+          song,
+          title: title,
+          artist: artist,
+          albumArtist: '',
         );
         if (score < 70) {
           final nextSong = await _lyricsService.findSongForMediaMetadata(
-            title: title, artist: artist,
+            title: title,
+            artist: artist,
           );
           if (!mounted || _openingEditor) return;
           if (nextSong != null && nextSong.jsonPath != _currentJsonPath) {
             final lastSwitch = _iosLastTrackSwitch;
             if (lastSwitch == null ||
-                DateTime.now().difference(lastSwitch) > const Duration(seconds: 3)) {
+                DateTime.now().difference(lastSwitch) >
+                    const Duration(seconds: 3)) {
               await _switchIOSSong(nextSong, offsetMs / 1000.0);
               return;
             }
@@ -592,30 +824,44 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
           if (drift.abs() >= _iosHardSeekThresholdMs) {
             _setAnchor(measured, running: active, forceScroll: true);
           } else if (drift.abs() >= _iosMinCorrectionMs) {
-            _setAnchor(predicted + (drift * 0.35).round(),
-                running: active, forceScroll: false);
+            _setAnchor(
+              predicted + (drift * 0.35).round(),
+              running: active,
+              forceScroll: false,
+            );
           }
         }
       }
       if (active) {
         _macAudioSeen = true;
         if (!_clockRunning) {
-          _setAnchor(_estimatedPositionMs(song), running: true, forceScroll: false);
+          _setAnchor(
+            _estimatedPositionMs(song),
+            running: true,
+            forceScroll: false,
+          );
         }
         _setTrackingStatus('AUDIO', Colors.greenAccent);
       } else {
         if (_clockRunning) {
-          _setAnchor(_estimatedPositionMs(song), running: false, forceScroll: false);
+          _setAnchor(
+            _estimatedPositionMs(song),
+            running: false,
+            forceScroll: false,
+          );
         }
         _setTrackingStatus(
-          phase == 'error' ? 'CAPTURE ERROR' :
-              (_macAudioSeen ? 'NO AUDIO' : 'WAIT AUDIO'),
+          phase == 'error'
+              ? 'CAPTURE ERROR'
+              : (_macAudioSeen ? 'NO AUDIO' : 'WAIT AUDIO'),
           phase == 'error' ? Colors.redAccent : Colors.orangeAccent,
         );
       }
     } catch (error) {
       debugPrint('macOS audio tracking failed: $error');
       _setTrackingStatus('MAC AUDIO ERROR', Colors.orangeAccent);
+    } finally {
+      _macPollBusy = false;
     }
   }
 
@@ -696,14 +942,21 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
                 DateTime.now().difference(lastSwitch) >
                     const Duration(seconds: 3);
             if (canSwitch) {
-              await _switchIOSSong(nextSong, offset);
+              await _switchIOSSong(
+                nextSong,
+                offset + (now - matchedAt).clamp(0, 1500) / 1000.0,
+              );
               return;
             }
           }
         } else {
-          // ShazamKit's matchOffset is a reference position; callback delivery
-          // latency is not guaranteed. Do not add that latency blindly.
-          final measured = _clampPosition((offset * 1000).round(), song);
+          // Compensate only the elapsed time *after* the native match callback.
+          // Do not guess the time spent internally by ShazamKit.
+          final callbackAgeMs = (now - matchedAt).clamp(0, 1500);
+          final measured = _clampPosition(
+            (offset * 1000).round() + callbackAgeMs,
+            song,
+          );
           final predicted = _estimatedPositionMs(song);
           final drift = measured - predicted;
           if (drift.abs() >= _iosHardSeekThresholdMs) {
@@ -772,9 +1025,7 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
       _setAnchor(position, running: true, forceScroll: false);
       _setTrackingStatus('NEW TRACK', Colors.greenAccent);
       _scheduleInitialScroll();
-      debugPrint(
-        'Auto track switch: ${loaded.displayName} @ ${position}ms',
-      );
+      debugPrint('Auto track switch: ${loaded.displayName} @ ${position}ms');
     } catch (error) {
       debugPrint('iOS auto track switch failed: $error');
       _setTrackingStatus('TRACK ERROR', Colors.orangeAccent);
@@ -1388,7 +1639,11 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
 
     unawaited(_restoreNormalWindowMode());
     if (Platform.isIOS && _iosPiPStarted) {
-      unawaited(_iosPiPChannel.invokeMethod<String>('stop'));
+      unawaited(
+        _iosPiPChannel.invokeMethod<String>(
+          _iosVideoCallExperiment ? 'stopVideoCallExperiment' : 'stop',
+        ),
+      );
     }
 
     super.dispose();
@@ -1397,9 +1652,10 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
   @override
   Widget build(BuildContext context) {
     final song = _song;
-    final backgroundOpacity = (Platform.isIOS ? 1.0 : _backgroundOpacityPercent / 100.0)
-        .clamp(0.0, 1.0)
-        .toDouble();
+    final backgroundOpacity =
+        (Platform.isIOS ? 1.0 : _backgroundOpacityPercent / 100.0)
+            .clamp(0.0, 1.0)
+            .toDouble();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1536,14 +1792,40 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _iosPiPOpening ? null : _openIosLyricsPiP,
-                icon: const Icon(Icons.picture_in_picture_alt_rounded, size: 22),
-                label: Text(_iosPiPOpening ? 'OPENING PiP…' : 'FLOAT LYRICS', style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+                onPressed: (_iosPiPOpening || _iosPiPStopping || _iosPiPStarted) ? null : _openIosLyricsPiP,
+                icon: (_iosPiPOpening || _iosPiPStopping)
+                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.picture_in_picture_alt_rounded, size: 22),
+                label: Text(
+                  (_iosPiPOpening || _iosPiPStopping) ? 'PREPARANDO PiP…' : 'FLOAT LYRICS',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                  ),
+                ),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF7057C5),
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          if (Platform.isIOS)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: (_iosPiPOpening || _iosPiPStopping || _iosPiPStarted)
+                      ? null
+                      : () => _openIosLyricsPiP(experimental: true),
+                  icon: (_iosPiPOpening || _iosPiPStopping)
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.science_outlined, size: 18),
+                  label: const Text('TEST ALTERNATIVE PiP (EXPERIMENTAL)'),
                 ),
               ),
             ),
@@ -1556,86 +1838,104 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
               style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
+          if (Platform.isIOS)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _showPipDiagnostics,
+                  icon: const Icon(Icons.bug_report_outlined),
+                  label: const Text('DIAGNÓSTICO PiP · COPIAR INFORME'),
+                ),
+              ),
+            ),
           if (Platform.isAndroid) const SizedBox(height: 6),
-          if (Platform.isAndroid) Row(
-            children: [
-              const Text(
-                'BACKGROUND',
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 3,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 6,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 13,
-                    ),
-                  ),
-                  child: Slider(
-                    min: 0,
-                    max: 100,
-                    divisions: 100,
-                    value: _backgroundOpacityPercent,
-                    onChanged: (value) {
-                      setState(() {
-                        _backgroundOpacityPercent = value;
-                      });
-
-                      if (Platform.isAndroid) {
-                        unawaited(_androidOverlayService.setBackground(value));
-                      }
-                    },
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 42,
-                child: Text(
-                  '${_backgroundOpacityPercent.round()}%',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
+          if (Platform.isAndroid)
+            Row(
+              children: [
+                const Text(
+                  'BACKGROUND',
+                  style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                    letterSpacing: 0.6,
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              if (Platform.isAndroid)
-                TextButton.icon(
-                  onPressed: _forceOpenAndroidOverlay,
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(
-                    Icons.picture_in_picture_alt_rounded,
-                    size: 17,
-                  ),
-                  label: const Text(
-                    'FLOAT',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 3,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 6,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 13,
+                      ),
+                    ),
+                    child: Slider(
+                      min: 0,
+                      max: 100,
+                      divisions: 100,
+                      value: _backgroundOpacityPercent,
+                      onChanged: (value) {
+                        setState(() {
+                          _backgroundOpacityPercent = value;
+                        });
+
+                        if (Platform.isAndroid) {
+                          unawaited(
+                            _androidOverlayService.setBackground(value),
+                          );
+                        }
+                      },
+                    ),
                   ),
                 ),
-              IconButton(
-                tooltip: 'Calibrate',
-                visualDensity: VisualDensity.compact,
-                onPressed: _openingEditor ? null : _openEditor,
-                icon: const Icon(Icons.tune_rounded, size: 20),
-              ),
-            ],
-          ),
+                SizedBox(
+                  width: 42,
+                  child: Text(
+                    '${_backgroundOpacityPercent.round()}%',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                if (Platform.isAndroid)
+                  TextButton.icon(
+                    onPressed: _forceOpenAndroidOverlay,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(
+                      Icons.picture_in_picture_alt_rounded,
+                      size: 17,
+                    ),
+                    label: const Text(
+                      'FLOAT',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  tooltip: 'Calibrate',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _openingEditor ? null : _openEditor,
+                  icon: const Icon(Icons.tune_rounded, size: 20),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -1959,18 +2259,173 @@ class _SyncedLyricsScreenState extends State<SyncedLyricsScreen>
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            line.text,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: active ? Colors.white : Colors.white30,
-              fontSize: active ? 32 : 25,
-              height: 1.25,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
+          child: (Platform.isMacOS || Platform.isIOS)
+              ? _buildMacKaraokeLine(line, active)
+              : Text(
+                  line.text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: active ? Colors.white : Colors.white30,
+                    fontSize: active ? 32 : 25,
+                    height: 1.25,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
         );
       },
+    );
+  }
+
+  // Identical word/automation timing rules and single-paragraph rendering to
+  // MY MUSIC. Used by macOS and iOS Detect Song; Windows stays intact.
+  double _macKaraokeProgress(SyncedLyricLine line, {int? atPositionMs}) {
+    final text = line.text.trim();
+    final duration = line.endMs - line.startMs;
+    final positionMs = atPositionMs ?? _currentPositionMs;
+    if (text == '♪') {
+      return positionMs >= line.startMs && positionMs < line.endMs ? 1.0 : 0.0;
+    }
+    final automation = line.sweepCurve == 'automation';
+    final effective =
+        automation &&
+            duration > 0 &&
+            positionMs > line.startMs &&
+            positionMs < line.endMs
+        ? line.startMs +
+              (duration *
+                      LyricSweepCurve.transform(
+                        (positionMs - line.startMs) / duration,
+                        'automation',
+                        points: (line.sweepPoints ?? const [])
+                            .map<List<double>>(
+                              (point) => (point as List)
+                                  .map<double>(
+                                    (value) => (value as num).toDouble(),
+                                  )
+                                  .toList(),
+                            )
+                            .toList(),
+                      ))
+                  .round()
+        : positionMs;
+    if (effective <= line.startMs) return 0.0;
+    if (duration <= 0 || effective >= line.endMs) return 1.0;
+    double curve(double fraction, {String? word}) => LyricSweepCurve.transform(
+      fraction,
+      line.sweepCurve,
+      text: word ?? text,
+      syllables: line.sweepSyllables,
+      weights: line.sweepWeights,
+      points: (line.sweepPoints ?? const [])
+          .map<List<double>>(
+            (point) => (point as List)
+                .map<double>((value) => (value as num).toDouble())
+                .toList(),
+          )
+          .toList(),
+    );
+    if (text.isEmpty || line.words.isEmpty) {
+      return automation
+          ? (effective - line.startMs) / duration
+          : curve((effective - line.startMs) / duration);
+    }
+    final originalSpan = line.originalEndMs - line.originalStartMs;
+    int adjusted(int ms) => line.wordsEdited
+        ? ms
+        : originalSpan <= 0
+        ? line.startMs + ms - line.originalStartMs
+        : line.startMs +
+              ((ms - line.originalStartMs) * duration / originalSpan).round();
+    final lower = text.toLowerCase();
+    var cursor = 0;
+    var previous = 0.0;
+    var matches = 0;
+    for (final word in line.words) {
+      final token = word.text.trim().toLowerCase();
+      if (token.isEmpty || word.endMs <= word.startMs) continue;
+      var index = lower.indexOf(token, cursor);
+      var length = token.length;
+      if (index < 0) {
+        final simplified = token.replaceAll(RegExp(r"[^a-z0-9']"), '');
+        if (simplified.isEmpty) continue;
+        index = lower.indexOf(simplified, cursor);
+        length = simplified.length;
+      }
+      if (index < 0) continue;
+      matches++;
+      final start = adjusted(word.startMs);
+      final end = adjusted(word.endMs);
+      if (effective < start) return previous;
+      if (effective <= end) {
+        final fraction =
+            ((effective - start) / (end - start).clamp(1, 100000000)).clamp(
+              0.0,
+              1.0,
+            );
+        return ((index +
+                    length *
+                        (automation
+                            ? fraction
+                            : curve(
+                                fraction,
+                                word: text.substring(index, index + length),
+                              ))) /
+                text.length)
+            .clamp(0.0, 1.0);
+      }
+      cursor = index + length;
+      previous = cursor / text.length;
+    }
+    if (matches == 0) {
+      return automation
+          ? (effective - line.startMs) / duration
+          : curve((effective - line.startMs) / duration);
+    }
+    return 1.0;
+  }
+
+  Widget _buildMacKaraokeLine(SyncedLyricLine line, bool active) {
+    final text = line.text.trim();
+    final style = TextStyle(
+      fontSize: active ? 32 : 25,
+      height: 1.25,
+      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    );
+    if (!active || text.isEmpty) {
+      return Text(
+        text,
+        textAlign: TextAlign.center,
+        style: style.copyWith(color: Colors.white30),
+      );
+    }
+    // iOS Detect Song: deliberately use phrase-level highlighting. Live audio
+    // recognition cannot guarantee word-level precision; keep the detailed
+    // sweep for the local MY MUSIC player and the macOS implementation.
+    if (Platform.isIOS) {
+      return Text(
+        text,
+        textAlign: TextAlign.center,
+        style: style.copyWith(color: Colors.white),
+      );
+    }
+    final boundary = text.length * _macKaraokeProgress(line);
+    final spans = <TextSpan>[];
+    for (var i = 0; i < text.length; i++) {
+      final fraction = (boundary - i).clamp(0.0, 1.0);
+      spans.add(
+        TextSpan(
+          text: text[i],
+          style: TextStyle(
+            color: Color.lerp(Colors.white30, Colors.white, fraction),
+          ),
+        ),
+      );
+    }
+    return Text.rich(
+      TextSpan(children: spans),
+      textAlign: TextAlign.center,
+      softWrap: true,
+      style: style,
     );
   }
 }

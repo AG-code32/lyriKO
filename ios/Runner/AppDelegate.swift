@@ -5,7 +5,6 @@ import CoreMedia
 import AudioToolbox
 import AVFoundation
 import AVKit
-import MediaPlayer
 import ShazamKit
 
 @main
@@ -13,6 +12,7 @@ import ShazamKit
   private var iosAudioProbe: IOSAudioProbe?
   private var iosMicRecognition: IOSMicrophoneRecognition?
   private var lyricsPiPPrototype: IOSLyricsVideoPiPTest?
+  private var lyricsPiPVideoCallExperiment: IOSLyricsPiPPrototype?
 
   override func application(
     _ application: UIApplication,
@@ -37,27 +37,18 @@ import ShazamKit
         result(UIApplication.shared.isIdleTimerDisabled)
       }
     }
-    // Shared iOS Now Playing/lock screen and Bluetooth remote controls.
-    let mediaRegistrar = engineBridge.pluginRegistry.registrar(forPlugin: "LyrikoMediaControls")!
-    let mediaChannel = FlutterMethodChannel(name: "lyriko/media_controls", binaryMessenger: mediaRegistrar.messenger())
-    LyrikoMediaControls.shared.register(mediaChannel)
-    mediaChannel.setMethodCallHandler { call, result in
-      if call.method == "update", let values = call.arguments as? [String: Any] {
-        LyrikoMediaControls.shared.update(values)
-        result(nil)
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    }
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     // Isolated iOS PiP feasibility test. Recognition channels remain unchanged.
     let pipPrototype = IOSLyricsVideoPiPTest()
     lyricsPiPPrototype = pipPrototype
+    let videoCallExperiment = IOSLyricsPiPPrototype()
+    lyricsPiPVideoCallExperiment = videoCallExperiment
     let pipChannel = FlutterMethodChannel(
       name: "lyriko/ios_pip_prototype",
       binaryMessenger: engineBridge.pluginRegistry.registrar(forPlugin: "LyrikoIOSPiPPrototype")!.messenger()
     )
     pipPrototype.eventChannel = pipChannel
+    videoCallExperiment.eventChannel = pipChannel
     pipChannel.setMethodCallHandler { [weak pipPrototype] call, result in
       guard let pipPrototype else {
         result(FlutterError(code: "PIP_UNAVAILABLE", message: "PiP prototype unavailable", details: nil))
@@ -67,6 +58,10 @@ import ShazamKit
       case "start": pipPrototype.start(result: result)
       case "stop": pipPrototype.stop(result: result)
       case "update": pipPrototype.update(arguments: call.arguments, result: result)
+      case "startVideoCallExperiment": videoCallExperiment.start(result: result)
+      case "stopVideoCallExperiment": videoCallExperiment.stop(result: result)
+      case "updateVideoCallExperiment": videoCallExperiment.update(arguments: call.arguments, result: result)
+      case "stateVideoCallExperiment": videoCallExperiment.state(result: result)
       default: result(FlutterMethodNotImplemented)
       }
     }
@@ -781,6 +776,7 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
   private var pendingStart = false
   private var startInvoked = false
   private var stopping = false
+  private var restorationRequested = false
   // A request is only successful once iOS confirms the PiP transition.
   private var startReply: FlutterResult?
   private var startTimeout: Timer?
@@ -790,14 +786,71 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
   private var previousLabel: UILabel?
   private var currentLabel: UILabel?
   private var nextLabel: UILabel?
-  private var lines: [(text: String, start: Int, end: Int)] = []
+  private var lines: [(text: String, start: Int, end: Int, samples: [Double])] = []
   private var positionMs = 0
   private var playing = false
   private var lastUpdate = Date()
   private var displayTimer: Timer?
+  private var requestedBackgroundOpacity: CGFloat = 0.10
+  // iOS may defer the PiP stop callback until the application is foregrounded.
+  private var foregroundObserver: NSObjectProtocol?
+  private var lastNativeRenderPositionMs = -1
+  private var lastNativeEvent = "initialized"
+  private var lastNativeEventAt = Date()
+  private func trace(_ event: String) {
+    lastNativeEvent = event
+    lastNativeEventAt = Date()
+    NSLog("LyriKO PiP: %@", event)
+  }
+
+  private func reconcileStoppedSession() {
+    guard let pip = controller else { return }
+    guard !pip.isPictureInPictureActive && !pendingStart else { return }
+    releaseController()
+    eventChannel?.invokeMethod("pipState", arguments: ["state": "stopped"])
+  }
+
+  private func reconcileAfterRestoration() {
+    // UIKit may report the old PiP active during its restore callback.
+    // Check again after the transition rather than leaving `stopping` latched.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+      self?.reconcileStoppedSession()
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+      guard let self else { return }
+      // UIKit can leave the PiP active after the restore completion callback.
+      // Request a real stop, and wait for didStop before permitting a restart.
+      if self.restorationRequested && self.controller?.isPictureInPictureActive == true {
+        self.controller?.stopPictureInPicture()
+      }
+      self.reconcileStoppedSession()
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+      self?.reconcileStoppedSession()
+    }
+  }
+
+  func state(result: @escaping FlutterResult) {
+    DispatchQueue.main.async {
+      self.reconcileStoppedSession()
+      result([
+        "active": self.controller?.isPictureInPictureActive == true,
+        "opening": self.pendingStart,
+        "stopping": self.stopping,
+        "possible": self.controller?.isPictureInPicturePossible == true,
+        "supported": AVPictureInPictureController.isPictureInPictureSupported(),
+        "controllerExists": self.controller != nil,
+        "startInvoked": self.startInvoked,
+        "restorationRequested": self.restorationRequested,
+        "lastEvent": self.lastNativeEvent,
+        "lastEventAt": self.lastNativeEventAt.timeIntervalSince1970,
+      ] as [String: Any])
+    }
+  }
 
   func start(result: @escaping FlutterResult) {
     DispatchQueue.main.async {
+      self.trace("start requested; previous controller=\(self.controller != nil)")
       guard AVPictureInPictureController.isPictureInPictureSupported() else {
         result(FlutterError(code: "PIP_UNSUPPORTED", message: "Picture in Picture is not supported", details: nil))
         return
@@ -805,6 +858,11 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
       if self.controller?.isPictureInPictureActive == true {
         result(true)
         return
+      }
+      // iOS sometimes omits/delays didStop after tapping the floating window.
+      // A no-longer-active controller must not block the next TEST attempt.
+      if self.stopping && self.controller?.isPictureInPictureActive != true {
+        self.reconcileStoppedSession()
       }
       if self.stopping {
         result(FlutterError(code: "PIP_STOPPING", message: "iOS is finishing the previous PiP session; try again", details: nil))
@@ -848,7 +906,11 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
       vc.preferredContentSize = CGSize(width: 360, height: 240)
       let content = UIView(frame: CGRect(x: 0, y: 0, width: 360, height: 240))
       content.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      content.backgroundColor = .black
+      // Experimental translucent composition. iOS may composite PiP as opaque.
+      content.backgroundColor = UIColor.black.withAlphaComponent(self.requestedBackgroundOpacity)
+      vc.view.backgroundColor = .clear
+      content.isOpaque = false
+      vc.view.isOpaque = false
       func makeLabel(_ size: CGFloat, _ weight: UIFont.Weight, _ color: UIColor) -> UILabel {
         let label = UILabel()
         label.font = .systemFont(ofSize: size, weight: weight)
@@ -859,21 +921,28 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
         label.minimumScaleFactor = 0.7
         return label
       }
+      // Preserve the title/artist UILabel for a future optional metadata mode.
+      // Hide it by default so the three lyric rows use the entire PiP canvas.
       let title = makeLabel(11, .semibold, UIColor.white.withAlphaComponent(0.60))
-      let previous = makeLabel(15, .regular, UIColor.white.withAlphaComponent(0.55))
-      let current = makeLabel(25, .bold, .white)
-      let next = makeLabel(15, .regular, UIColor.white.withAlphaComponent(0.55))
+      title.isHidden = true
+      let previous = makeLabel(18, .regular, UIColor.white.withAlphaComponent(0.55))
+      let current = makeLabel(26, .bold, .white)
+      let next = makeLabel(18, .regular, UIColor.white.withAlphaComponent(0.55))
+      previous.numberOfLines = 3
+      current.numberOfLines = 3
+      next.numberOfLines = 3
       let stack = UIStackView(arrangedSubviews: [title, previous, current, next])
       stack.axis = .vertical
       stack.alignment = .fill
-      stack.distribution = .fill
-      stack.spacing = 9
+      stack.distribution = .fillEqually
+      stack.spacing = 12
       stack.translatesAutoresizingMaskIntoConstraints = false
       content.addSubview(stack)
       NSLayoutConstraint.activate([
         stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
         stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
-        stack.centerYAnchor.constraint(equalTo: content.centerYAnchor)
+        stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 12),
+        stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -12)
       ])
       vc.view.addSubview(content)
       self.pipViewController = vc
@@ -889,29 +958,43 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
       pip.delegate = self
       pip.canStartPictureInPictureAutomaticallyFromInline = false
       self.controller = pip
+      self.trace("controller created; possible=\(pip.isPictureInPicturePossible)")
       self.pendingStart = true
       self.startInvoked = false
       self.startReply = result
       self.scheduleStartTimeout()
       self.possibilityObserver = pip.observe(\.isPictureInPicturePossible, options: [.initial, .new]) { [weak self] observed, _ in
         DispatchQueue.main.async {
-          guard let self, self.pendingStart, !self.startInvoked,
+          guard let self, self.controller === observed else { return }
+          self.trace("possible changed to \(observed.isPictureInPicturePossible); pending=\(self.pendingStart)")
+          guard self.pendingStart, !self.startInvoked,
                 observed.isPictureInPicturePossible else { return }
           self.startInvoked = true
+          self.trace("calling startPictureInPicture")
           observed.startPictureInPicture()
         }
       }
-      self.displayTimer = Timer.scheduledTimer(timeInterval: 0.12, target: self,
-                                                selector: #selector(self.tick), userInfo: nil, repeats: true)
+      self.displayTimer = Timer(timeInterval: 1.0 / 30.0, target: self,
+                                selector: #selector(self.tick), userInfo: nil, repeats: true)
+      RunLoop.main.add(self.displayTimer!, forMode: .common)
+      if self.foregroundObserver == nil {
+        self.foregroundObserver = NotificationCenter.default.addObserver(
+          forName: UIApplication.willEnterForegroundNotification,
+          object: nil, queue: .main
+        ) { [weak self] _ in
+          self?.reconcileStoppedSession()
+          self?.reconcileAfterRestoration()
+        }
+      }
     }
   }
 
   private func scheduleStartTimeout() {
     startTimeout?.invalidate()
-    // A timeout reports failure to Flutter, but does not destroy the PiP
-    // controller. The next TEST press can retry using the same instance.
-    startTimeout = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: false) { [weak self] _ in
+    // Give iOS time to complete the transition after returning from PiP.
+    startTimeout = Timer.scheduledTimer(withTimeInterval: 12.0, repeats: false) { [weak self] _ in
       guard let self, self.startReply != nil else { return }
+      self.trace("start timeout; invoked=\(self.startInvoked); possible=\(self.controller?.isPictureInPicturePossible == true)")
       self.finishStart(error: FlutterError(
         code: "PIP_TIMEOUT",
         message: "iOS did not confirm PiP startup; try TEST again",
@@ -948,12 +1031,19 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
           guard let text = entry["text"] as? String,
                 let start = entry["startMs"] as? Int,
                 let end = entry["endMs"] as? Int else { return nil }
-          return (text: text, start: start, end: end)
+          let samples = (entry["sweepSamples"] as? [NSNumber])?.map { min(1.0, max(0.0, $0.doubleValue)) } ?? []
+          return (text: text, start: start, end: end, samples: samples)
         }
+      }
+      if let opacity = data["background"] as? NSNumber {
+        // Flutter sends a 0-100 preference. Try alpha composition in video-call PiP.
+        self.requestedBackgroundOpacity = CGFloat(min(1, max(0, opacity.doubleValue / 100)))
+        self.pipViewController?.view.subviews.first?.backgroundColor = UIColor.black.withAlphaComponent(self.requestedBackgroundOpacity)
       }
       if let position = data["positionMs"] as? Int { self.positionMs = position }
       if let playing = data["playing"] as? Bool { self.playing = playing }
       self.lastUpdate = Date()
+      self.lastNativeRenderPositionMs = -1
       self.refresh()
       result(true)
     }
@@ -968,6 +1058,10 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
   private func refresh() {
     let elapsed = playing ? max(0, Int(Date().timeIntervalSince(lastUpdate) * 1000)) : 0
     let effectivePosition = positionMs + elapsed
+    // Render from the native wall clock, not the Flutter frame clock.
+    // iOS may still suspend this timer while the app is backgrounded.
+    if effectivePosition == lastNativeRenderPositionMs { return }
+    lastNativeRenderPositionMs = effectivePosition
     guard !lines.isEmpty else {
       currentLabel?.text = "Waiting for synced lyrics…"
       previousLabel?.text = nil
@@ -976,7 +1070,32 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
     }
     let active = lines.lastIndex(where: { $0.start <= effectivePosition }) ?? 0
     previousLabel?.text = active > 0 ? lines[active - 1].text : ""
-    currentLabel?.text = lines[active].text
+    let line = lines[active]
+    let duration = max(1, line.end - line.start)
+    let fraction = min(1.0, max(0.0, Double(effectivePosition - line.start) / Double(duration)))
+    let progress: Double
+    if line.samples.count >= 2 {
+      let samplePosition = fraction * Double(line.samples.count - 1)
+      let left = min(line.samples.count - 2, max(0, Int(samplePosition)))
+      let mix = samplePosition - Double(left)
+      progress = line.samples[left] * (1 - mix) + line.samples[left + 1] * mix
+    } else {
+      progress = fraction
+    }
+    let text = line.text
+    let characters = Array(text)
+    let boundary = progress * Double(characters.count)
+    let highlighted = NSMutableAttributedString(string: text)
+    for i in characters.indices {
+      let intensity = min(1.0, max(0.0, boundary - Double(i)))
+      let color = UIColor.white.withAlphaComponent(0.30 + 0.70 * intensity)
+      let prefix = String(characters.prefix(i))
+      let unitStart = (prefix as NSString).length
+      let unitLength = (String(characters[i]) as NSString).length
+      highlighted.addAttribute(.foregroundColor, value: color,
+                               range: NSRange(location: unitStart, length: unitLength))
+    }
+    currentLabel?.attributedText = highlighted
     nextLabel?.text = active + 1 < lines.count ? lines[active + 1].text : ""
   }
 
@@ -989,6 +1108,10 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
     possibilityObserver = nil
     displayTimer?.invalidate()
     displayTimer = nil
+    if let observer = foregroundObserver {
+      NotificationCenter.default.removeObserver(observer)
+      foregroundObserver = nil
+    }
     controller?.delegate = nil
     controller = nil
     sourceView?.removeFromSuperview()
@@ -1001,6 +1124,8 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
     pendingStart = false
     startInvoked = false
     stopping = false
+    restorationRequested = false
+    lastNativeRenderPositionMs = -1
   }
 
   func stop(result: @escaping FlutterResult) {
@@ -1019,16 +1144,22 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
   }
 
   func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
+    guard self.controller === controller else { return }
+    trace("didStart")
     finishStart()
     eventChannel?.invokeMethod("pipState", arguments: ["state": "started"])
   }
 
   func pictureInPictureControllerWillStopPictureInPicture(_ controller: AVPictureInPictureController) {
+    guard self.controller === controller else { return }
+    trace("willStop")
     stopping = true
     eventChannel?.invokeMethod("pipState", arguments: ["state": "stopping"])
   }
 
   func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) {
+    guard self.controller === controller else { return }
+    trace("didStop")
     // iOS has completed dismissal. The next TEST uses a new native session.
     if startReply != nil {
       finishStart(error: FlutterError(code: "PIP_STOPPED", message: "PiP stopped before startup completed", details: nil))
@@ -1041,13 +1172,19 @@ private final class IOSLyricsPiPPrototype: NSObject, AVPictureInPictureControlle
     _ controller: AVPictureInPictureController,
     restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
   ) {
-    // The Flutter home screen remains available. Confirm restoration to iOS.
+    // Complete UIKit restoration, then reclaim the dismissed session.
+    // The previous controller must not be reused for the next TEST.
+    trace("restore callback")
+    restorationRequested = true
+    stopping = true
+    eventChannel?.invokeMethod("pipState", arguments: ["state": "stopping"])
     completionHandler(true)
+    reconcileAfterRestoration()
   }
 
   func pictureInPictureController(_ controller: AVPictureInPictureController,
                                   failedToStartPictureInPictureWithError error: Error) {
-    NSLog("Lyriko PiP failed: %@", error.localizedDescription)
+    trace("failedToStart: \(error.localizedDescription)")
     finishStart(error: FlutterError(code: "PIP_START_FAILED", message: error.localizedDescription, details: nil))
     eventChannel?.invokeMethod("pipState", arguments: ["state": "failed", "message": error.localizedDescription])
     releaseController()
@@ -2638,57 +2775,5 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   func pictureInPictureController(_ pip: AVPictureInPictureController,
     restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
     completionHandler(true)
-  }
-}
-
-
-// Keeps the system's media controls pointed at the one Flutter music session.
-private final class LyrikoMediaControls {
-  static let shared = LyrikoMediaControls()
-  private var channel: FlutterMethodChannel?
-  private var configured = false
-  private var sessionConfigured = false
-
-  func register(_ channel: FlutterMethodChannel) {
-    self.channel = channel
-    guard !configured else { return }
-    configured = true
-    let commands = MPRemoteCommandCenter.shared()
-    commands.playCommand.addTarget { [weak self] _ in self?.send("play"); return .success }
-    commands.pauseCommand.addTarget { [weak self] _ in self?.send("pause"); return .success }
-    commands.togglePlayPauseCommand.addTarget { [weak self] _ in self?.send("toggle"); return .success }
-    commands.nextTrackCommand.addTarget { [weak self] _ in self?.send("next"); return .success }
-    commands.previousTrackCommand.addTarget { [weak self] _ in self?.send("previous"); return .success }
-  }
-
-  private func send(_ name: String) {
-    DispatchQueue.main.async { self.channel?.invokeMethod(name, arguments: nil) }
-  }
-
-  func update(_ values: [String: Any]) {
-    DispatchQueue.main.async {
-      if !self.sessionConfigured {
-        do {
-          try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-          try AVAudioSession.sharedInstance().setActive(true)
-          self.sessionConfigured = true
-        } catch {
-          NSLog("LyriKO audio session error: %@", error.localizedDescription)
-        }
-      }
-      let playing = values["playing"] as? Bool ?? false
-      var info: [String: Any] = [
-        MPMediaItemPropertyTitle: values["title"] as? String ?? "LyriKO",
-        MPMediaItemPropertyArtist: values["artist"] as? String ?? "",
-        MPNowPlayingInfoPropertyElapsedPlaybackTime: values["position"] as? Double ?? 0,
-        MPNowPlayingInfoPropertyPlaybackRate: playing ? 1.0 : 0.0,
-      ]
-      let duration = values["duration"] as? Double ?? 0
-      if duration > 0 { info[MPMediaItemPropertyPlaybackDuration] = duration }
-      MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-      if #available(iOS 13.0, *) {
-        MPNowPlayingInfoCenter.default().playbackState = playing ? .playing : .paused
-      }
-    }
   }
 }

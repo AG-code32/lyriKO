@@ -16,6 +16,77 @@ import '../services/synced_lyrics_service.dart';
 import '../services/lyric_sweep_curve.dart';
 import 'lyrics_edit_screen.dart';
 
+// Matches Lyrics Timeline's _editorVocalProgress algorithm. In particular,
+// after the final timed WORD, the entire phrase is lit immediately; it must
+// NOT interpolate an artificial final anchor to the end of the lyric block.
+// The same progress is sent to native PiP and drawn in MY MUSIC.
+// Mirrors Lyrics Timeline's _editorVocalProgress, including its saved
+// wordsEdited flag and automation. No player-specific timing interpolation.
+double _editorMatchedSweep(SyncedLyricLine line, int positionMs) {
+  final duration = line.endMs - line.startMs;
+  if (line.text.trim() == '♪') {
+    return positionMs >= line.startMs && positionMs < line.endMs ? 1.0 : 0.0;
+  }
+  final isAutomation = line.sweepCurve == 'automation';
+  double applyCurve(double fraction, {String? word}) =>
+      LyricSweepCurve.transform(fraction, line.sweepCurve,
+        text: word ?? line.text.trim(),
+        syllables: line.sweepSyllables?.toString() ?? '',
+        weights: LyricSweepCurve.parseWeights(line.sweepWeights),
+        points: LyricSweepCurve.parsePoints(line.sweepPoints));
+  if (isAutomation && duration > 0 &&
+      positionMs > line.startMs && positionMs < line.endMs) {
+    final progress = LyricSweepCurve.transform(
+        (positionMs - line.startMs) / duration, 'automation',
+        points: LyricSweepCurve.parsePoints(line.sweepPoints));
+    positionMs = line.startMs + (duration * progress).round();
+  }
+  if (positionMs <= line.startMs) return 0.0;
+  if (duration <= 0 || positionMs >= line.endMs) return 1.0;
+  double fallback() => isAutomation
+      ? (positionMs - line.startMs) / duration
+      : applyCurve((positionMs - line.startMs) / duration);
+  if (line.words.isEmpty) return fallback().clamp(0.0, 1.0);
+  final originalLength = line.originalEndMs - line.originalStartMs;
+  int adjusted(int ms) => line.wordsEdited
+      ? ms
+      : originalLength <= 0
+          ? line.startMs + ms - line.originalStartMs
+          : line.startMs +
+              ((ms - line.originalStartMs) * duration / originalLength).round();
+  final text = line.text.toLowerCase();
+  var cursor = 0;
+  var previous = 0.0;
+  var matches = 0;
+  for (final word in line.words) {
+    final token = word.text.trim().toLowerCase();
+    if (token.isEmpty) continue;
+    var index = text.indexOf(token, cursor);
+    var size = token.length;
+    if (index < 0) {
+      final simplified = token.replaceAll(RegExp(r"[^a-z0-9']"), '');
+      index = text.indexOf(simplified, cursor);
+      size = simplified.length;
+    }
+    if (index < 0 || size == 0) continue;
+    matches++;
+    final start = adjusted(word.startMs);
+    final end = adjusted(word.endMs);
+    if (positionMs < start) return previous;
+    if (positionMs <= end) {
+      final fraction = ((positionMs - start) /
+          (end - start).clamp(1, 100000000)).clamp(0.0, 1.0);
+      return ((index + size * (isAutomation ? fraction :
+          applyCurve(fraction, word: text.substring(index, index + size)))) /
+          text.length).clamp(0.0, 1.0);
+    }
+    cursor = index + size;
+    previous = cursor / text.length;
+  }
+  if (matches == 0) return fallback().clamp(0.0, 1.0);
+  return 1.0;
+}
+
 class MyMusicScreen extends StatefulWidget {
   const MyMusicScreen({super.key, required this.songsListenable, this.onExit, this.nowPlaying});
 
@@ -51,6 +122,290 @@ class MusicPlaybackSnapshot {
 
 class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   static const _mediaChannel = MethodChannel('lyriko/media_controls');
+  static const _pipChannel = MethodChannel('lyriko/ios_pip_prototype');
+  Timer? _pipSyncTimer;
+  String? _pipCachedSongId;
+  List<Map<String, dynamic>>? _pipCachedLines;
+  bool _pipActive = false;
+  bool _pipOpening = false;
+  // Temporary user-visible native PiP lifecycle indicator.
+  String _pipVisualStatus = 'Comprobando';
+  bool _pipHadTimeout = false;
+
+  bool get _pipIsTransitioning => _pipOpening ||
+      _pipVisualStatus == 'Preparando' ||
+      _pipVisualStatus == 'Cerrando' ||
+      _pipVisualStatus == 'Comprobando';
+
+  void _applyNativePipState(Map<String, dynamic> state) {
+    if (!mounted) return;
+    final active = state['active'] == true;
+    final opening = state['opening'] == true;
+    final stopping = state['stopping'] == true || state['restorationRequested'] == true;
+    final nativeEvent = (state['lastEvent'] ?? '').toString();
+    if (nativeEvent.contains('timeout') || nativeEvent.contains('failed')) {
+      _pipHadTimeout = true;
+    }
+    final next = stopping
+        ? 'Cerrando'
+        : opening
+            ? 'Preparando'
+            : active
+                ? 'Activo'
+                : _pipHadTimeout
+                    ? 'Reintentar'
+                    : 'Listo';
+    if (_pipVisualStatus != next || _pipActive != active) {
+      setState(() {
+        _pipVisualStatus = next;
+        _pipActive = active;
+      });
+    }
+    if (!active) _pipSyncTimer?.cancel();
+  }
+  // TEMPORARY: player-level PiP diagnostics. Remove after validation.
+  final List<String> _pipDiagnosticEvents = <String>[];
+  Timer? _pipDiagnosticPoll;
+  DateTime? _pipDiagnosticLastTick;
+  String _pipDiagnosticLastState = '';
+  int _pipDiagnosticAttempts = 0;
+  bool _pipDiagnosticPolling = false;
+
+  void _pipDiagnosticTrace(String event) {
+    if (!Platform.isIOS) return;
+    final row = '${DateTime.now().toIso8601String()} | $event';
+    _pipDiagnosticEvents.add(row);
+    if (_pipDiagnosticEvents.length > 350) {
+      _pipDiagnosticEvents.removeRange(0, _pipDiagnosticEvents.length - 350);
+    }
+    debugPrint('LYRIKO_MUSIC_PIP_DIAG $row');
+  }
+
+  Future<void> _pipDiagnosticSnapshot() async {
+    if (!Platform.isIOS || _pipDiagnosticPolling) return;
+    _pipDiagnosticPolling = true;
+    try {
+      final now = DateTime.now();
+      final previous = _pipDiagnosticLastTick;
+      _pipDiagnosticLastTick = now;
+      if (previous != null) {
+        final gap = now.difference(previous).inMilliseconds;
+        if (gap > 1800) _pipDiagnosticTrace('TIMER_GAP ${gap}ms');
+      }
+      final state = await _pipChannel.invokeMapMethod<String, dynamic>(
+        'stateVideoCallExperiment',
+      );
+      if (state != null) _applyNativePipState(state);
+      final snapshot = state.toString();
+      if (snapshot != _pipDiagnosticLastState) {
+        _pipDiagnosticLastState = snapshot;
+        _pipDiagnosticTrace('NATIVE_STATE $snapshot');
+      }
+    } catch (error) {
+      _pipDiagnosticTrace('POLL_ERROR $error');
+    } finally {
+      _pipDiagnosticPolling = false;
+    }
+  }
+
+  String _pipDiagnosticReport() => <String>[
+    'LyriKO MY MUSIC PiP diagnosis',
+    'Created: ${DateTime.now().toIso8601String()}',
+    'Track: ${_playing?.title ?? "none"}',
+    'Flutter: active=$_pipActive opening=$_pipOpening',
+    'Audio: playing=${_player.playing} positionMs=${_player.position.inMilliseconds}',
+    'Events: ${_pipDiagnosticEvents.length}',
+    '---',
+    ..._pipDiagnosticEvents,
+  ].join('\n');
+
+  void _showMusicPipDiagnostics() {
+    _pipDiagnosticTrace('REPORT_OPEN');
+    unawaited(_pipDiagnosticSnapshot());
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Diagnóstico temporal PiP'),
+        content: SizedBox(
+          width: 560,
+          height: 360,
+          child: SingleChildScrollView(
+            child: SelectableText(_pipDiagnosticReport(),
+                style: const TextStyle(fontSize: 11)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _pipDiagnosticEvents.clear();
+              _pipDiagnosticLastState = '';
+              _pipDiagnosticTrace('REPORT_RESET');
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Limpiar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(
+                ClipboardData(text: _pipDiagnosticReport()),
+              );
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: const Text('Copiar informe'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // The native PiP owns its clock between updates, including while Flutter is
+  // suspended. The audio player remains the sole playback authority.
+  Future<void> _syncMusicPiP() async {
+    final song = _playing;
+    if (!Platform.isIOS || !_pipActive || song == null) return;
+    try {
+      await _pipChannel.invokeMethod<bool>('updateVideoCallExperiment',
+          <String, dynamic>{
+            'positionMs': _karaokePosition.value,
+            'playing': _player.playing,
+          });
+    } catch (error) {
+      _pipDiagnosticTrace('SYNC_ERROR $error');
+      debugPrint('MY MUSIC PiP sync: $error');
+    }
+  }
+
+  // The floating player and the in-app player use the SAME editor-derived
+  // progression function; no independent PiP timing interpolation.
+  double _musicPiPSweep(SyncedLyricLine line, int positionMs) =>
+      _editorMatchedSweep(line, positionMs);
+
+  Map<String, dynamic> _musicPiPPayload(SyncedLyricsSong song) {
+    if (_pipCachedSongId != song.songId || _pipCachedLines == null) {
+      _pipCachedSongId = song.songId;
+      _pipCachedLines = song.lines.map((line) => <String, dynamic>{
+        'text': line.text,
+        'startMs': line.startMs,
+        'endMs': line.endMs,
+        'sweepSamples': List<double>.generate(61, (i) => _musicPiPSweep(
+          line, line.startMs + ((line.endMs - line.startMs) * i / 60).round())),
+      }).toList();
+    }
+    return {
+    'title': song.title,
+    'artist': song.artist,
+    'positionMs': _karaokePosition.value,
+    'playing': _player.playing,
+    'background': 10,
+    'lines': _pipCachedLines,
+    };
+  }
+
+  Future<void> _toggleMusicPiP() async {
+    if (!Platform.isIOS || _pipOpening) return;
+    _pipDiagnosticAttempts++;
+    _pipDiagnosticTrace('TOGGLE #$_pipDiagnosticAttempts flutterActive=$_pipActive');
+    setState(() { _pipOpening = true; _pipVisualStatus = 'Preparando'; });
+    try {
+      // Native AVKit state is authoritative, not a cached Flutter boolean.
+      final before = await _pipChannel
+          .invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+      _pipDiagnosticTrace('PRE_TOGGLE_NATIVE_STATE $before');
+      if (before == null) {
+        throw PlatformException(code: 'PIP_NO_STATE',
+            message: 'iOS did not return its PiP controller state');
+      }
+      final active = before['active'] == true;
+      final opening = before['opening'] == true;
+      final stopping = before['stopping'] == true;
+      if (mounted && _pipActive != active) {
+        setState(() => _pipActive = active);
+        _pipDiagnosticTrace('FLUTTER_STATE_CORRECTED active=$active');
+      }
+      if (opening || stopping) {
+        _pipDiagnosticTrace('BLOCKED_NATIVE_TRANSITION');
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('iOS is still changing PiP state')));
+        return;
+      }
+      if (active) {
+        if (mounted) setState(() => _pipVisualStatus = 'Cerrando');
+        _pipDiagnosticTrace('STOP_REQUEST');
+        await _pipChannel.invokeMethod('stopVideoCallExperiment');
+        _pipDiagnosticTrace('STOP_RETURNED');
+        _pipSyncTimer?.cancel();
+        // The native stop is asynchronous; do not fake a completed stop.
+        await _refreshMusicPiPState();
+      } else {
+        final song = _playing;
+        if (song == null) return;
+        _pipDiagnosticTrace('UPDATE_PAYLOAD_START');
+        await _pipChannel.invokeMethod<bool>(
+            'updateVideoCallExperiment', _musicPiPPayload(song));
+        _pipDiagnosticTrace('UPDATE_PAYLOAD_OK');
+        if (mounted) setState(() => _pipVisualStatus = 'Preparando');
+        _pipDiagnosticTrace('START_REQUEST');
+        final started = await _pipChannel
+            .invokeMethod<bool>('startVideoCallExperiment');
+        _pipDiagnosticTrace('START_RETURNED $started');
+        if (started != true) {
+          throw PlatformException(code: 'PIP_NOT_STARTED',
+              message: 'iOS did not confirm PiP startup');
+        }
+        if (!mounted) return;
+        final confirmed = await _pipChannel
+            .invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+        _pipDiagnosticTrace('CONFIRMED_STATE $confirmed');
+        if (confirmed?['active'] != true) {
+          throw PlatformException(code: 'PIP_NOT_ACTIVE',
+              message: 'iOS has not activated the floating window');
+        }
+        _pipHadTimeout = false;
+        setState(() { _pipActive = true; _pipVisualStatus = 'Activo'; });
+        _pipSyncTimer?.cancel();
+        _pipSyncTimer = Timer.periodic(const Duration(milliseconds: 120), (_) {
+          unawaited(_syncMusicPiP());
+        });
+      }
+    } on PlatformException catch (error) {
+      _pipHadTimeout = true;
+      if (mounted) setState(() => _pipVisualStatus = 'Reintentar');
+      _pipDiagnosticTrace('TOGGLE_ERROR ${error.code}: ${error.message}');
+      try {
+        final failure = await _pipChannel
+            .invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+        _pipDiagnosticTrace('ERROR_NATIVE_STATE $failure');
+      } catch (snapshotError) {
+        _pipDiagnosticTrace('ERROR_STATE_FAILED $snapshotError');
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('PiP: ${error.message ?? error.code}')));
+    } finally {
+      _pipDiagnosticTrace('TOGGLE_FINISHED');
+      if (mounted) {
+        setState(() => _pipOpening = false);
+        unawaited(_pipDiagnosticSnapshot());
+      }
+    }
+  }
+
+  Future<void> _refreshMusicPiPState() async {
+    if (!Platform.isIOS) return;
+    try {
+      final state = await _pipChannel.invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+      if (!mounted || state == null) return;
+      final active = state['active'] == true;
+      _applyNativePipState(state);
+    } catch (error) {
+      _pipDiagnosticTrace('RESUME_STATE_ERROR $error');
+      debugPrint('MY MUSIC PiP state: $error');
+    }
+  }
+
   Timer? _browseTimer;
   bool _browsingLyrics = false;
   final ItemScrollController _lyricsScroll = ItemScrollController();
@@ -168,19 +523,11 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     final end = _duration.inMilliseconds > 0
         ? _duration.inMilliseconds : (_playing?.durationMs ?? position);
     final now = position.clamp(0, math.max(0, end)).toInt();
-    if (_karaokePosition.value != now) {
-      final previous = _activeIndex;
-      _karaokePosition.value = now;
-      if (_activeIndex != previous && mounted) {
-        setState(() => _lastActive = -1);
-        _scrollActive();
-      }
-    }
+    if (_karaokePosition.value != now) _karaokePosition.value = now;
   }
 
   final _player = AudioPlayer();
   final _search = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
   final List<StreamSubscription<dynamic>> _subs = [];
   final FocusNode _focusNode = FocusNode();
 
@@ -262,12 +609,24 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         case 'previous': _previous(); break;
       }
     };
+    if (Platform.isIOS) {
+      _pipDiagnosticTrace('PLAYER_INIT');
+      _pipDiagnosticPoll = Timer.periodic(
+        const Duration(milliseconds: 600),
+        (_) => unawaited(_pipDiagnosticSnapshot()),
+      );
+      unawaited(_pipDiagnosticSnapshot());
+    }
     _loadSavedMetadata();
     _warmIndex();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _pipDiagnosticTrace('APP_LIFECYCLE $state');
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_pipDiagnosticSnapshot());
+    }
     if (state != AppLifecycleState.resumed || !mounted || _playing == null) return;
     // Refresh the Flutter mini player from the actual native player on resume.
     setState(() {
@@ -275,6 +634,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
       _isPlaying = _player.playing;
     });
     _sendPlaybackState(force: true);
+    unawaited(_refreshMusicPiPState());
     _lastActive = -1;
     _scrollActive();
   }
@@ -452,8 +812,6 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
   Future<void> _reloadEditedLyrics(SyncedLyricsSong editedSong) async {
     final lyricsService = SyncedLyricsService();
     final fresh = await lyricsService.loadSong(editedSong.jsonPath);
-    // The service preserves wordsEdited directly from each JSON line.
-    // Do not rely on matching raw JSON indices or overwrite original anchors.
     final playerLines = fresh.lines;
     if (!mounted) return;
 
@@ -640,23 +998,13 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
       final id = entry['id']?.toString() ?? '';
       if (id.isEmpty) throw StateError('Server ID missing.');
       final mp3 = await _cachedAudio(entry, id);
-      // Use the same locally saved WORDS timestamps as Lyrics Timeline,
-      // including on the FIRST playback (not just after closing the editor).
-      try {
-        await _reloadEditedLyrics(song);
-      } catch (error) {
-        debugPrint('Using existing lyrics: $error');
-      }
-      final currentLyrics = _songs.where((item) =>
-          item.songId == song.songId || item.jsonPath == song.jsonPath);
-      final freshSong = currentLyrics.isNotEmpty ? currentLyrics.first : song;
       await _player.stop();
       await _player.setFilePath(mp3.path);
       await _player.setVolume(_volume);
       if (!mounted) return;
       _browseTimer?.cancel();
       setState(() {
-        _playing = freshSong;
+        _playing = song;
         _showLyrics = true;
         _browsingLyrics = false;
         _positionMs = 0;
@@ -832,10 +1180,14 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     MyMusicScreen.showLyricsCommand = null;
     widget.songsListenable.removeListener(_onHomeLibrary);
     _browseTimer?.cancel();
-    if (Platform.isIOS) _mediaChannel.setMethodCallHandler(null);
+    _pipSyncTimer?.cancel();
+    _pipDiagnosticPoll?.cancel();
+    if (Platform.isIOS) {
+      unawaited(_pipChannel.invokeMethod('stopVideoCallExperiment'));
+      _mediaChannel.setMethodCallHandler(null);
+    }
     _focusNode.dispose();
     _player.dispose();
-    _searchFocus.dispose();
     _search.dispose();
     super.dispose();
   }
@@ -867,7 +1219,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     final value = (_dragSeconds ?? _positionMs / 1000).clamp(0.0, totalMs / 1000);
 
     final shortcuts = <ShortcutActivator, Intent>{
-
+      const SingleActivator(LogicalKeyboardKey.space): const ActivateIntent(),
       const SingleActivator(LogicalKeyboardKey.keyA, control: true): const _SeekIntent(-5),
       const SingleActivator(LogicalKeyboardKey.keyD, control: true): const _SeekIntent(5),
       const SingleActivator(LogicalKeyboardKey.keyJ, control: true): const _TrackIntent(false),
@@ -885,17 +1237,6 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         child: Focus(
           autofocus: true,
           focusNode: _focusNode,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.space) {
-              return KeyEventResult.ignored;
-            }
-            final focused = FocusManager.instance.primaryFocus?.context?.widget;
-            if (focused is EditableText || _searchFocus.hasFocus) {
-              return KeyEventResult.ignored;
-            }
-            _togglePlayPause();
-            return KeyEventResult.handled;
-          },
           child: PopScope(
             canPop: false,
             onPopInvokedWithResult: (didPop, result) {
@@ -1054,7 +1395,6 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
           child: TextField(
-            focusNode: _searchFocus,
             controller: _search,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
@@ -1447,17 +1787,38 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
                   tooltip: 'Repeat current song',
                 ),
                 const SizedBox(width: 26),
-                if (Platform.isMacOS)
-                  SizedBox(width: 190, child: Row(children: [
-                    Icon(_volume > 0 ? Icons.volume_up_rounded : Icons.volume_off_rounded, size: 19),
-                    Expanded(child: Slider(value: _volume, min: 0, max: 1,
-                      onChanged: (v) {
-                        setState(() => _volume = v);
-                        unawaited(_player.setVolume(v));
-                      })),
-                  ]))
-                else
-                  _buildVolumeButton(theme),
+                _buildVolumeButton(theme),
+                if (Platform.isIOS) ...[
+                  const SizedBox(width: 10),
+                  IconButton(
+                    tooltip: 'Diagnóstico PiP · copiar informe',
+                    onPressed: _showMusicPipDiagnostics,
+                    icon: const Icon(Icons.bug_report_outlined),
+                  ),
+                  const SizedBox(width: 4),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'PiP: $_pipVisualStatus',
+                        onPressed: _pipIsTransitioning ? null : _toggleMusicPiP,
+                        icon: _pipIsTransitioning
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(_pipActive
+                                ? Icons.picture_in_picture_alt_rounded
+                                : Icons.picture_in_picture_rounded),
+                      ),
+                      Text(
+                        _pipVisualStatus,
+                        style: const TextStyle(fontSize: 9),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ],
@@ -1572,73 +1933,7 @@ class _VoiceTimedLyric extends StatelessWidget {
   final bool compact;
   final int distance;
 
-  double _curve(double fraction, {String? word}) => LyricSweepCurve.transform(
-    fraction, line.sweepCurve,
-    text: word ?? line.text.trim(),
-    syllables: line.sweepSyllables,
-    weights: line.sweepWeights,
-    points: line.sweepPoints,
-  );
-
-  double _progressFor(String text) {
-    final duration = line.endMs - line.startMs;
-    if (text == '♪') return positionMs >= line.startMs && positionMs < line.endMs ? 1.0 : 0.0;
-    final isAutomation = line.sweepCurve == 'automation';
-    final effectivePositionMs = isAutomation && duration > 0 &&
-        positionMs > line.startMs && positionMs < line.endMs
-        ? line.startMs + (duration * LyricSweepCurve.transform(
-            (positionMs - line.startMs) / duration, 'automation',
-            points: line.sweepPoints)).round()
-        : positionMs;
-    if (effectivePositionMs <= line.startMs) return 0.0;
-    if (duration <= 0 || effectivePositionMs >= line.endMs) return 1.0;
-    if (text.isEmpty || line.words.isEmpty) {
-      return isAutomation ? (effectivePositionMs - line.startMs) / duration : _curve((effectivePositionMs - line.startMs) / duration);
-    }
-    // WORDS edited in Lyrics Timeline are already absolute song timestamps.
-    // Only unedited CTC words need their original->calibrated mapping.
-    final originalSpan = line.originalEndMs - line.originalStartMs;
-    int adjusted(int ms) => line.wordsEdited
-        ? ms
-        : originalSpan <= 0
-            ? line.startMs + ms - line.originalStartMs
-            : line.startMs + ((ms - line.originalStartMs) * duration / originalSpan).round();
-    final lower = text.toLowerCase();
-    var cursor = 0;
-    var previous = 0.0;
-    var matches = 0;
-    for (final word in line.words) {
-      final token = word.text.trim().toLowerCase();
-      if (token.isEmpty || word.endMs <= word.startMs) continue;
-      var index = lower.indexOf(token, cursor);
-      var length = token.length;
-      if (index < 0) {
-        final simplified = token.replaceAll(RegExp(r"[^a-z0-9']"), '');
-        if (simplified.isEmpty) continue;
-        index = lower.indexOf(simplified, cursor);
-        length = simplified.length;
-      }
-      if (index < 0) continue;
-      matches++;
-      final start = adjusted(word.startMs);
-      final end = adjusted(word.endMs);
-      if (effectivePositionMs < start) return previous;
-      if (effectivePositionMs <= end) {
-        final fraction = ((effectivePositionMs - start) /
-            (end - start).clamp(1, 100000000)).clamp(0.0, 1.0);
-        return ((index + length * (isAutomation ? fraction : _curve(fraction,
-            word: text.substring(index, index + length)))) / text.length).clamp(0.0, 1.0);
-      }
-      cursor = index + length;
-      previous = cursor / text.length;
-    }
-    if (matches == 0) {
-      return isAutomation ? (effectivePositionMs - line.startMs) / duration : _curve((effectivePositionMs - line.startMs) / duration);
-    }
-    // The last sung word completes the whole phrase, including punctuation.
-    // Never leave a dark suffix while waiting for the next line to begin.
-    return 1.0;
-  }
+  double _progressFor(String text) => _editorMatchedSweep(line, positionMs);
 
   @override
   Widget build(BuildContext context) {
@@ -1683,35 +1978,28 @@ class _VoiceTimedLyric extends StatelessWidget {
         fittedStyle = fittedStyle.copyWith(fontSize: fittedStyle.fontSize! - 1.0);
       }
 
-      final mutedColor = baseColor.withOpacity(
-        active ? .34 : distance == 1 ? .38 : .22,
+      final mutedStyle = fittedStyle.copyWith(
+        color: baseColor.withOpacity(active ? .34 : distance == 1 ? .38 : .22),
       );
       if (!active) {
         return SizedBox(
           width: width,
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            softWrap: true,
-            style: fittedStyle.copyWith(color: mutedColor),
-          ),
+          child: Text(text, textAlign: TextAlign.center,
+              softWrap: true, style: mutedStyle),
         );
       }
-
-      // Match Lyrics Timeline's working karaoke preview: render a SINGLE
-      // Text.rich paragraph. Two separately laid-out Text widgets with a
-      // ClipPath can disagree on glyph positions, leaving visible dark gaps.
-      // A single paragraph guarantees the muted and bright portions share
-      // precisely the same glyph metrics, wrapping and baselines.
-      final boundary = text.length * _progressFor(text);
+      // Exactly the editor's Text.rich strategy: a SINGLE paragraph layout,
+      // one character per span, with continuously interpolated foreground.
+      // No second text layer, no glyph boxes and no clipping geometry.
+      final progress = _progressFor(text);
+      final boundary = text.length * progress;
       final spans = <TextSpan>[];
       for (var i = 0; i < text.length; i++) {
         final fraction = (boundary - i).clamp(0.0, 1.0);
         spans.add(TextSpan(
           text: text[i],
-          style: TextStyle(
-            color: Color.lerp(mutedColor, baseColor, fraction),
-          ),
+          style: TextStyle(color: Color.lerp(
+              mutedStyle.color!, baseColor, fraction)),
         ));
       }
       return SizedBox(
