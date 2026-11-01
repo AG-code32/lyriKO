@@ -129,13 +129,13 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
   bool _pipActive = false;
   bool _pipOpening = false;
   // Temporary user-visible native PiP lifecycle indicator.
-  String _pipVisualStatus = 'Comprobando';
+  String _pipVisualStatus = 'Checking';
   bool _pipHadTimeout = false;
 
   bool get _pipIsTransitioning => _pipOpening ||
-      _pipVisualStatus == 'Preparando' ||
-      _pipVisualStatus == 'Cerrando' ||
-      _pipVisualStatus == 'Comprobando';
+      _pipVisualStatus == 'Preparing' ||
+      _pipVisualStatus == 'Closing' ||
+      _pipVisualStatus == 'Checking';
 
   void _applyNativePipState(Map<String, dynamic> state) {
     if (!mounted) return;
@@ -147,14 +147,14 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
       _pipHadTimeout = true;
     }
     final next = stopping
-        ? 'Cerrando'
+        ? 'Closing'
         : opening
-            ? 'Preparando'
+            ? 'Preparing'
             : active
-                ? 'Activo'
+                ? 'Active'
                 : _pipHadTimeout
-                    ? 'Reintentar'
-                    : 'Listo';
+                    ? 'Retry'
+                    : 'Ready';
     if (_pipVisualStatus != next || _pipActive != active) {
       setState(() {
         _pipVisualStatus = next;
@@ -181,6 +181,29 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     debugPrint('LYRIKO_MUSIC_PIP_DIAG $row');
   }
 
+  // Separate bounded native snapshot: survives Flutter suspension in the native buffer.
+  Map<String, dynamic>? _pipNativeDiagnostics;
+  Future<void>? _pipNativeDiagnosticsFetch;
+
+  Future<void> _fetchNativePiPDiagnostics() {
+    final pending = _pipNativeDiagnosticsFetch;
+    if (pending != null) return pending;
+    final fetch = _readNativePiPDiagnostics();
+    _pipNativeDiagnosticsFetch = fetch;
+    return fetch.whenComplete(() => _pipNativeDiagnosticsFetch = null);
+  }
+
+  Future<void> _readNativePiPDiagnostics() async {
+    try {
+      final diagnostics = await _pipChannel.invokeMapMethod<String, dynamic>(
+        'diagnosticsAVPlayerV2',
+      );
+      if (diagnostics != null) _pipNativeDiagnostics = diagnostics;
+    } catch (error) {
+      _pipDiagnosticTrace('NATIVE_EVENTS_READ_ERROR $error');
+    }
+  }
+
   Future<void> _pipDiagnosticSnapshot() async {
     if (!Platform.isIOS || _pipDiagnosticPolling) return;
     _pipDiagnosticPolling = true;
@@ -193,7 +216,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         if (gap > 1800) _pipDiagnosticTrace('TIMER_GAP ${gap}ms');
       }
       final state = await _pipChannel.invokeMapMethod<String, dynamic>(
-        'stateVideoCallExperiment',
+        'stateAVPlayerV2',
       );
       if (state != null) _applyNativePipState(state);
       final snapshot = state.toString();
@@ -204,6 +227,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     } catch (error) {
       _pipDiagnosticTrace('POLL_ERROR $error');
     } finally {
+      await _fetchNativePiPDiagnostics();
       _pipDiagnosticPolling = false;
     }
   }
@@ -217,6 +241,13 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     'Events: ${_pipDiagnosticEvents.length}',
     '---',
     ..._pipDiagnosticEvents,
+    '--- Native PiP events (native timestamps; reads do not clear) ---',
+    if (_pipNativeDiagnostics == null) 'Native instrumentation: not retrieved',
+    if (_pipNativeDiagnostics != null) ...[
+      'Native metadata: ${{..._pipNativeDiagnostics!}..remove("events")}',
+      for (final event in (_pipNativeDiagnostics!['events'] as List? ?? const []))
+        '$event',
+    ],
   ].join('\n');
 
   void _showMusicPipDiagnostics() {
@@ -225,7 +256,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Diagnóstico temporal PiP'),
+        title: const Text('Temporary PiP diagnostics'),
         content: SizedBox(
           width: 560,
           height: 360,
@@ -242,20 +273,21 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
               _pipDiagnosticTrace('REPORT_RESET');
               Navigator.pop(dialogContext);
             },
-            child: const Text('Limpiar'),
+            child: const Text('Clear'),
           ),
           TextButton(
             onPressed: () async {
+              await _fetchNativePiPDiagnostics();
               await Clipboard.setData(
                 ClipboardData(text: _pipDiagnosticReport()),
               );
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
-            child: const Text('Copiar informe'),
+            child: const Text('Copy report'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cerrar'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -264,18 +296,47 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
 
   // The native PiP owns its clock between updates, including while Flutter is
   // suspended. The audio player remains the sole playback authority.
+  int? _pipLastSyncedPositionMs;
+  DateTime? _pipLastSyncAt;
+  bool? _pipLastPlaying;
+  bool _pipSyncInFlight = false;
+
   Future<void> _syncMusicPiP() async {
     final song = _playing;
-    if (!Platform.isIOS || !_pipActive || song == null) return;
+    if (!Platform.isIOS || !_pipActive || song == null || _pipSyncInFlight) {
+      return;
+    }
+    final now = DateTime.now();
+    final positionMs = _karaokePosition.value;
+    final playing = _player.playing;
+    final elapsedMs = _pipLastSyncAt == null
+        ? 0
+        : now.difference(_pipLastSyncAt!).inMilliseconds;
+    final expected = (_pipLastSyncedPositionMs ?? positionMs) +
+        ((_pipLastPlaying ?? playing) ? elapsedMs : 0);
+    // A seek is a discontinuity, not ordinary time progression. In particular,
+    // never correct AVPlayer for small clock drift on each Flutter timer tick.
+    final seekRequested = _pipLastSyncedPositionMs != null &&
+        (positionMs - expected).abs() > 2200;
+    _pipSyncInFlight = true;
     try {
-      await _pipChannel.invokeMethod<bool>('updateVideoCallExperiment',
+      await _pipChannel.invokeMethod<bool>('updateAVPlayerV2',
           <String, dynamic>{
-            'positionMs': _karaokePosition.value,
-            'playing': _player.playing,
+            'playing': playing,
+            if (seekRequested) 'positionMs': positionMs,
+            if (seekRequested) 'seekRequested': true,
           });
+      if (seekRequested) {
+        _pipDiagnosticTrace('EXPLICIT_SEEK positionMs=$positionMs');
+      }
+      _pipLastSyncedPositionMs = positionMs;
+      _pipLastSyncAt = now;
+      _pipLastPlaying = playing;
     } catch (error) {
       _pipDiagnosticTrace('SYNC_ERROR $error');
       debugPrint('MY MUSIC PiP sync: $error');
+    } finally {
+      _pipSyncInFlight = false;
     }
   }
 
@@ -305,15 +366,29 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     };
   }
 
+  Future<void> _prewarmMusicPiP(SyncedLyricsSong song) async {
+    try {
+      final payload = _musicPiPPayload(song);
+      final ready = await _pipChannel.invokeMethod<bool>(
+        'prepareAVPlayerV2', payload,
+      );
+      _pipDiagnosticTrace('PREWARM_COMPLETED ready=$ready songId=${song.songId}');
+    } catch (error) {
+      _pipDiagnosticTrace('PREWARM_ERROR $error');
+      // A failed prewarm must not interrupt music playback. The button still
+      // has its normal preparation path for an explicit retry.
+    }
+  }
+
   Future<void> _toggleMusicPiP() async {
     if (!Platform.isIOS || _pipOpening) return;
     _pipDiagnosticAttempts++;
     _pipDiagnosticTrace('TOGGLE #$_pipDiagnosticAttempts flutterActive=$_pipActive');
-    setState(() { _pipOpening = true; _pipVisualStatus = 'Preparando'; });
+    setState(() { _pipOpening = true; _pipVisualStatus = 'Preparing'; });
     try {
       // Native AVKit state is authoritative, not a cached Flutter boolean.
       final before = await _pipChannel
-          .invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+          .invokeMapMethod<String, dynamic>('stateAVPlayerV2');
       _pipDiagnosticTrace('PRE_TOGGLE_NATIVE_STATE $before');
       if (before == null) {
         throw PlatformException(code: 'PIP_NO_STATE',
@@ -333,9 +408,9 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         return;
       }
       if (active) {
-        if (mounted) setState(() => _pipVisualStatus = 'Cerrando');
+        if (mounted) setState(() => _pipVisualStatus = 'Closing');
         _pipDiagnosticTrace('STOP_REQUEST');
-        await _pipChannel.invokeMethod('stopVideoCallExperiment');
+        await _pipChannel.invokeMethod('stopAVPlayerV2');
         _pipDiagnosticTrace('STOP_RETURNED');
         _pipSyncTimer?.cancel();
         // The native stop is asynchronous; do not fake a completed stop.
@@ -345,12 +420,12 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         if (song == null) return;
         _pipDiagnosticTrace('UPDATE_PAYLOAD_START');
         await _pipChannel.invokeMethod<bool>(
-            'updateVideoCallExperiment', _musicPiPPayload(song));
+            'updateAVPlayerV2', _musicPiPPayload(song));
         _pipDiagnosticTrace('UPDATE_PAYLOAD_OK');
-        if (mounted) setState(() => _pipVisualStatus = 'Preparando');
+        if (mounted) setState(() => _pipVisualStatus = 'Preparing');
         _pipDiagnosticTrace('START_REQUEST');
         final started = await _pipChannel
-            .invokeMethod<bool>('startVideoCallExperiment');
+            .invokeMethod<bool>('startAVPlayerV2');
         _pipDiagnosticTrace('START_RETURNED $started');
         if (started != true) {
           throw PlatformException(code: 'PIP_NOT_STARTED',
@@ -358,26 +433,29 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
         }
         if (!mounted) return;
         final confirmed = await _pipChannel
-            .invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+            .invokeMapMethod<String, dynamic>('stateAVPlayerV2');
         _pipDiagnosticTrace('CONFIRMED_STATE $confirmed');
         if (confirmed?['active'] != true) {
           throw PlatformException(code: 'PIP_NOT_ACTIVE',
               message: 'iOS has not activated the floating window');
         }
         _pipHadTimeout = false;
-        setState(() { _pipActive = true; _pipVisualStatus = 'Activo'; });
+        setState(() { _pipActive = true; _pipVisualStatus = 'Active'; });
+        _pipLastSyncedPositionMs = _karaokePosition.value;
+        _pipLastSyncAt = DateTime.now();
+        _pipLastPlaying = _player.playing;
         _pipSyncTimer?.cancel();
-        _pipSyncTimer = Timer.periodic(const Duration(milliseconds: 120), (_) {
+        _pipSyncTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
           unawaited(_syncMusicPiP());
         });
       }
     } on PlatformException catch (error) {
       _pipHadTimeout = true;
-      if (mounted) setState(() => _pipVisualStatus = 'Reintentar');
+      if (mounted) setState(() => _pipVisualStatus = 'Retry');
       _pipDiagnosticTrace('TOGGLE_ERROR ${error.code}: ${error.message}');
       try {
         final failure = await _pipChannel
-            .invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+            .invokeMapMethod<String, dynamic>('stateAVPlayerV2');
         _pipDiagnosticTrace('ERROR_NATIVE_STATE $failure');
       } catch (snapshotError) {
         _pipDiagnosticTrace('ERROR_STATE_FAILED $snapshotError');
@@ -396,7 +474,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
   Future<void> _refreshMusicPiPState() async {
     if (!Platform.isIOS) return;
     try {
-      final state = await _pipChannel.invokeMapMethod<String, dynamic>('stateVideoCallExperiment');
+      final state = await _pipChannel.invokeMapMethod<String, dynamic>('stateAVPlayerV2');
       if (!mounted || state == null) return;
       final active = state['active'] == true;
       _applyNativePipState(state);
@@ -1013,6 +1091,11 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
       });
       _sendPlaybackState(force: true);
       WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _scrollActive(); });
+      // Pre-render the PiP video while the song is already playing, not when
+      // the PiP button is pressed. This does not block playback or the UI.
+      if (Platform.isIOS) {
+        unawaited(_prewarmMusicPiP(song));
+      }
       unawaited(_player.play());
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not play ${song.title}: $e');
@@ -1183,7 +1266,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
     _pipSyncTimer?.cancel();
     _pipDiagnosticPoll?.cancel();
     if (Platform.isIOS) {
-      unawaited(_pipChannel.invokeMethod('stopVideoCallExperiment'));
+      unawaited(_pipChannel.invokeMethod('disposeAVPlayerV2'));
       _mediaChannel.setMethodCallHandler(null);
     }
     _focusNode.dispose();
@@ -1791,7 +1874,7 @@ class _MyMusicScreenState extends State<MyMusicScreen> with WidgetsBindingObserv
                 if (Platform.isIOS) ...[
                   const SizedBox(width: 10),
                   IconButton(
-                    tooltip: 'Diagnóstico PiP · copiar informe',
+                    tooltip: 'PiP diagnostics · copy report',
                     onPressed: _showMusicPipDiagnostics,
                     icon: const Icon(Icons.bug_report_outlined),
                   ),

@@ -6,6 +6,7 @@ import AudioToolbox
 import AVFoundation
 import AVKit
 import ShazamKit
+import CryptoKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -62,6 +63,14 @@ import ShazamKit
       case "stopVideoCallExperiment": videoCallExperiment.stop(result: result)
       case "updateVideoCallExperiment": videoCallExperiment.update(arguments: call.arguments, result: result)
       case "stateVideoCallExperiment": videoCallExperiment.state(result: result)
+      // AVPlayer V2: keep the historical VideoCall engine available for comparison.
+      case "startAVPlayerV2": pipPrototype.start(result: result)
+      case "stopAVPlayerV2": pipPrototype.stop(result: result)
+      case "disposeAVPlayerV2": pipPrototype.dispose(result: result)
+      case "updateAVPlayerV2": pipPrototype.update(arguments: call.arguments, result: result)
+      case "prepareAVPlayerV2": pipPrototype.prepare(arguments: call.arguments, result: result)
+      case "stateAVPlayerV2": pipPrototype.getStatus(result: result)
+      case "diagnosticsAVPlayerV2": pipPrototype.getDiagnostics(result: result)
       default: result(FlutterMethodNotImplemented)
       }
     }
@@ -1209,16 +1218,144 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   private var startTimeout: Timer?
   private var pendingResult: FlutterResult?
   private var state = "idle"
+  private var lastStopAt: Date?
+  // Diagnostic only: identify each native PiP session across creation and teardown.
+  private var lifecycleSessionNumber = 0
+  private var lifecycleSessionID = "none"
+  // Read exactly once per native engine lifetime. No persistent preference.
+  private let reuseVariant = IOSLyricsVideoPiPTest.selectReuseVariant(
+    environmentValue: ProcessInfo.processInfo.environment["LYRIKO_PIP_VARIANT"],
+    encodedDefines: Bundle.main.object(forInfoDictionaryKey: "LyriKOPiPDartDefines") as? String)
+
+  private static func selectReuseVariant(environmentValue: String?, encodedDefines: String?) -> Bool {
+    // An explicitly supplied native environment value always takes precedence.
+    if let environmentValue { return environmentValue == "B" }
+    // Flutter encodes each KEY=VALUE separately as Base64, separated by commas.
+    for entry in (encodedDefines ?? "").split(separator: ",").reversed() {
+      guard let data = Data(base64Encoded: String(entry)),
+            let define = String(data: data, encoding: .utf8) else { continue }
+      let parts = define.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+      if parts.count == 2, parts[0] == "LYRIKO_PIP_VARIANT" {
+        return parts[1] == "B"
+      }
+    }
+    // Reuse is the default; explicit A still selects reconstruction.
+    return true
+  }
+  private var attemptGeneration: UInt64 = 0
+  private var infrastructureID = UUID().uuidString
+  private var retainedAfterStop = false
+  private var permanentDisposalPending = false
+
+  private func isCurrentAttempt(_ generation: UInt64) -> Bool {
+    generation == attemptGeneration && !permanentDisposalPending
+  }
+
+  func dispose(result: @escaping FlutterResult) {
+    DispatchQueue.main.async {
+      self.lifecycleTrace("permanent-disposal-request")
+      self.permanentDisposalPending = true
+      self.attemptGeneration += 1
+      self.complete(FlutterError(code: "PIP_CANCELLED", message: "PiP disposed", details: nil))
+      if let pip = self.controller, pip.isPictureInPictureActive {
+        self.state = "stopping"
+        pip.stopPictureInPicture()
+      } else { self.cleanup() }
+      result(true)
+    }
+  }
+
+  private let diagnosticMarker = "lyriko-pip-native-events-v1-20261101"
+  private let diagnosticRunID = UUID().uuidString
+  private let diagnosticCapacity = 350
+  private var diagnosticSequence: Int64 = 0
+  private var diagnosticDropped: Int64 = 0
+  private var diagnosticEvents: [[String: Any]] = []
+
+  func getDiagnostics(result: @escaping FlutterResult) {
+    DispatchQueue.main.async {
+      result([
+        "variant": self.reuseVariant ? "B" : "A",
+        "attemptID": self.attemptGeneration,
+        "infrastructureID": self.infrastructureID,
+        "marker": self.diagnosticMarker,
+        "runID": self.diagnosticRunID,
+        "bundleVersion": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
+        "appVersion": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
+        "capacity": self.diagnosticCapacity,
+        "latestSequence": self.diagnosticSequence,
+        "droppedEvents": self.diagnosticDropped,
+        "events": self.diagnosticEvents
+      ])
+    }
+  }
+
+  private func lifecycleTrace(_ event: String, controller candidate: AVPictureInPictureController? = nil) {
+    let pip = candidate ?? controller
+    let source = sourceView
+    let layer = playerLayer
+    let window = source?.window
+    let sourceRect = source?.bounds ?? .zero
+    let onMain = Thread.isMainThread
+    let message = "LIFECYCLE session=\(lifecycleSessionID) event=\(event) main=\(onMain) state=\(state) " +
+      "controller=\(pip.map { ObjectIdentifier($0).debugDescription } ?? "nil") " +
+      "active=\(pip?.isPictureInPictureActive == true) possible=\(pip?.isPictureInPicturePossible == true) " +
+      "layer=\(layer.map { ObjectIdentifier($0).debugDescription } ?? "nil") " +
+      "layerAttached=\(layer?.superlayer != nil) sourceAttached=\(window != nil) " +
+      "sourceHidden=\(source?.isHidden == true) sourceAlpha=\(source?.alpha ?? -1) sourceBounds=\(sourceRect) " +
+      "player=\(player.map { ObjectIdentifier($0).debugDescription } ?? "nil") " +
+      "itemReady=\(itemReady) rate=\(player?.rate ?? -1) applicationState=\(UIApplication.shared.applicationState.rawValue)"
+    diagnosticSequence += 1
+    diagnosticEvents.append([
+      "variant": reuseVariant ? "B" : "A",
+      "attemptID": attemptGeneration,
+      "infrastructureID": infrastructureID,
+      "sequence": diagnosticSequence,
+      "timestampEpochMs": Int64(Date().timeIntervalSince1970 * 1000),
+      "uptimeSeconds": ProcessInfo.processInfo.systemUptime,
+      "runID": diagnosticRunID,
+      "sessionID": lifecycleSessionID,
+      "event": event,
+      "callbackController": candidate.map { ObjectIdentifier($0).debugDescription } ?? "none",
+      "currentController": controller.map { ObjectIdentifier($0).debugDescription } ?? "nil",
+      "callbackMatchesCurrent": candidate.map { $0 === controller } ?? false,
+      "item": item.map { ObjectIdentifier($0).debugDescription } ?? "nil",
+      "itemStatus": item?.status.rawValue ?? -1,
+      "layerReadyForDisplay": layer?.isReadyForDisplay ?? false,
+      "didRequestStart": didRequestStart,
+      "timedOutStart": timedOutStart,
+      "cooldownMs": remainingCooldownMs,
+      "message": message
+    ])
+    if diagnosticEvents.count > diagnosticCapacity {
+      let overflow = diagnosticEvents.count - diagnosticCapacity
+      diagnosticEvents.removeFirst(overflow)
+      diagnosticDropped += Int64(overflow)
+    }
+    NSLog("LyriKO PiP DIAGNOSTIC: %@", message)
+  }
+  private let restartCooldown: TimeInterval = 3.0
+  private var timedOutStart = false
   private var itemReady = false
   private var pipPossible = false
   private var didRequestStart = false
   private var audioPrevious: (AVAudioSession.Category, AVAudioSession.Mode, AVAudioSession.CategoryOptions)?
+  // The PiP asset is baked once before presentation. PiP playback no longer
+  // requires a live AVVideoComposition request while iOS is in the background.
+  private var encoding = false
+  private var encodingWriter: AVAssetWriter?
+  private var pendingEncodeResult: FlutterResult?
+  private var exportWaiters: [(Result<URL, Error>) -> Void] = []
+  private var exportingKey = ""
+  private var prewarmingKey = ""
+  private var preparedVideoURL: URL?
+  private var preparedVideoKey = ""
 
   // Lyric rendering is independent of AVPlayer's 60 FPS H.264 clock.
   // A single cached CIImage is reused for every decoded frame.
   private let lyricsLock = NSLock()
   private var lyricsFrame: CIImage?
-  private var lyricLines: [(text: String, start: Int, end: Int)] = []
+  private var lyricLines: [(text: String, start: Int, end: Int, sweep: [Double])] = []
   private var lyricTitle = ""
   private var lyricArtist = ""
   private var lyricPositionMs = 0
@@ -1229,8 +1366,466 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   private var lastRenderedHeading = ""
   private var lastRenderedText = ""
 
-  func start(result: @escaping FlutterResult) {
+  func getStatus(result: @escaping FlutterResult) {
     DispatchQueue.main.async {
+      result([
+        "supported": AVPictureInPictureController.isPictureInPictureSupported(),
+        "active": self.controller?.isPictureInPictureActive == true,
+        "opening": self.state == "preparing" || self.state == "starting",
+        "stopping": self.state == "stopping" || self.state == "timeout" || self.inRestartCooldown,
+        "cooldownMs": self.remainingCooldownMs,
+        "possible": self.controller?.isPictureInPicturePossible == true,
+        "controllerExists": self.controller != nil,
+        "startInvoked": self.didRequestStart,
+        "lastEvent": self.state,
+        "playerTimeMs": (self.player?.currentTime().seconds.isFinite == true) ? Int((self.player?.currentTime().seconds ?? 0) * 1000) : -1,
+        "playerRate": self.player?.rate ?? 0,
+        "timeControlStatus": self.player?.timeControlStatus.rawValue ?? -1,
+        "playerItemStatus": self.item?.status.rawValue ?? -1,
+        "audioTracks": self.item?.asset.tracks(withMediaType: .audio).count ?? 0,
+        "videoTracks": self.item?.asset.tracks(withMediaType: .video).count ?? 0,
+        "lyricPlaying": self.lyricPlaying,
+        "engine": "AVPlayerV2"
+      ])
+    }
+  }
+
+  private func videoCacheKey() -> String {
+    let payload = "avplayer-v2-direct-writer-15fps-retina-scale-fix-v3\n" + lyricLines.map { line in
+      "\(line.start)|\(line.end)|\(line.text)|\(line.sweep.map { String(describing: $0) }.joined(separator: ","))"
+    }.joined(separator: "\n")
+    let hash = SHA256.hash(data: Data(payload.utf8))
+    return hash.map { String(format: "%02x", $0) }.joined()
+  }
+
+  // A real audio track keeps the AVPlayer asset audiovisual. The audio
+  // contains digital silence; MY MUSIC remains the only audible player.
+  private func silentAudioAsset() throws -> AVURLAsset {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("lyriko_pip_silence_16000.wav")
+    if !FileManager.default.fileExists(atPath: url.path) {
+      let sampleRate: UInt32 = 16000
+      let dataSize: UInt32 = sampleRate * 2 // 1 second, 16-bit mono PCM
+      var bytes = Data()
+      func writeASCII(_ text: String) { bytes.append(contentsOf: text.utf8) }
+      func write16(_ value: UInt16) {
+        bytes.append(UInt8(truncatingIfNeeded: value))
+        bytes.append(UInt8(truncatingIfNeeded: value >> 8))
+      }
+      func write32(_ value: UInt32) {
+        for shift in stride(from: 0, through: 24, by: 8) {
+          bytes.append(UInt8(truncatingIfNeeded: value >> shift))
+        }
+      }
+      writeASCII("RIFF"); write32(36 + dataSize)
+      writeASCII("WAVEfmt "); write32(16)
+      write16(1); write16(1); write32(sampleRate)
+      write32(sampleRate * 2); write16(2); write16(16)
+      writeASCII("data"); write32(dataSize)
+      bytes.append(Data(count: Int(dataSize)))
+      try bytes.write(to: url, options: .atomic)
+    }
+    return AVURLAsset(url: url)
+  }
+
+  private func errorDetails(_ error: Error) -> String {
+    let ns = error as NSError
+    var detail = "\(ns.domain) (\(ns.code)): \(ns.localizedDescription); userInfo=\(ns.userInfo)"
+    if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? NSError {
+      detail += "; underlying=\(underlying.domain) (\(underlying.code)): \(underlying.localizedDescription)"
+    }
+    return detail
+  }
+
+  private func validateVideo(_ url: URL, completion: @escaping (Result<URL, Error>) -> Void) {
+    Task {
+      let outcome: Result<URL, Error>
+      do {
+        let asset = AVURLAsset(url: url)
+        let playable = try await asset.load(.isPlayable)
+        let duration = try await asset.load(.duration)
+        let videos = try await asset.loadTracks(withMediaType: .video)
+        let audios = try await asset.loadTracks(withMediaType: .audio)
+        guard playable, duration.seconds.isFinite, duration.seconds > 0,
+              !videos.isEmpty, !audios.isEmpty else {
+          throw NSError(domain: "LyrikoPiP", code: 57,
+            userInfo: [NSLocalizedDescriptionKey: "Invalid PiP asset: missing playable audio/video or usable duration"])
+        }
+        for track in videos + audios {
+          let trackPlayable = try await track.load(.isPlayable)
+          let range = try await track.load(.timeRange)
+          let formats = try await track.load(.formatDescriptions)
+          guard trackPlayable, range.duration.seconds.isFinite,
+                range.duration.seconds > 0, !formats.isEmpty else {
+            throw NSError(domain: "LyrikoPiP", code: 58,
+              userInfo: [NSLocalizedDescriptionKey: "Invalid PiP media track"])
+          }
+        }
+        outcome = .success(url)
+      } catch { outcome = .failure(error) }
+      DispatchQueue.main.async { completion(outcome) }
+    }
+  }
+
+  // Direct H.264/AAC generation. Rendering and encoding run outside the main
+  // queue, rather than replaying a 60 FPS placeholder through AVVideoComposition.
+  // 15 FPS is enough for a progressive text sweep and substantially reduces
+  // repeated typography work compared with the 60 FPS composition pipeline.
+  private func buildBakedVideo(completion: @escaping (Result<URL, Error>) -> Void) {
+    let key = videoCacheKey()
+    let manager = FileManager.default
+    let root = manager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+      .appendingPathComponent("LyriKOPiP", isDirectory: true)
+    do { try manager.createDirectory(at: root, withIntermediateDirectories: true) }
+    catch { completion(.failure(error)); return }
+    let finalURL = root.appendingPathComponent("lyriko_baked_\(key).mp4")
+    if encoding {
+      if exportingKey == key {
+        exportWaiters.append(completion)
+        log("joining ongoing direct-writer preparation")
+      } else {
+        completion(.failure(NSError(domain: "LyrikoPiP", code: 40,
+          userInfo: [NSLocalizedDescriptionKey: "Another lyric video is being prepared"])))
+      }
+      return
+    }
+    exportingKey = key
+    exportWaiters = [completion]
+    encoding = true
+
+    let url = root.appendingPathComponent(".lyriko-writing-\(UUID().uuidString).mp4")
+    let maxEnd = lyricLines.map(\.end).max() ?? 0
+    let seconds = min(45 * 60, max(60, maxEnd / 1000 + 10))
+    let frameRate = 15
+    let width = 640
+    let height = 360
+    let totalFrames = seconds * frameRate
+    let audioSampleRate = 16000
+    let audioPacketFrames = 16000
+    let queue = DispatchQueue(label: "com.lyriko.pip.writer", qos: .userInitiated)
+
+    func finish(_ outcome: Result<URL, Error>) {
+      let callbacks = self.exportWaiters
+      self.exportWaiters.removeAll()
+      self.exportingKey = ""
+      self.encoding = false
+      self.encodingWriter = nil
+      if case .failure(let error) = outcome {
+        self.log("video preparation failed: \(self.errorDetails(error))")
+        try? manager.removeItem(at: url)
+      }
+      for callback in callbacks { callback(outcome) }
+    }
+
+    func generate() {
+      do {
+        let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+        let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: [
+          AVVideoCodecKey: AVVideoCodecType.h264,
+          AVVideoWidthKey: width,
+          AVVideoHeightKey: height,
+          AVVideoCompressionPropertiesKey: [
+            AVVideoAverageBitRateKey: 900_000,
+            AVVideoExpectedSourceFrameRateKey: frameRate,
+            AVVideoMaxKeyFrameIntervalKey: frameRate * 2
+          ]
+        ])
+        videoInput.expectsMediaDataInRealTime = false
+        let attributes: [String: Any] = [
+          kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
+          kCVPixelBufferWidthKey as String: width,
+          kCVPixelBufferHeightKey as String: height,
+          kCVPixelBufferCGImageCompatibilityKey as String: true,
+          kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+          assetWriterInput: videoInput, sourcePixelBufferAttributes: attributes)
+        let audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: [
+          AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+          AVSampleRateKey: audioSampleRate,
+          AVNumberOfChannelsKey: 1,
+          AVEncoderBitRateKey: 24000
+        ])
+        audioInput.expectsMediaDataInRealTime = false
+        guard writer.canAdd(videoInput), writer.canAdd(audioInput) else {
+          throw NSError(domain: "LyrikoPiP", code: 51,
+            userInfo: [NSLocalizedDescriptionKey: "Could not configure H.264/AAC inputs"])
+        }
+        writer.add(videoInput)
+        writer.add(audioInput)
+        guard writer.startWriting() else {
+          throw writer.error ?? NSError(domain: "LyrikoPiP", code: 52,
+            userInfo: [NSLocalizedDescriptionKey: "AVAssetWriter could not start"])
+        }
+        writer.startSession(atSourceTime: .zero)
+        encodingWriter = writer
+        log("direct writer started; seconds=\(seconds), fps=\(frameRate), resolution=\(width)x\(height)")
+
+        var asbd = AudioStreamBasicDescription(
+          mSampleRate: Double(audioSampleRate),
+          mFormatID: kAudioFormatLinearPCM,
+          mFormatFlags: kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked,
+          mBytesPerPacket: 2, mFramesPerPacket: 1, mBytesPerFrame: 2,
+          mChannelsPerFrame: 1, mBitsPerChannel: 16,
+          mReserved: 0)
+        var audioDescription: CMAudioFormatDescription?
+        let formatStatus = CMAudioFormatDescriptionCreate(
+          allocator: kCFAllocatorDefault, asbd: &asbd,
+          layoutSize: 0, layout: nil, magicCookieSize: 0,
+          magicCookie: nil, extensions: nil,
+          formatDescriptionOut: &audioDescription)
+        guard formatStatus == noErr, let audioDescription else {
+          throw NSError(domain: "LyrikoPiP", code: 53,
+            userInfo: [NSLocalizedDescriptionKey: "Could not create silent audio format"])
+        }
+
+        func silentBuffer(at samplePosition: Int64, count: Int) -> CMSampleBuffer? {
+          let byteCount = count * 2
+          var block: CMBlockBuffer?
+          let blockStatus = CMBlockBufferCreateWithMemoryBlock(
+            allocator: kCFAllocatorDefault, memoryBlock: nil,
+            blockLength: byteCount, blockAllocator: kCFAllocatorDefault,
+            customBlockSource: nil, offsetToData: 0,
+            dataLength: byteCount, flags: 0, blockBufferOut: &block)
+          guard blockStatus == kCMBlockBufferNoErr, let block else { return nil }
+          guard CMBlockBufferFillDataBytes(with: 0, blockBuffer: block,
+            offsetIntoDestination: 0, dataLength: byteCount) == kCMBlockBufferNoErr else { return nil }
+          var timing = CMSampleTimingInfo(
+            duration: CMTime(value: 1, timescale: Int32(audioSampleRate)),
+            presentationTimeStamp: CMTime(value: samplePosition, timescale: Int32(audioSampleRate)),
+            decodeTimeStamp: .invalid)
+          var sampleSize: Int = 2
+          var sample: CMSampleBuffer?
+          let status = CMSampleBufferCreateReady(
+            allocator: kCFAllocatorDefault, dataBuffer: block,
+            formatDescription: audioDescription, sampleCount: count,
+            sampleTimingEntryCount: 1, sampleTimingArray: &timing,
+            sampleSizeEntryCount: 1, sampleSizeArray: &sampleSize,
+            sampleBufferOut: &sample)
+          return status == noErr ? sample : nil
+        }
+
+        let ciContext = CIContext(options: [.useSoftwareRenderer: false])
+        var frameIndex = 0
+        var audioPosition: Int64 = 0
+        let totalSamples = Int64(seconds * audioSampleRate)
+        var videoFinished = false
+        var audioFinished = false
+        var hasFinished = false
+        func finishIfReady() {
+          guard videoFinished && audioFinished && !hasFinished else { return }
+          hasFinished = true
+          writer.finishWriting {
+            DispatchQueue.main.async {
+              guard self.encodingWriter === writer else { return }
+              if writer.status == .completed {
+                self.validateVideo(url) { validation in
+                  // Finalization is over; the watchdog must not cancel validation.
+                  switch validation {
+                  case .success:
+                    do {
+                      // Both paths are in the same cache directory; rename publishes atomically.
+                      try manager.moveItem(at: url, to: finalURL)
+                      self.log("direct writer validated and published: \(finalURL.lastPathComponent)")
+                      finish(.success(finalURL))
+                    } catch { finish(.failure(error)) }
+                  case .failure(let error): finish(.failure(error))
+                  }
+                }
+              } else {
+                try? manager.removeItem(at: url)
+                finish(.failure(writer.error ?? NSError(domain: "LyrikoPiP", code: 54,
+                  userInfo: [NSLocalizedDescriptionKey: "Direct writer failed"])))
+              }
+            }
+          }
+        }
+        func failWriter(_ explanation: String) {
+          guard !hasFinished else { return }
+          hasFinished = true
+          writer.cancelWriting()
+          DispatchQueue.main.async {
+            guard self.encodingWriter === writer else { return }
+            try? manager.removeItem(at: url)
+            finish(.failure(writer.error ?? NSError(domain: "LyrikoPiP", code: 55,
+              userInfo: [NSLocalizedDescriptionKey: explanation])))
+          }
+        }
+
+        videoInput.requestMediaDataWhenReady(on: queue) {
+          while videoInput.isReadyForMoreMediaData && frameIndex < totalFrames && !hasFinished {
+            guard let pool = adaptor.pixelBufferPool else {
+              failWriter("Video pixel buffer pool is unavailable")
+              return
+            }
+            var pixel: CVPixelBuffer?
+            guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixel) == kCVReturnSuccess,
+                  let pixel else {
+              failWriter("Could not allocate a video frame")
+              return
+            }
+            let songMs = frameIndex * 1000 / frameRate
+            let drawing = self.imageForLyrics(at: songMs,
+              canvasSize: CGSize(width: width, height: height))
+            ciContext.render(drawing, to: pixel)
+            let time = CMTime(value: Int64(frameIndex), timescale: Int32(frameRate))
+            guard adaptor.append(pixel, withPresentationTime: time) else {
+              failWriter("Could not append H.264 frame")
+              return
+            }
+            frameIndex += 1
+          }
+          if frameIndex >= totalFrames && !videoFinished && !hasFinished {
+            videoFinished = true
+            videoInput.markAsFinished()
+            finishIfReady()
+          }
+        }
+        audioInput.requestMediaDataWhenReady(on: queue) {
+          while audioInput.isReadyForMoreMediaData && audioPosition < totalSamples && !hasFinished {
+            let count = min(audioPacketFrames, Int(totalSamples - audioPosition))
+            guard let sample = silentBuffer(at: audioPosition, count: count),
+                  audioInput.append(sample) else {
+              failWriter("Could not append silent AAC audio")
+              return
+            }
+            audioPosition += Int64(count)
+          }
+          if audioPosition >= totalSamples && !audioFinished && !hasFinished {
+            audioFinished = true
+            audioInput.markAsFinished()
+            finishIfReady()
+          }
+        }
+        // The watchdog protects the UI state but never turns a stalled export
+        // into a false success. The user can retry after the writer is cancelled.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 150) { [weak self, weak writer] in
+          guard let self, let writer, self.encodingWriter === writer, writer.status == .writing else { return }
+          self.log("direct writer watchdog expired")
+          writer.cancelWriting()
+          try? manager.removeItem(at: url)
+          finish(.failure(NSError(domain: "LyrikoPiP", code: 56,
+            userInfo: [NSLocalizedDescriptionKey: "Direct video preparation exceeded 150 seconds"])))
+        }
+      } catch {
+        finish(.failure(error))
+      }
+    }
+    if manager.fileExists(atPath: finalURL.path) {
+      validateVideo(finalURL) { validation in
+        switch validation {
+        case .success: finish(.success(finalURL))
+        case .failure(let error):
+          self.log("discarding invalid cached video: \(self.errorDetails(error))")
+          do { try manager.removeItem(at: finalURL); generate() }
+          catch { finish(.failure(error)) }
+        }
+      }
+    } else { generate() }
+  }
+
+  // Start rendering while the user is listening, not after pressing PiP.
+  // Multiple requests for the same song join one export.
+  func prepare(arguments: Any?, result: @escaping FlutterResult) {
+    update(arguments: arguments) { [weak self] updateResult in
+      guard let self else { result(false); return }
+      if updateResult is FlutterError { result(updateResult); return }
+      let key = self.videoCacheKey()
+      let attempt = self.attemptGeneration
+      self.buildBakedVideo { [weak self] output in
+        guard let self else { result(false); return }
+        switch output {
+        case .success(let url):
+          // Only promote the video if the same lyric payload is still selected.
+          if self.isCurrentAttempt(attempt), self.videoCacheKey() == key {
+            self.preparedVideoURL = url
+            self.preparedVideoKey = key
+            self.log("prewarmed lyric video ready")
+            // A completed prewarm is also a track update for an active PiP.
+            // Never keep showing the previous song after the payload changes.
+            self.replaceActivePiPItemIfNeeded(with: url, key: key)
+          }
+          result(true)
+        case .failure(let error):
+          self.log("prewarm failed: \(error.localizedDescription)")
+          result(FlutterError(code: "PIP_PREWARM", message: error.localizedDescription, details: nil))
+        }
+      }
+    }
+  }
+
+  // Swap only the AVPlayerItem, preserving the active PiP controller and layer.
+  // The new video must already be finalized, validated and correspond to the
+  // latest lyrics payload. No encoding or blocking work occurs here.
+  private var displayedVideoKey = ""
+
+  private func replaceActivePiPItemIfNeeded(with url: URL, key: String) {
+    guard state == "active", controller?.isPictureInPictureActive == true,
+          key == videoCacheKey(), displayedVideoKey != key,
+          let player = player else { return }
+    let attempt = attemptGeneration
+    let nextItem = AVPlayerItem(url: url)
+    let previousItem = item
+    itemObservation?.invalidate()
+    itemObservation = nil
+    if let observer = endObserver { NotificationCenter.default.removeObserver(observer) }
+    endObserver = nil
+    item = nextItem
+    displayedVideoKey = key
+    player.replaceCurrentItem(with: nextItem)
+    log("active PiP item replaced for new song")
+    itemObservation = nextItem.observe(\.status, options: [.initial, .new]) { [weak self] observed, _ in
+      DispatchQueue.main.async {
+        guard let self, self.isCurrentAttempt(attempt), self.item === observed else { return }
+        if observed.status == .failed {
+          self.log("replacement item failed: \(observed.error.map { self.errorDetails($0) } ?? "unknown")")
+          self.preparedVideoURL = nil
+          self.preparedVideoKey = ""
+        }
+      }
+    }
+    endObserver = NotificationCenter.default.addObserver(
+      forName: .AVPlayerItemDidPlayToEndTime, object: nextItem, queue: .main
+    ) { [weak self, weak player] _ in
+      guard let self, self.isCurrentAttempt(attempt), self.item === nextItem, let player else { return }
+      player.seek(to: .zero) { finished in
+        if finished && self.lyricPlaying {
+          DispatchQueue.main.async {
+            guard self.isCurrentAttempt(attempt), self.item === nextItem else { return }
+            player.playImmediately(atRate: 1.0)
+          }
+        }
+      }
+    }
+    let time = CMTime(seconds: Double(max(0, lyricPositionMs)) / 1000.0,
+                      preferredTimescale: 600)
+    player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak player] finished in
+      DispatchQueue.main.async {
+        guard let self, self.isCurrentAttempt(attempt), self.item === nextItem, finished, let player else { return }
+        if self.lyricPlaying { player.playImmediately(atRate: 1.0) }
+        else { player.pause() }
+      }
+    }
+    withExtendedLifetime(previousItem) {}
+  }
+
+  private var remainingCooldownMs: Int {
+    guard let lastStopAt else { return 0 }
+    return max(0, Int((restartCooldown - Date().timeIntervalSince(lastStopAt)) * 1000))
+  }
+
+  private var inRestartCooldown: Bool { remainingCooldownMs > 0 }
+
+  func start(result: @escaping FlutterResult) {
+    startValidated(result: result, validated: false)
+  }
+
+  private func startValidated(result: @escaping FlutterResult, validated: Bool, generation: UInt64? = nil) {
+    DispatchQueue.main.async {
+      if self.inRestartCooldown {
+        result(FlutterError(code: "PIP_COOLDOWN", message: "PiP is finishing its previous session", details: ["remainingMs": self.remainingCooldownMs]))
+        return
+      }
       guard AVPictureInPictureController.isPictureInPictureSupported() else {
         result(FlutterError(code: "PIP_UNSUPPORTED", message: "PiP unsupported", details: nil)); return
       }
@@ -1243,7 +1838,46 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
         .first(where: { $0.isKeyWindow }) else {
         result(FlutterError(code: "PIP_WINDOW", message: "No active window", details: nil)); return
       }
+      if let generation, !self.isCurrentAttempt(generation) {
+        result(FlutterError(code: "PIP_CANCELLED", message: "Stale PiP preparation", details: nil)); return
+      }
+      if generation == nil {
+        self.permanentDisposalPending = false
+        self.attemptGeneration += 1
+      }
+      let attempt = self.attemptGeneration
+      if !validated || self.preparedVideoURL == nil || self.preparedVideoKey != self.videoCacheKey() {
+        self.state = "preparing"
+        self.buildBakedVideo { [weak self] output in
+          guard let self else { return }
+          guard self.isCurrentAttempt(attempt) else {
+            result(FlutterError(code: "PIP_CANCELLED", message: "Stale PiP preparation", details: nil)); return
+          }
+          switch output {
+          case .success(let url):
+            self.preparedVideoURL = url
+            self.preparedVideoKey = self.videoCacheKey()
+            self.state = "idle"
+            self.startValidated(result: result, validated: true, generation: attempt)
+          case .failure(let error):
+            self.cleanup()
+            result(FlutterError(code: "PIP_EXPORT", message: error.localizedDescription, details: nil))
+          }
+        }
+        return
+      }
       do {
+        let reuse = self.reuseVariant && self.retainedAfterStop &&
+          self.controller != nil && self.player != nil &&
+          self.controller?.delegate === self &&
+          self.controller?.playerLayer === self.playerLayer &&
+          self.playerLayer?.player === self.player &&
+          self.sourceView?.window === window &&
+          self.playerLayer?.superlayer === self.sourceView?.layer
+        if self.retainedAfterStop && !reuse {
+          self.lifecycleTrace("reuse-fallback-invalid-infrastructure")
+          self.cleanup(invalidateAttempt: false)
+        }
         let audio = AVAudioSession.sharedInstance()
         // Discover runs an AVAudioEngine microphone tap with a playAndRecord
         // session. Switching to playback while that engine is running can
@@ -1259,61 +1893,93 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
           try audio.setActive(true)
           self.log("configured playback session for PiP")
         }
-        let clip = try self.videoURL()
-        let asset = AVURLAsset(url: clip)
-        let item = AVPlayerItem(asset: asset)
+        guard let bakedURL = self.preparedVideoURL else {
+          throw NSError(domain: "LyrikoPiP", code: 44,
+            userInfo: [NSLocalizedDescriptionKey: "Pre-encoded video missing"])
+        }
+        let item = AVPlayerItem(url: bakedURL)
         self.item = item
         // Observe the actual item directly. AVQueuePlayer + AVPlayerLooper
         // can replace currentItem before its observer is attached.
-        let player = AVPlayer(playerItem: item)
-        player.isMuted = true
+        let player = reuse ? self.player! : AVPlayer(playerItem: item)
+        if reuse { player.replaceCurrentItem(with: item) }
+        self.item = item
+        self.retainedAfterStop = false
+        // Do not mute AVPlayer: an audio-less/muted PiP timeline can be
+        // suspended in the background. The embedded PCM track is silent.
+        player.isMuted = false
+        player.volume = 1.0
+        player.automaticallyWaitsToMinimizeStalling = false
         player.actionAtItemEnd = .none
         self.player = player
         self.endObserver = NotificationCenter.default.addObserver(
           forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
         ) { [weak self] _ in
-          guard let self, self.item === item else { return }
+          guard let self, self.isCurrentAttempt(attempt), self.item === item else { return }
           player.seek(to: .zero) { finished in
-            if finished { DispatchQueue.main.async { player.play() } }
+            if finished { DispatchQueue.main.async {
+              guard self.isCurrentAttempt(attempt), self.item === item else { return }
+              player.playImmediately(atRate: 1.0)
+            } }
           }
         }
 
-        let width: CGFloat = 112, height: CGFloat = 63
-        let source = UIView(frame: CGRect(x: max(8, window.bounds.width - width - 12),
-          y: window.safeAreaInsets.top + 72, width: width, height: height))
-        source.backgroundColor = .black
-        source.clipsToBounds = true
-        source.layer.cornerRadius = 8
-        source.isUserInteractionEnabled = false
-        window.addSubview(source)
-        self.sourceView = source
-        let layer = AVPlayerLayer(player: player)
-        layer.frame = source.bounds
-        layer.videoGravity = .resizeAspect
-        source.layer.addSublayer(layer)
-        self.playerLayer = layer
+        if !reuse {
+          let width: CGFloat = 48, height: CGFloat = 27
+          let source = UIView(frame: CGRect(x: max(8, window.bounds.width - width - 12),
+            y: window.safeAreaInsets.top + 72, width: width, height: height))
+          source.backgroundColor = .clear
+          source.alpha = 0.02
+          source.clipsToBounds = true
+          source.layer.cornerRadius = 8
+          source.isUserInteractionEnabled = false
+          window.addSubview(source)
+          self.sourceView = source
+          let layer = AVPlayerLayer(player: player)
+          layer.frame = source.bounds
+          layer.videoGravity = .resizeAspect
+          source.layer.addSublayer(layer)
+          self.playerLayer = layer
 
-        guard let pip = AVPictureInPictureController(playerLayer: layer) else {
-          throw NSError(domain: "LyrikoPiP", code: 2,
-            userInfo: [NSLocalizedDescriptionKey: "Unable to create AVPlayer PiP controller"])
+          guard let pip = AVPictureInPictureController(playerLayer: layer) else {
+            throw NSError(domain: "LyrikoPiP", code: 2,
+              userInfo: [NSLocalizedDescriptionKey: "Unable to create AVPlayer PiP controller"])
+          }
+          pip.delegate = self
+          pip.canStartPictureInPictureAutomaticallyFromInline = false
+          self.controller = pip
+          self.infrastructureID = UUID().uuidString
         }
-        pip.delegate = self
-        pip.canStartPictureInPictureAutomaticallyFromInline = false
-        self.controller = pip
+        if reuse, let source = self.sourceView {
+          source.frame.origin = CGPoint(x: max(8, window.bounds.width - 48 - 12),
+            y: window.safeAreaInsets.top + 72)
+        }
+        guard let pip = self.controller else { return }
+        self.lifecycleSessionNumber += 1
+        self.lifecycleSessionID = String(self.lifecycleSessionNumber)
+        self.lifecycleTrace(reuse ? "infrastructure-reused" : "created", controller: pip)
         self.state = "preparing"
         self.pendingResult = result
-        self.log("preparing; video bytes=\((try? Data(contentsOf: clip).count) ?? -1)")
+        self.log("preparing; video bytes=\((try? Data(contentsOf: bakedURL).count) ?? -1)")
 
         self.itemObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] observed, _ in
           DispatchQueue.main.async {
-            guard let self, self.item === observed else { return }
+            guard let self, self.isCurrentAttempt(attempt), self.item === observed else { return }
             switch observed.status {
             case .readyToPlay:
               self.itemReady = true
               self.log("AVPlayerItem readyToPlay; duration=\(CMTimeGetSeconds(observed.duration))")
               self.tryStart()
             case .failed:
-              self.fail("AVPlayerItem failed: \(observed.error?.localizedDescription ?? "unknown")")
+              let details = observed.error.map { self.errorDetails($0) } ?? "unknown error"
+              let events = observed.errorLog()?.events.map {
+                "domain=\($0.errorDomain) code=\($0.errorStatusCode) comment=\($0.errorComment ?? "none") uri=\($0.uri ?? "none")"
+              }.joined(separator: "; ") ?? "none"
+              self.preparedVideoURL = nil
+              self.preparedVideoKey = ""
+              do { try FileManager.default.removeItem(at: bakedURL) }
+              catch { self.log("failed cache invalidation: \(self.errorDetails(error))") }
+              self.fail("AVPlayerItem failed: \(details); errorLog=\(events)")
             default:
               self.log("AVPlayerItem unknown (loading)")
             }
@@ -1321,28 +1987,46 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
         }
         self.playbackObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] observed, _ in
           DispatchQueue.main.async {
-            guard let self, self.player === observed else { return }
+            guard let self, self.isCurrentAttempt(attempt), self.player === observed else { return }
             self.log("player timeControlStatus=\(observed.timeControlStatus.rawValue); reason=\(observed.reasonForWaitingToPlay?.rawValue ?? "none")")
           }
         }
         self.possibleObservation = pip.observe(\.isPictureInPicturePossible, options: [.initial, .new]) { [weak self] observed, _ in
           DispatchQueue.main.async {
-            guard let self, self.controller === observed else { return }
+            guard let self, self.isCurrentAttempt(attempt), self.controller === observed else { return }
             self.pipPossible = observed.isPictureInPicturePossible
             self.log("PiP possible=\(self.pipPossible)")
             self.tryStart()
           }
         }
-        player.play()
+        player.seek(to: CMTime(value: CMTimeValue(max(0, self.lyricPositionMs)), timescale: 1000)) { [weak self, weak player] _ in
+          DispatchQueue.main.async {
+            guard let self, self.isCurrentAttempt(attempt), self.item === item else { return }
+            player?.playImmediately(atRate: 1.0)
+          }
+        }
         self.startTimeout = Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { [weak self] _ in
-          guard let self, self.pendingResult != nil else { return }
+          guard let self, self.isCurrentAttempt(attempt), self.pendingResult != nil else { return }
           let error = self.item?.error?.localizedDescription ?? "none"
           let msg = "AVPlayer PiP timeout (state: \(self.state), itemStatus: \(self.item?.status.rawValue ?? -1), ready: \(self.itemReady), possible: \(self.pipPossible), active: \(self.controller?.isPictureInPictureActive == true), itemError: \(error))"
           self.log(msg)
+          self.lifecycleTrace("timeout", controller: pip)
+          self.timedOutStart = true
+          self.state = "timeout"
           self.complete(FlutterError(code: "PIP_TIMEOUT", message: msg, details: nil))
-          if self.state == "preparing" { self.cleanup() }
-          // If iOS is already starting, await its delegate instead of tearing
-          // down a live transition. The logs identify this separately.
+          // Do not leave the controller indefinitely in `starting` after
+          // a timed-out AVKit start. Allow a brief late callback, then release.
+          DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self, weak pip] in
+            guard let self, self.isCurrentAttempt(attempt), self.controller === pip, self.timedOutStart else { return }
+            self.lifecycleTrace("timeout-recovery", controller: pip)
+            if pip?.isPictureInPictureActive == true {
+              self.state = "stopping"
+              pip?.stopPictureInPicture()
+            } else {
+              self.log("timeout recovery: releasing inactive PiP controller")
+              self.cleanup()
+            }
+          }
         }
       } catch {
         self.log("setup error: \(error.localizedDescription)")
@@ -1352,33 +2036,182 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
     }
   }
 
-  // Attach lyrics only after the stable H.264 player has entered PiP.
-  // This avoids changing AVPlayerItem readiness / PiP eligibility during startup.
+  // AVPlayer V2 phase 1: the video compositor uses the AVPlayer frame clock.
+  // No Timer is needed for lyric progression when Flutter is suspended.
+  private var lyricAnchorVideoMs = 0
+  private var lyricAnchorSongMs = 0
+  private var lyricAnchorPlaying = false
+
   private func enableLyricsRendering() {
     guard let item = item, item.videoComposition == nil else { return }
-    let asset = item.asset
-    let composition = AVVideoComposition(asset: asset) { [weak self] request in
+    let composition = AVVideoComposition(asset: item.asset) { [weak self] request in
       guard let self else {
         request.finish(with: request.sourceImage, context: nil)
         return
       }
-      self.lyricsLock.lock()
-      let overlay = self.lyricsFrame
-      self.lyricsLock.unlock()
-      let background = request.sourceImage
-      if let overlay {
-        request.finish(with: overlay.composited(over: background).cropped(to: background.extent), context: nil)
-      } else {
-        request.finish(with: background, context: nil)
+      let videoMs = Int((CMTimeGetSeconds(request.compositionTime) * 1000).rounded())
+      let position = self.positionForVideoFrame(videoMs)
+      let overlay = self.imageForLyrics(at: position, canvasSize: request.sourceImage.extent.size)
+      // The UIImage renderer already produces correctly oriented CGImage pixels.
+      // Normalize the CIImage to the actual video frame, rather than assuming
+      // an origin of (0, 0) or inheriting the sample's orientation.
+      let bounds = request.sourceImage.extent
+      let drawingBounds = overlay.extent
+      guard bounds.width > 0, bounds.height > 0,
+            drawingBounds.width > 0, drawingBounds.height > 0 else {
+        request.finish(with: request.sourceImage, context: nil)
+        return
       }
+      let normalized = overlay
+        .transformed(by: CGAffineTransform(
+          translationX: -drawingBounds.minX, y: -drawingBounds.minY))
+        .transformed(by: CGAffineTransform(
+          scaleX: bounds.width / drawingBounds.width,
+          y: bounds.height / drawingBounds.height))
+        .transformed(by: CGAffineTransform(
+          translationX: bounds.minX, y: bounds.minY))
+      // The lyric image is opaque, so it replaces the placeholder video frame.
+      // Avoid compositing onto the source's mismatched pixel orientation.
+      request.finish(with: normalized.cropped(to: bounds), context: nil)
     }
     item.videoComposition = composition
-    log("lyrics compositor attached after PiP didStart")
-    refreshLyricsFrame(force: true)
-    lyricRefreshTimer?.invalidate()
-    lyricRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.20, repeats: true) { [weak self] _ in
-      self?.refreshLyricsFrame(force: false)
+    resetVideoClockAnchor()
+    log("AVPlayer V2 compositor attached; lyrics use video timestamps")
+  }
+
+  private func resetVideoClockAnchor() {
+    let seconds = player.map { CMTimeGetSeconds($0.currentTime()) } ?? 0
+    lyricAnchorVideoMs = seconds.isFinite ? Int(seconds * 1000) : 0
+    lyricAnchorSongMs = lyricPositionMs
+    lyricAnchorPlaying = lyricPlaying
+  }
+
+  private func positionForVideoFrame(_ videoMs: Int) -> Int {
+    lyricsLock.lock()
+    defer { lyricsLock.unlock() }
+    let delta = videoMs - lyricAnchorVideoMs
+    return max(0, lyricAnchorSongMs + (lyricAnchorPlaying ? delta : 0))
+  }
+
+  private func imageForLyrics(at position: Int, canvasSize rawCanvasSize: CGSize? = nil) -> CIImage {
+    lyricsLock.lock()
+    let lines = lyricLines
+    lyricsLock.unlock()
+    let index = lines.lastIndex(where: { $0.start <= position }) ?? 0
+    let current = lines.indices.contains(index) ? lines[index].text : "Waiting for synced lyrics…"
+    let previous = lines.indices.contains(index - 1) ? lines[index - 1].text : ""
+    let next = lines.indices.contains(index + 1) ? lines[index + 1].text : ""
+    var progress = 0.0
+    if lines.indices.contains(index) {
+      let line = lines[index]
+      let duration = max(1, line.end - line.start)
+      let fraction = max(0, min(1, Double(position - line.start) / Double(duration)))
+      if line.sweep.count > 1 {
+        let scaled = fraction * Double(line.sweep.count - 1)
+        let low = min(line.sweep.count - 1, Int(scaled))
+        let high = min(line.sweep.count - 1, low + 1)
+        progress = line.sweep[low] + (line.sweep[high] - line.sweep[low]) * (scaled - Double(low))
+      } else { progress = fraction }
+      progress = max(0, min(1, progress))
     }
+    let fallback = CGSize(width: 1280, height: 720)
+    let requested = rawCanvasSize ?? fallback
+    let minCanvas = CGSize(width: max(640, requested.width), height: max(360, requested.height))
+    let size = minCanvas
+    // The video writer expects exactly 640x360 pixels. UIKit's default Retina
+    // scale would produce a 2x/3x larger CIImage and crop it into the frame.
+    let videoFormat = UIGraphicsImageRendererFormat.default()
+    videoFormat.scale = 1.0
+    let renderer = UIGraphicsImageRenderer(size: size, format: videoFormat)
+    let image = renderer.image { context in
+      let bg = CGRect(origin: .zero, size: size)
+      UIColor(red: 0.055, green: 0.045, blue: 0.11, alpha: 0.96).setFill()
+      let bgPath = UIBezierPath(roundedRect: bg, cornerRadius: max(14, size.height * 0.06))
+      bgPath.fill()
+
+      let sideInset = max(28, size.width * 0.075)
+      let blockWidth = size.width - sideInset * 2
+      let prevY = size.height * 0.14
+      let currentY = size.height * 0.34
+      let nextY = size.height * 0.70
+      let prevHeight = size.height * 0.16
+      let currentHeight = size.height * 0.28
+      let nextHeight = size.height * 0.16
+
+      func fontToFit(_ value: String, base: CGFloat, min: CGFloat, rect: CGRect, weight: UIFont.Weight) -> UIFont {
+        var size = base
+        while size > min {
+          let font = UIFont.systemFont(ofSize: size, weight: weight)
+          let style = NSMutableParagraphStyle()
+          style.alignment = .center
+          style.lineBreakMode = .byWordWrapping
+          let bounds = (value as NSString).boundingRect(
+            with: CGSize(width: rect.width, height: CGFloat.greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font, .paragraphStyle: style],
+            context: nil
+          )
+          if bounds.height <= rect.height { return font }
+          size -= 2
+        }
+        return UIFont.systemFont(ofSize: min, weight: weight)
+      }
+
+      func draw(_ value: String, rect: CGRect, baseFontSize: CGFloat, minFontSize: CGFloat,
+                alpha: CGFloat, weight: UIFont.Weight, progress: Double? = nil) {
+        guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let style = NSMutableParagraphStyle()
+        style.alignment = .center
+        style.lineBreakMode = .byWordWrapping
+        let font = fontToFit(value, base: baseFontSize, min: minFontSize, rect: rect, weight: weight)
+        let base: [NSAttributedString.Key: Any] = [
+          .font: font,
+          .foregroundColor: UIColor.white.withAlphaComponent(progress == nil ? alpha : 0.30),
+          .paragraphStyle: style
+        ]
+        (value as NSString).draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: base, context: nil)
+        if let progress, progress > 0 {
+          let bounds = (value as NSString).boundingRect(
+            with: CGSize(width: rect.width, height: CGFloat.greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font, .paragraphStyle: style],
+            context: nil
+          )
+          let visibleWidth = min(rect.width, bounds.width)
+          let visibleHeight = min(rect.height, max(bounds.height, font.lineHeight))
+          let left = rect.midX - visibleWidth / 2
+          let top = rect.minY + (rect.height - visibleHeight) / 2
+          let clip = CGRect(x: left, y: top, width: visibleWidth * progress, height: visibleHeight)
+          context.cgContext.saveGState()
+          context.cgContext.clip(to: clip)
+          var bright = base
+          bright[.foregroundColor] = UIColor.white
+          (value as NSString).draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: bright, context: nil)
+          context.cgContext.restoreGState()
+        }
+      }
+      draw(previous,
+           rect: CGRect(x: sideInset, y: prevY, width: blockWidth, height: prevHeight),
+           baseFontSize: max(28, size.height * 0.085),
+           minFontSize: 18,
+           alpha: 0.42,
+           weight: .regular)
+      draw(current,
+           rect: CGRect(x: sideInset, y: currentY, width: blockWidth, height: currentHeight),
+           baseFontSize: max(42, size.height * 0.155),
+           minFontSize: 24,
+           alpha: 1,
+           weight: .bold,
+           progress: progress)
+      draw(next,
+           rect: CGRect(x: sideInset, y: nextY, width: blockWidth, height: nextHeight),
+           baseFontSize: max(28, size.height * 0.085),
+           minFontSize: 18,
+           alpha: 0.42,
+           weight: .regular)
+    }
+    guard let cg = image.cgImage else { return CIImage(color: .black).cropped(to: CGRect(origin: .zero, size: size)) }
+    return CIImage(cgImage: cg)
   }
 
   private func tryStart() {
@@ -1387,11 +2220,13 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
     didRequestStart = true
     state = "starting"
     log("startPictureInPicture (item ready + PiP possible)")
+    lifecycleTrace("start-called", controller: pip)
     pip.startPictureInPicture()
   }
 
   func stop(result: @escaping FlutterResult) {
     DispatchQueue.main.async {
+      self.lifecycleTrace("stop-request")
       guard let pip = self.controller else { result(true); return }
       if pip.isPictureInPictureActive {
         self.state = "stopping"
@@ -1408,11 +2243,15 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   }
 
   func update(arguments: Any?, result: @escaping FlutterResult) {
+    let attempt = attemptGeneration
     DispatchQueue.main.async {
+      guard self.attemptGeneration == attempt else { result(true); return }
       guard let data = arguments as? [String: Any] else {
         result(FlutterError(code: "PIP_DATA", message: "Invalid lyrics state", details: nil))
         return
       }
+      self.lyricsLock.lock()
+      defer { self.lyricsLock.unlock() }
       if let title = data["title"] as? String { self.lyricTitle = title }
       if let artist = data["artist"] as? String { self.lyricArtist = artist }
       if let raw = data["lines"] as? [[String: Any]] {
@@ -1420,7 +2259,7 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
           guard let text = entry["text"] as? String,
                 let start = (entry["startMs"] as? NSNumber)?.intValue,
                 let end = (entry["endMs"] as? NSNumber)?.intValue else { return nil }
-          return (text: text, start: start, end: end)
+          return (text: text, start: start, end: end, sweep: (entry["sweepSamples"] as? [NSNumber])?.map { $0.doubleValue } ?? [])
         }
       }
       if let position = (data["positionMs"] as? NSNumber)?.intValue {
@@ -1428,7 +2267,24 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
       }
       if let playing = data["playing"] as? Bool { self.lyricPlaying = playing }
       self.lyricUpdatedAt = Date()
-      self.refreshLyricsFrame(force: false)
+      if let player = self.player, !self.retainedAfterStop {
+        // AVPlayer is the authoritative video clock. A normal Flutter progress
+        // update MUST NOT seek: periodic seeks were pulling the video backwards
+        // after Flutter was suspended, causing the lyric sweep to loop.
+        if data["seekRequested"] as? Bool == true {
+          let desired = Double(max(0, self.lyricPositionMs)) / 1000
+          player.seek(to: CMTime(seconds: desired, preferredTimescale: 600),
+                      toleranceBefore: .zero, toleranceAfter: .zero)
+        }
+        // Do not restart the player every time Flutter reports progress.
+        if self.lyricPlaying {
+          if player.rate == 0 && self.state != "stopping" {
+            player.playImmediately(atRate: 1.0)
+          }
+        } else if player.rate != 0 {
+          player.pause()
+        }
+      }
       result(true)
     }
   }
@@ -2705,12 +3561,16 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
   }
 
   private func log(_ message: String) {
+    lifecycleTrace("log: \(message)")
     NSLog("Lyriko PiP v12.3: %@", message)
     eventChannel?.invokeMethod("pipState", arguments: ["state": state, "message": message])
   }
 
-  private func cleanup() {
+  private func cleanup(invalidateAttempt: Bool = true, retainInfrastructure: Bool = false) {
     guard controller?.isPictureInPictureActive != true else { return }
+    if invalidateAttempt { attemptGeneration += 1 }
+    retainedAfterStop = false
+    lifecycleTrace("cleanup-before")
     startTimeout?.invalidate(); startTimeout = nil
     lyricRefreshTimer?.invalidate(); lyricRefreshTimer = nil
     lyricsLock.lock(); lyricsFrame = nil; lyricsLock.unlock()
@@ -2720,60 +3580,109 @@ private final class IOSLyricsVideoPiPTest: NSObject, AVPictureInPictureControlle
     playbackObservation?.invalidate(); playbackObservation = nil
     if let observer = endObserver { NotificationCenter.default.removeObserver(observer) }
     endObserver = nil
-    controller?.delegate = nil
-    controller = nil
+    if !retainInfrastructure {
+      controller?.delegate = nil
+      controller = nil
+    }
     player?.pause()
     player?.replaceCurrentItem(with: nil)
-    player = nil
+    if !retainInfrastructure { player = nil }
     item = nil
-    playerLayer?.removeFromSuperlayer()
-    playerLayer = nil
-    sourceView?.removeFromSuperview()
-    sourceView = nil
+    displayedVideoKey = ""
+    if !retainInfrastructure {
+      playerLayer?.removeFromSuperlayer()
+      playerLayer = nil
+      sourceView?.removeFromSuperview()
+      sourceView = nil
+    }
+    retainedAfterStop = retainInfrastructure
     if let previous = audioPrevious {
       try? AVAudioSession.sharedInstance().setCategory(previous.0, mode: previous.1, options: previous.2)
     }
     audioPrevious = nil
     itemReady = false; pipPossible = false; didRequestStart = false
     state = "idle"
-    log("idle (cleaned up)")
+    timedOutStart = false
+    lastStopAt = Date()
+    lifecycleTrace("cleanup-after")
+    if retainInfrastructure { lifecycleTrace("retained-after-normal-stop") }
+    log("idle (cleaned up; PiP restart cooldown active)")
+  }
+
+  func pictureInPictureControllerWillStartPictureInPicture(_ pip: AVPictureInPictureController) {
+    lifecycleTrace("willStart", controller: pip)
   }
 
   func pictureInPictureControllerDidStartPictureInPicture(_ pip: AVPictureInPictureController) {
+    lifecycleTrace("didStart", controller: pip)
     guard controller === pip else { return }
+    if reuseVariant && state != "starting" && state != "timeout" && !permanentDisposalPending { return }
+    if permanentDisposalPending {
+      state = "stopping"
+      pip.stopPictureInPicture()
+      return
+    }
+    if timedOutStart {
+      log("late didStart after timeout; closing stale PiP session")
+      state = "stopping"
+      pip.stopPictureInPicture()
+      return
+    }
+    let attempt = attemptGeneration
     state = "active"
+    displayedVideoKey = preparedVideoKey
     log("didStart")
     complete()
     // Defer to the next runloop so PiP's initial AVPlayer transition completes.
     DispatchQueue.main.async { [weak self] in
-      guard let self, self.state == "active", self.controller === pip else { return }
-      self.enableLyricsRendering()
+      guard let self, self.isCurrentAttempt(attempt), self.state == "active", self.controller === pip else { return }
+      // Restore the video timeline after AVKit hands playback to PiP.
+      // A stopped video clock means baked frames cannot advance in background.
+      if let player = self.player {
+        let desired = CMTime(seconds: Double(max(0, self.lyricPositionMs)) / 1000.0, preferredTimescale: 600)
+        player.seek(to: desired, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+          DispatchQueue.main.async {
+            guard self.isCurrentAttempt(attempt), self.player === player, self.controller === pip else { return }
+            if self.lyricPlaying { player.playImmediately(atRate: 1.0) }
+            self.log("aligned AVPlayer clock after PiP didStart")
+          }
+        }
+      }
+      self.log("baked video already contains lyrics; no live compositor")
     }
   }
 
   func pictureInPictureControllerWillStopPictureInPicture(_ pip: AVPictureInPictureController) {
+    lifecycleTrace("willStop", controller: pip)
     guard controller === pip else { return }
+    if reuseVariant && state != "active" && state != "starting" && state != "stopping" { return }
     state = "stopping"
     log("willStop")
   }
 
   func pictureInPictureControllerDidStopPictureInPicture(_ pip: AVPictureInPictureController) {
+    lifecycleTrace("didStop", controller: pip)
     guard controller === pip else { return }
+    if reuseVariant && state != "stopping" { return }
     log("didStop")
     if pendingResult != nil {
       complete(FlutterError(code: "PIP_STOPPED", message: "PiP stopped before starting", details: nil))
     }
-    cleanup()
+    cleanup(retainInfrastructure: reuseVariant && !permanentDisposalPending && !timedOutStart)
   }
 
   func pictureInPictureController(_ pip: AVPictureInPictureController,
     failedToStartPictureInPictureWithError error: Error) {
+    lifecycleTrace("failedToStart \(errorDetails(error))", controller: pip)
     guard controller === pip else { return }
+    if reuseVariant && state != "starting" && state != "preparing" && state != "timeout" { return }
     fail("AVPlayer failedToStart: \(error.localizedDescription)")
   }
 
   func pictureInPictureController(_ pip: AVPictureInPictureController,
     restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+    lifecycleTrace("restore-ui", controller: pip)
     completionHandler(true)
+    lifecycleTrace("restore-ui-completed-true", controller: pip)
   }
 }
